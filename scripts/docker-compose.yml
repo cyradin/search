@@ -1,0 +1,19 @@
+version: "3.7"
+
+services:
+  go:
+    container_name: "cyradin-search"
+    user: "${USER_ID}:${GROUP_ID}"
+    image: cyradin/go:1.17
+    volumes:
+      - "../:/home/user/app:rw"
+      - "cyradin-search-go-pkg:/go/pkg:rw"
+      - "cyradin-search-go-bin:/go/bin:rw"
+    environment:
+      - "GOPRIVATE=github.com/crypto-prophet/*"
+
+volumes:
+  cyradin-search-go-pkg:
+    driver: local
+  cyradin-search-go-bin:
+    driver: local

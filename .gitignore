@@ -1,0 +1,7 @@
+scripts/docker-compose.override.yml
+
+vendor
+
+# Local env files
+.env.local
+.env.*.local
