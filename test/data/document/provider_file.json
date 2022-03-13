@@ -1,0 +1,16 @@
+[
+    {
+        "id": "1",
+        "name": "foo",
+        "properties": {
+            "colors": ["red", "blue"]
+        }
+    },
+    {
+        "id": "2",
+        "name": "bar",
+        "properties": {
+            "colors": ["red", "green"]
+        }
+    }
+]
