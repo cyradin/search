@@ -8,7 +8,7 @@ import (
 // Provider document provider interface
 type Provider interface {
 	// All get all documents one-by-one
-	All() <-chan Document
+	All() (<-chan Document, <-chan error)
 	// One get one document by ID
 	One(id string) (Document, error)
 	// Multi get multiple documents by IDs
@@ -32,9 +32,26 @@ func NewFileProvider(src string, idField string) *FileProvider {
 	}
 }
 
-func (p *FileProvider) All() <-chan Document {
-	// @todo
-	return nil
+func (p *FileProvider) All() (<-chan Document, <-chan error) {
+	ch := make(chan Document)
+	errors := make(chan error)
+
+	go func() {
+		defer close(ch)
+		defer close(errors)
+
+		docs, err := p.read()
+		if err != nil {
+			errors <- err
+			return
+		}
+
+		for _, doc := range docs {
+			ch <- doc
+		}
+	}()
+
+	return ch, errors
 }
 
 func (p *FileProvider) One(id string) (Document, error) {

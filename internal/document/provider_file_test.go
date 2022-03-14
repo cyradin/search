@@ -27,6 +27,56 @@ var testDoc2 = Document{
 	},
 }
 
+func Test_FileProvider_All(t *testing.T) {
+	data := []struct {
+		name      string
+		file      string
+		expected  []Document
+		erroneous bool
+	}{
+		{
+			name:      "invalid_file",
+			file:      "invalid",
+			erroneous: true,
+		},
+		{
+			name:      "ok",
+			file:      "../../test/data/document/provider_file.json",
+			erroneous: false,
+			expected:  []Document{testDoc1, testDoc2},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			p := NewFileProvider(d.file, "id")
+			docs, errors := p.All()
+
+			var err error
+			var result []Document
+			a := func() {
+				for {
+					select {
+					case err = <-errors:
+						return
+					case doc := <-docs:
+						result = append(result, doc)
+					}
+				}
+			}
+			a()
+
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+			require.Equal(t, d.expected, result)
+		})
+	}
+}
+
 func Test_FileProvider_One(t *testing.T) {
 	data := []struct {
 		name      string
