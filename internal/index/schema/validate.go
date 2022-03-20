@@ -1,44 +1,15 @@
-package index
+package schema
 
-import "fmt"
+import (
+	"fmt"
 
-type Type string
-
-const (
-	Keyword Type = "keyword"
-	Text    Type = "text"
-	Bool    Type = "bool"
-	Slice   Type = "slice"
-	Map     Type = "map"
+	"github.com/cyradin/search/internal/index/field"
 )
 
-func (t Type) Valid() bool {
-	return t == Keyword || t == Text || t == Bool || t == Slice || t == Map
-}
-
-type Field struct {
-	Name     string
-	Type     Type
-	Source   string
-	Required bool
-
-	Children []Field
-}
-
-type Schema struct {
-	Fields []Field
-}
-
-func NewSchema(fields []Field) *Schema {
-	return &Schema{
-		Fields: fields,
-	}
-}
-
-func (s *Schema) Validate() error {
+func Validate(s *Schema) error {
 	names := make(map[string]struct{})
 	for _, f := range s.Fields {
-		err := s.validateField(f, "")
+		err := validateField(f, "")
 		if err != nil {
 			return err
 		}
@@ -52,7 +23,7 @@ func (s *Schema) Validate() error {
 	return nil
 }
 
-func (s *Schema) validateField(f Field, path string) error {
+func validateField(f Field, path string) error {
 	if f.Name == "" {
 		return fmt.Errorf("field name cannot be empty")
 	}
@@ -69,17 +40,17 @@ func (s *Schema) validateField(f Field, path string) error {
 		return fmt.Errorf("invalid field %q type %q", path, f.Type)
 	}
 	if len(f.Children) != 0 {
-		if f.Type != Slice && f.Type != Map {
+		if f.Type != field.TypeSlice && f.Type != field.TypeMap {
 			return fmt.Errorf("field %q type %q cannot have children types", path, f.Type)
 		}
 
 		for _, child := range f.Children {
-			err := s.validateField(child, path)
+			err := validateField(child, path)
 			if err != nil {
 				return err
 			}
 		}
-	} else if f.Type == Slice || f.Type == Map {
+	} else if f.Type == field.TypeSlice || f.Type == field.TypeMap {
 		return fmt.Errorf("field %q type %q must have children defined", path, f.Type)
 	}
 
