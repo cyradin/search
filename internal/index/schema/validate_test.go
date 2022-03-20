@@ -1,12 +1,13 @@
-package index
+package schema
 
 import (
 	"testing"
 
+	"github.com/cyradin/search/internal/index/field"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Schema_Validate(t *testing.T) {
+func Test_Validate(t *testing.T) {
 	data := []struct {
 		name   string
 		fields []Field
@@ -15,43 +16,43 @@ func Test_Schema_Validate(t *testing.T) {
 		{
 			name: "empty_name",
 			fields: []Field{
-				{Source: "src", Type: Keyword},
+				{Source: "src", Type: field.TypeKeyword},
 			},
 			valid: false,
 		},
 		{
 			name: "duplicate_name",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Keyword},
-				{Name: "name", Source: "src", Type: Keyword},
+				{Name: "name", Source: "src", Type: field.TypeKeyword},
+				{Name: "name", Source: "src", Type: field.TypeKeyword},
 			},
 			valid: false,
 		},
 		{
 			name: "empty_type",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Type("invalid")},
+				{Name: "name", Source: "src", Type: field.Type("invalid")},
 			},
 			valid: false,
 		},
 		{
 			name: "empty_source",
 			fields: []Field{
-				{Name: "name", Source: "", Type: Keyword},
+				{Name: "name", Source: "", Type: field.TypeKeyword},
 			},
 			valid: false,
 		},
 		{
 			name: "invalid_type",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Type("invalid")},
+				{Name: "name", Source: "src", Type: field.Type("invalid")},
 			},
 			valid: false,
 		},
 		{
 			name: "type_cannot_have_child_types",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Bool, Children: []Field{
+				{Name: "name", Source: "src", Type: field.TypeBool, Children: []Field{
 					{Name: "name", Source: "src"},
 				}},
 			},
@@ -60,15 +61,15 @@ func Test_Schema_Validate(t *testing.T) {
 		{
 			name: "type_must_have_child_type_defined",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Slice},
+				{Name: "name", Source: "src", Type: field.TypeSlice},
 			},
 			valid: false,
 		},
 		{
 			name: "invalid_child",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Slice, Children: []Field{
-					{Name: "", Source: "src", Type: Bool},
+				{Name: "name", Source: "src", Type: field.TypeSlice, Children: []Field{
+					{Name: "", Source: "src", Type: field.TypeBool},
 				}},
 			},
 			valid: false,
@@ -76,9 +77,9 @@ func Test_Schema_Validate(t *testing.T) {
 		{
 			name: "valid",
 			fields: []Field{
-				{Name: "name", Source: "src", Type: Bool},
-				{Name: "name2", Source: "src", Type: Slice, Children: []Field{
-					{Name: "name", Source: "src", Type: Keyword},
+				{Name: "name", Source: "src", Type: field.TypeBool},
+				{Name: "name2", Source: "src", Type: field.TypeSlice, Children: []Field{
+					{Name: "name", Source: "src", Type: field.TypeKeyword},
 				}},
 			},
 			valid: true,
@@ -87,8 +88,8 @@ func Test_Schema_Validate(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			s := NewSchema(d.fields)
-			err := s.Validate()
+			s := New(d.fields)
+			err := Validate(s)
 			if d.valid {
 				require.Nil(t, err)
 				return
