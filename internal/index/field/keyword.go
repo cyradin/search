@@ -2,6 +2,8 @@ package field
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
 )
@@ -33,18 +35,33 @@ func (f *Keyword) Type() Type {
 	return TypeKeyword
 }
 
-func (f *Keyword) Set(id uint32, value string) {
-	f.in <- keywordValue{
-		id: id, value: value,
+func (f *Keyword) AddValue(id uint32, value interface{}) error {
+	vv, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
 	}
+
+	f.in <- keywordValue{
+		id: id, value: vv,
+	}
+
+	return nil
 }
 
-func (f *Keyword) SetSync(id uint32, value string) {
+func (f *Keyword) AddValueSync(id uint32, value interface{}) error {
+	vv, ok := value.(string)
+	if !ok {
+		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
+	}
+
 	ready := make(chan struct{})
+	defer close(ready)
 	f.in <- keywordValue{
-		id: id, value: value, ready: ready,
+		id: id, value: vv, ready: ready,
 	}
 	<-ready
+
+	return nil
 }
 
 func (f *Keyword) monitor(ctx context.Context, ready chan<- struct{}) {

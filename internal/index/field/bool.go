@@ -2,9 +2,13 @@ package field
 
 import (
 	"context"
+	"fmt"
+	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
 )
+
+var _ Field = (*Bool)(nil)
 
 type boolValue struct {
 	id    uint32
@@ -33,18 +37,33 @@ func (f *Bool) Type() Type {
 	return TypeBool
 }
 
-func (f *Bool) Set(id uint32, value bool) {
-	f.in <- boolValue{
-		id: id, value: value,
+func (f *Bool) AddValue(id uint32, value interface{}) error {
+	vv, ok := value.(bool)
+	if !ok {
+		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
 	}
+
+	f.in <- boolValue{
+		id: id, value: vv,
+	}
+
+	return nil
 }
 
-func (f *Bool) SetSync(id uint32, value bool) {
+func (f *Bool) AddValueSync(id uint32, value interface{}) error {
+	vv, ok := value.(bool)
+	if !ok {
+		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
+	}
+
 	ready := make(chan struct{})
+	defer close(ready)
 	f.in <- boolValue{
-		id: id, value: value, ready: ready,
+		id: id, value: vv, ready: ready,
 	}
 	<-ready
+
+	return nil
 }
 
 func (f *Bool) monitor(ctx context.Context, ready chan<- struct{}) {

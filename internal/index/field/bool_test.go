@@ -8,15 +8,28 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Bool_Set(t *testing.T) {
+type testBoolValue struct {
+	id    uint32
+	value interface{}
+}
+
+func Test_Bool_AddValue(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []boolValue
+		values              []testBoolValue
+		erroneous           bool
 		expectedCardinality map[bool]uint64
 	}{
 		{
+			name: "invalid_value_type",
+			values: []testBoolValue{
+				{id: 1, value: "true"},
+			},
+			erroneous: true,
+		},
+		{
 			name: "one",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 			},
 			expectedCardinality: map[bool]uint64{
@@ -25,7 +38,7 @@ func Test_Bool_Set(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 2, value: true},
 			},
@@ -35,7 +48,7 @@ func Test_Bool_Set(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 1, value: false},
 			},
@@ -46,7 +59,7 @@ func Test_Bool_Set(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 1, value: true},
 			},
@@ -56,7 +69,7 @@ func Test_Bool_Set(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 2, value: false},
 			},
@@ -73,9 +86,17 @@ func Test_Bool_Set(t *testing.T) {
 			field := NewBool(ctx)
 
 			for _, v := range d.values {
-				field.Set(v.id, v.value)
+				err := field.AddValue(v.id, v.value)
+				if d.erroneous {
+					require.NotNil(t, err)
+					continue
+				} else {
+					require.Nil(t, err)
+				}
 				time.Sleep(time.Millisecond)
-				bm, ok := field.data[v.value]
+
+				vv := v.value.(bool)
+				bm, ok := field.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
@@ -89,15 +110,23 @@ func Test_Bool_Set(t *testing.T) {
 	}
 }
 
-func Test_Bool_SetSync(t *testing.T) {
+func Test_Bool_AddValueSync(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []boolValue
+		values              []testBoolValue
 		expectedCardinality map[bool]uint64
+		erroneous           bool
 	}{
 		{
+			name: "invalid_value_type",
+			values: []testBoolValue{
+				{id: 1, value: "true"},
+			},
+			erroneous: true,
+		},
+		{
 			name: "one",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 			},
 			expectedCardinality: map[bool]uint64{
@@ -106,7 +135,7 @@ func Test_Bool_SetSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 2, value: true},
 			},
@@ -116,7 +145,7 @@ func Test_Bool_SetSync(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 1, value: false},
 			},
@@ -127,7 +156,7 @@ func Test_Bool_SetSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 1, value: true},
 			},
@@ -137,7 +166,7 @@ func Test_Bool_SetSync(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []boolValue{
+			values: []testBoolValue{
 				{id: 1, value: true},
 				{id: 2, value: false},
 			},
@@ -154,8 +183,17 @@ func Test_Bool_SetSync(t *testing.T) {
 			field := NewBool(ctx)
 
 			for _, v := range d.values {
-				field.SetSync(v.id, v.value)
-				bm, ok := field.data[v.value]
+				err := field.AddValueSync(v.id, v.value)
+
+				if d.erroneous {
+					require.NotNil(t, err)
+					continue
+				} else {
+					require.Nil(t, err)
+				}
+
+				vv := v.value.(bool)
+				bm, ok := field.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
