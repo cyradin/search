@@ -36,30 +36,30 @@ func (f *Keyword) Type() Type {
 }
 
 func (f *Keyword) AddValue(id uint32, value interface{}) error {
-	vv, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
-	}
-
-	f.in <- keywordValue{
-		id: id, value: vv,
-	}
-
-	return nil
+	return f.addValue(id, value, false)
 }
 
 func (f *Keyword) AddValueSync(id uint32, value interface{}) error {
+	return f.addValue(id, value, true)
+}
+
+func (f *Keyword) addValue(id uint32, value interface{}, sync bool) error {
 	vv, ok := value.(string)
 	if !ok {
-		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
+		return fmt.Errorf("required string, got %s", reflect.TypeOf(value))
 	}
 
-	ready := make(chan struct{})
-	defer close(ready)
+	var ready chan struct{}
+	if sync {
+		ready = make(chan struct{})
+		defer close(ready)
+	}
 	f.in <- keywordValue{
 		id: id, value: vv, ready: ready,
 	}
-	<-ready
+	if sync {
+		<-ready
+	}
 
 	return nil
 }
