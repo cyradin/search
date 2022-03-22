@@ -38,30 +38,30 @@ func (f *Bool) Type() Type {
 }
 
 func (f *Bool) AddValue(id uint32, value interface{}) error {
-	vv, ok := value.(bool)
-	if !ok {
-		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
-	}
-
-	f.in <- boolValue{
-		id: id, value: vv,
-	}
-
-	return nil
+	return f.addValue(id, value, false)
 }
 
 func (f *Bool) AddValueSync(id uint32, value interface{}) error {
+	return f.addValue(id, value, true)
+}
+
+func (f *Bool) addValue(id uint32, value interface{}, sync bool) error {
 	vv, ok := value.(bool)
 	if !ok {
 		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
 	}
 
-	ready := make(chan struct{})
-	defer close(ready)
+	var ready chan struct{}
+	if sync {
+		ready = make(chan struct{})
+		defer close(ready)
+	}
 	f.in <- boolValue{
 		id: id, value: vv, ready: ready,
 	}
-	<-ready
+	if sync {
+		<-ready
+	}
 
 	return nil
 }
