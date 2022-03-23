@@ -13,6 +13,12 @@ const (
 	TypeBool    Type = "bool"
 	TypeSlice   Type = "slice"
 	TypeMap     Type = "map"
+
+	TypeUnsignedLong Type = "unsigned_long" // unsigned int64
+	TypeLong         Type = "long"          // signed int64
+	TypeInteger      Type = "integer"       // signed int32
+	TypeShort        Type = "short"         // signed int16
+	TypeByte         Type = "byte"          // signed int8
 )
 
 func (t Type) Valid() bool {

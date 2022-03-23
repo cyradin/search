@@ -73,7 +73,7 @@ func (f *Keyword) monitor(ctx context.Context, ready chan<- struct{}) {
 		for {
 			select {
 			case v := <-f.in:
-				f.doAdd(v)
+				f.monitorAdd(v)
 			case <-ctx.Done():
 				return
 			}
@@ -81,8 +81,8 @@ func (f *Keyword) monitor(ctx context.Context, ready chan<- struct{}) {
 	}(ctx)
 }
 
-// doAdd add value to index field. Call only from monitor() method
-func (f *Keyword) doAdd(v keywordValue) {
+// monitorAdd add value to index field. Call only from monitor() method
+func (f *Keyword) monitorAdd(v keywordValue) {
 	m, ok := f.data[v.value]
 	if !ok {
 		m = roaring.New()
