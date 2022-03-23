@@ -8,24 +8,22 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-var _ Field = (*Bool)(nil)
-
-type boolValue struct {
+type integerValue struct {
 	id    uint32
-	value bool
+	value int32
 	ready chan struct{}
 }
 
-type Bool struct {
-	data map[bool]*roaring.Bitmap
-
-	in chan boolValue
+type Integer struct {
+	data map[int32]*roaring.Bitmap
+	in   chan integerValue
 }
 
-func NewBool(ctx context.Context) *Bool {
-	result := &Bool{
-		data: make(map[bool]*roaring.Bitmap),
+func NewInteger(ctx context.Context) *Integer {
+	result := &Integer{
+		data: make(map[int32]*roaring.Bitmap),
 	}
+
 	ready := make(chan struct{})
 	result.monitor(ctx, ready)
 	<-ready // wait until monitor is ready
@@ -33,22 +31,22 @@ func NewBool(ctx context.Context) *Bool {
 	return result
 }
 
-func (f *Bool) Type() Type {
-	return TypeBool
+func (f *Integer) Type() Type {
+	return TypeInteger
 }
 
-func (f *Bool) AddValue(id uint32, value interface{}) error {
+func (f *Integer) AddValue(id uint32, value interface{}) error {
 	return f.addValue(id, value, false)
 }
 
-func (f *Bool) AddValueSync(id uint32, value interface{}) error {
+func (f *Integer) AddValueSync(id uint32, value interface{}) error {
 	return f.addValue(id, value, true)
 }
 
-func (f *Bool) addValue(id uint32, value interface{}, sync bool) error {
-	vv, ok := value.(bool)
+func (f *Integer) addValue(id uint32, value interface{}, sync bool) error {
+	vv, ok := value.(int32)
 	if !ok {
-		return fmt.Errorf("required bool, got %s", reflect.TypeOf(value))
+		return fmt.Errorf("required int32, got %s", reflect.TypeOf(value))
 	}
 
 	var ready chan struct{}
@@ -56,9 +54,11 @@ func (f *Bool) addValue(id uint32, value interface{}, sync bool) error {
 		ready = make(chan struct{})
 		defer close(ready)
 	}
-	f.in <- boolValue{
+
+	f.in <- integerValue{
 		id: id, value: vv, ready: ready,
 	}
+
 	if sync {
 		<-ready
 	}
@@ -66,9 +66,9 @@ func (f *Bool) addValue(id uint32, value interface{}, sync bool) error {
 	return nil
 }
 
-func (f *Bool) monitor(ctx context.Context, ready chan<- struct{}) {
+func (f *Integer) monitor(ctx context.Context, ready chan<- struct{}) {
 	go func(ctx context.Context) {
-		f.in = make(chan boolValue)
+		f.in = make(chan integerValue)
 		defer close(f.in)
 		ready <- struct{}{}
 
@@ -84,8 +84,11 @@ func (f *Bool) monitor(ctx context.Context, ready chan<- struct{}) {
 }
 
 // monitorAdd add value to index field. Call only from monitor() method
-func (f *Bool) monitorAdd(v boolValue) {
-	m, ok := f.data[v.value]
+func (f *Integer) monitorAdd(v integerValue) {
+	var m *roaring.Bitmap
+	var ok bool
+
+	m, ok = f.data[v.value]
 	if !ok {
 		m = roaring.New()
 		f.data[v.value] = m
