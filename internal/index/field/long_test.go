@@ -14,20 +14,20 @@ func Test_Long_AddValue(t *testing.T) {
 
 	data := []struct {
 		name                string
-		values              []testIntegerValue
+		values              []testFieldValue
 		erroneous           bool
 		expectedCardinality map[int64]uint64
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 			},
 			expectedCardinality: map[int64]uint64{
@@ -36,7 +36,7 @@ func Test_Long_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 2, value: value1},
 			},
@@ -46,7 +46,7 @@ func Test_Long_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 1, value: value2},
 			},
@@ -57,7 +57,7 @@ func Test_Long_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 1, value: value1},
 			},
@@ -67,7 +67,7 @@ func Test_Long_AddValue(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 2, value: value2},
 			},
@@ -114,20 +114,20 @@ func Test_Long_AddValueSync(t *testing.T) {
 
 	data := []struct {
 		name                string
-		values              []testIntegerValue
+		values              []testFieldValue
 		erroneous           bool
 		expectedCardinality map[int64]uint64
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: 123},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 			},
 			expectedCardinality: map[int64]uint64{
@@ -136,7 +136,7 @@ func Test_Long_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 2, value: value1},
 			},
@@ -146,7 +146,7 @@ func Test_Long_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 1, value: value2},
 			},
@@ -157,7 +157,7 @@ func Test_Long_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 1, value: value1},
 			},
@@ -167,7 +167,7 @@ func Test_Long_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testIntegerValue{
+			values: []testFieldValue{
 				{id: 1, value: value1},
 				{id: 2, value: value2},
 			},

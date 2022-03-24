@@ -4,31 +4,20 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 )
 
-type shortValue struct {
-	id    uint32
-	value int16
-	ready chan struct{}
-}
-
 type Short struct {
 	data map[int16]*roaring.Bitmap
-	in   chan shortValue
+	mtx  sync.RWMutex
 }
 
 func NewShort(ctx context.Context) *Short {
-	result := &Short{
+	return &Short{
 		data: make(map[int16]*roaring.Bitmap),
 	}
-
-	ready := make(chan struct{})
-	result.monitor(ctx, ready)
-	<-ready // wait until monitor is ready
-
-	return result
 }
 
 func (f *Short) Type() Type {
@@ -36,67 +25,33 @@ func (f *Short) Type() Type {
 }
 
 func (f *Short) AddValue(id uint32, value interface{}) error {
-	return f.addValue(id, value, false)
-}
-
-func (f *Short) AddValueSync(id uint32, value interface{}) error {
-	return f.addValue(id, value, true)
-}
-
-func (f *Short) addValue(id uint32, value interface{}, sync bool) error {
-	vv, ok := value.(int16)
+	v, ok := value.(int16)
 	if !ok {
 		return fmt.Errorf("required int16, got %s", reflect.TypeOf(value))
 	}
-
-	var ready chan struct{}
-	if sync {
-		ready = make(chan struct{})
-		defer close(ready)
-	}
-
-	f.in <- shortValue{
-		id: id, value: vv, ready: ready,
-	}
-
-	if sync {
-		<-ready
-	}
-
+	go f.addValue(id, v)
 	return nil
 }
 
-func (f *Short) monitor(ctx context.Context, ready chan<- struct{}) {
-	go func(ctx context.Context) {
-		f.in = make(chan shortValue)
-		defer close(f.in)
-		ready <- struct{}{}
-
-		for {
-			select {
-			case v := <-f.in:
-				f.monitorAdd(v)
-			case <-ctx.Done():
-				return
-			}
-		}
-	}(ctx)
+func (f *Short) AddValueSync(id uint32, value interface{}) error {
+	v, ok := value.(int16)
+	if !ok {
+		return fmt.Errorf("required int16, got %s", reflect.TypeOf(value))
+	}
+	f.addValue(id, v)
+	return nil
 }
 
-// monitorAdd add value to index field. Call only from monitor() method
-func (f *Short) monitorAdd(v shortValue) {
-	var m *roaring.Bitmap
-	var ok bool
-
-	m, ok = f.data[v.value]
+func (f *Short) addValue(id uint32, value int16) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	m, ok := f.data[value]
 	if !ok {
 		m = roaring.New()
-		f.data[v.value] = m
+		f.data[value] = m
 	}
 
-	m.Add(v.id)
+	m.Add(id)
 
-	if v.ready != nil {
-		v.ready <- struct{}{}
-	}
+	return
 }
