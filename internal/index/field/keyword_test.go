@@ -8,28 +8,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testKeywordValue struct {
-	id    uint32
-	value interface{}
-}
-
 func Test_Keyword_AddValue(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []testKeywordValue
+		values              []testFieldValue
 		expectedCardinality map[string]uint64
 		erroneous           bool
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: 123},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 			},
 			expectedCardinality: map[string]uint64{
@@ -38,7 +33,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 				{id: 2, value: "value"},
 			},
@@ -48,7 +43,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value_1"},
 				{id: 1, value: "value_2"},
 			},
@@ -59,7 +54,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 				{id: 1, value: "value"},
 			},
@@ -69,7 +64,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value_1"},
 				{id: 2, value: "value_2"},
 			},
@@ -113,20 +108,20 @@ func Test_Keyword_AddValue(t *testing.T) {
 func Test_Keyword_AddValueSync(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []testKeywordValue
+		values              []testFieldValue
 		expectedCardinality map[string]uint64
 		erroneous           bool
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: 123},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 			},
 			expectedCardinality: map[string]uint64{
@@ -135,7 +130,7 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 				{id: 2, value: "value"},
 			},
@@ -145,7 +140,7 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value_1"},
 				{id: 1, value: "value_2"},
 			},
@@ -156,7 +151,7 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value"},
 				{id: 1, value: "value"},
 			},
@@ -166,7 +161,7 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testKeywordValue{
+			values: []testFieldValue{
 				{id: 1, value: "value_1"},
 				{id: 2, value: "value_2"},
 			},

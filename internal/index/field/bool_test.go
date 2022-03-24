@@ -8,28 +8,23 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-type testBoolValue struct {
-	id    uint32
-	value interface{}
-}
-
 func Test_Bool_AddValue(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []testBoolValue
+		values              []testFieldValue
 		erroneous           bool
 		expectedCardinality map[bool]uint64
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: "true"},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 			},
 			expectedCardinality: map[bool]uint64{
@@ -38,7 +33,7 @@ func Test_Bool_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 2, value: true},
 			},
@@ -48,7 +43,7 @@ func Test_Bool_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 1, value: false},
 			},
@@ -59,7 +54,7 @@ func Test_Bool_AddValue(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 1, value: true},
 			},
@@ -69,7 +64,7 @@ func Test_Bool_AddValue(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 2, value: false},
 			},
@@ -113,20 +108,20 @@ func Test_Bool_AddValue(t *testing.T) {
 func Test_Bool_AddValueSync(t *testing.T) {
 	data := []struct {
 		name                string
-		values              []testBoolValue
+		values              []testFieldValue
 		expectedCardinality map[bool]uint64
 		erroneous           bool
 	}{
 		{
 			name: "invalid_value_type",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: "true"},
 			},
 			erroneous: true,
 		},
 		{
 			name: "one",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 			},
 			expectedCardinality: map[bool]uint64{
@@ -135,7 +130,7 @@ func Test_Bool_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 2, value: true},
 			},
@@ -145,7 +140,7 @@ func Test_Bool_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_id",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 1, value: false},
 			},
@@ -156,7 +151,7 @@ func Test_Bool_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "same_value",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 1, value: true},
 			},
@@ -166,7 +161,7 @@ func Test_Bool_AddValueSync(t *testing.T) {
 		},
 		{
 			name: "different",
-			values: []testBoolValue{
+			values: []testFieldValue{
 				{id: 1, value: true},
 				{id: 2, value: false},
 			},
