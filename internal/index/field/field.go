@@ -3,17 +3,25 @@ package field
 type Type string
 
 const (
+	TypeBool Type = "bool"
+
+	// String types
 	TypeKeyword Type = "keyword"
 	TypeText    Type = "text"
-	TypeBool    Type = "bool"
-	TypeSlice   Type = "slice"
-	TypeMap     Type = "map"
 
+	TypeSlice Type = "slice"
+	TypeMap   Type = "map"
+
+	// Integer types
 	TypeUnsignedLong Type = "unsigned_long" // unsigned int64
 	TypeLong         Type = "long"          // signed int64
 	TypeInteger      Type = "integer"       // signed int32
 	TypeShort        Type = "short"         // signed int16
 	TypeByte         Type = "byte"          // signed int8
+
+	// Float types
+	TypeDouble Type = "double" // float64
+	TypeFloat  Type = "float"  // float32
 )
 
 func (t Type) Valid() bool {
