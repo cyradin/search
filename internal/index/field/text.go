@@ -9,18 +9,26 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-type Analyzer func([]string) []string
+type (
+	AnalyzerHandler func(next Analyzer) Analyzer
+	Analyzer        func([]string) []string
 
-type Text struct {
-	analyzers []Analyzer
-	data      map[string]*roaring.Bitmap
-	mtx       sync.RWMutex
-}
+	Text struct {
+		analyzer Analyzer
+		data     map[string]*roaring.Bitmap
+		mtx      sync.RWMutex
+	}
+)
 
-func NewText(ctx context.Context, analyzers ...Analyzer) *Text {
+func NewText(ctx context.Context, analyzers ...AnalyzerHandler) *Text {
+	analyzer := func(s []string) []string { return s }
+	for i := len(analyzers) - 1; i >= 0; i-- {
+		analyzer = analyzers[i](analyzer)
+	}
+
 	return &Text{
-		analyzers: analyzers,
-		data:      make(map[string]*roaring.Bitmap),
+		analyzer: analyzer,
+		data:     make(map[string]*roaring.Bitmap),
 	}
 }
 
@@ -50,11 +58,7 @@ func (f *Text) addValue(id uint32, value string) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	values := []string{value}
-	for _, analyzer := range f.analyzers {
-		values = analyzer(values)
-	}
-
+	values := f.analyzer([]string{value})
 	for _, v := range values {
 		m, ok := f.data[v]
 		if !ok {
