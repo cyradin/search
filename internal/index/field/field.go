@@ -25,16 +25,18 @@ const (
 )
 
 func (t Type) Valid() bool {
-	return t == TypeKeyword ||
+	return t == TypeBool ||
+		t == TypeKeyword ||
 		t == TypeText ||
-		t == TypeBool ||
 		t == TypeSlice ||
 		t == TypeMap ||
 		t == TypeUnsignedLong ||
 		t == TypeLong ||
 		t == TypeInteger ||
 		t == TypeShort ||
-		t == TypeByte
+		t == TypeByte ||
+		t == TypeDouble ||
+		t == TypeFloat
 }
 
 type Field interface {
