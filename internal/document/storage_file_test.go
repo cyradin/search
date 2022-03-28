@@ -27,7 +27,7 @@ var testDoc2 = Document{
 	},
 }
 
-func Test_FileProvider_All(t *testing.T) {
+func Test_FileStorage_All(t *testing.T) {
 	data := []struct {
 		name      string
 		file      string
@@ -37,7 +37,7 @@ func Test_FileProvider_All(t *testing.T) {
 		{
 			name:      "invalid_file",
 			file:      "invalid",
-			erroneous: true,
+			erroneous: false,
 		},
 		{
 			name:      "ok",
@@ -49,10 +49,15 @@ func Test_FileProvider_All(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p := NewFileProvider(d.file, "id")
+			p, err := NewFileStorage(d.file, "id")
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+			require.Nil(t, err)
+
 			docs, errors := p.All()
 
-			var err error
 			var result []Document
 			a := func() {
 				for {
@@ -66,18 +71,13 @@ func Test_FileProvider_All(t *testing.T) {
 			}
 			a()
 
-			if d.erroneous {
-				require.NotNil(t, err)
-				return
-			}
-
 			require.Nil(t, err)
-			require.Equal(t, d.expected, result)
+			require.EqualValues(t, d.expected, result)
 		})
 	}
 }
 
-func Test_FileProvider_One(t *testing.T) {
+func Test_FileStorage_One(t *testing.T) {
 	data := []struct {
 		name      string
 		file      string
@@ -108,7 +108,7 @@ func Test_FileProvider_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p := NewFileProvider(d.file, "id")
+			p, _ := NewFileStorage(d.file, "id")
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -122,7 +122,7 @@ func Test_FileProvider_One(t *testing.T) {
 	}
 }
 
-func Test_FileProvider_Multi(t *testing.T) {
+func Test_FileStorage_Multi(t *testing.T) {
 	data := []struct {
 		name      string
 		file      string
@@ -133,7 +133,8 @@ func Test_FileProvider_Multi(t *testing.T) {
 		{
 			name:      "invalid_file",
 			file:      "invalid",
-			erroneous: true,
+			erroneous: false,
+			expected:  []Document{},
 		},
 		{
 			name:      "one",
@@ -154,13 +155,13 @@ func Test_FileProvider_Multi(t *testing.T) {
 			file:      "../../test/testdata/document/provider_file.json",
 			ids:       []string{"3"},
 			erroneous: false,
-			expected:  nil,
+			expected:  []Document{},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p := NewFileProvider(d.file, "id")
+			p, _ := NewFileStorage(d.file, "id")
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -169,7 +170,7 @@ func Test_FileProvider_Multi(t *testing.T) {
 			}
 
 			require.Nil(t, err)
-			require.Equal(t, d.expected, docs)
+			require.EqualValues(t, d.expected, docs)
 		})
 	}
 }
