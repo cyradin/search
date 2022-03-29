@@ -174,3 +174,111 @@ func Test_FileStorage_Multi(t *testing.T) {
 		})
 	}
 }
+
+func Test_FileStorage_Insert(t *testing.T) {
+	data := []struct {
+		name        string
+		id          string
+		idGenerator func() string
+		expected    string
+		docs        map[string]Document
+		erroneous   bool
+	}{
+		{
+			name:        "empty_id",
+			erroneous:   false,
+			id:          "",
+			idGenerator: func() string { return "id" },
+			expected:    "id",
+			docs:        make(map[string]Document),
+		},
+		{
+			name:      "ok",
+			erroneous: false,
+			id:        "id",
+			expected:  "id",
+			docs:      make(map[string]Document),
+		},
+		{
+			name:      "already_exists",
+			erroneous: true,
+			docs: map[string]Document{
+				"id": {},
+			},
+			id: "id",
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			if d.idGenerator != nil {
+				idGenerator = d.idGenerator
+			}
+
+			p, err := NewFileStorage("", "id")
+			require.Nil(t, err)
+
+			p.docs = d.docs
+
+			id, err := p.Insert(d.id, &Document{})
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+			require.Equal(t, d.expected, id)
+		})
+	}
+}
+
+func Test_FileStorage_Update(t *testing.T) {
+	data := []struct {
+		name      string
+		id        string
+		expected  string
+		docs      map[string]Document
+		erroneous bool
+	}{
+		{
+			name:      "empty_id",
+			erroneous: true,
+			id:        "",
+			expected:  "id",
+			docs:      make(map[string]Document),
+		},
+		{
+			name:      "not_exists",
+			erroneous: true,
+			id:        "id",
+			docs:      make(map[string]Document),
+		},
+		{
+			name:      "ok",
+			erroneous: false,
+			docs: map[string]Document{
+				"id": {},
+			},
+			id:       "id",
+			expected: "id",
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			p, err := NewFileStorage("", "id")
+			require.Nil(t, err)
+
+			p.docs = d.docs
+
+			id, err := p.Update(d.id, &Document{})
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+			require.Equal(t, d.expected, id)
+		})
+	}
+}
