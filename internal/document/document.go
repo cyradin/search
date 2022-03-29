@@ -1,58 +1,40 @@
 package document
 
 import (
-	"encoding/json"
-	"fmt"
+	jsoniter "github.com/json-iterator/go"
 
 	"github.com/google/uuid"
 )
 
-type jsonDocs []json.RawMessage
-
-var idGenerator = uuid.NewString
+var (
+	json        = jsoniter.ConfigCompatibleWithStandardLibrary
+	idGenerator = uuid.NewString
+)
 
 type Document struct {
-	ID     string
-	Fields map[string]interface{}
+	ID     string                 `json:"_id"`
+	Source map[string]interface{} `json:"_source"`
 }
 
-func NewDocument(id string, fields map[string]interface{}) Document {
-	return Document{ID: id, Fields: fields}
+func NewDocument(id string, source map[string]interface{}) Document {
+	return Document{ID: id, Source: source}
 }
 
-func NewDocumentFromJSON(idField string, data []byte) (Document, error) {
+func NewDocumentFromJSON(data []byte) (Document, error) {
 	var result Document
-
-	doc := make(map[string]interface{})
-	err := json.Unmarshal(data, &doc)
+	err := json.Unmarshal(data, &result)
 	if err != nil {
 		return result, err
 	}
 
-	id, ok := doc[idField].(string)
-	if !ok {
-		return result, fmt.Errorf("document id not found")
-	}
-	result.ID = id
-	result.Fields = doc
-
 	return result, nil
 }
 
-func NewDocumentsFromJSON(idField string, data []byte) ([]Document, error) {
-	var rawDocs jsonDocs
-	err := json.Unmarshal(data, &rawDocs)
+func NewDocumentsFromJSON(data []byte) ([]Document, error) {
+	var result []Document
+	err := json.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err
-	}
-
-	result := make([]Document, len(rawDocs))
-	for i, rawDoc := range rawDocs {
-		doc, err := NewDocumentFromJSON(idField, rawDoc)
-		if err != nil {
-			return nil, err
-		}
-		result[i] = doc
 	}
 
 	return result, nil

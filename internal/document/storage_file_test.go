@@ -8,7 +8,7 @@ import (
 
 var testDoc1 = Document{
 	ID: "1",
-	Fields: map[string]interface{}{
+	Source: map[string]interface{}{
 		"id":   "1",
 		"name": "foo",
 		"properties": map[string]interface{}{
@@ -18,7 +18,7 @@ var testDoc1 = Document{
 }
 var testDoc2 = Document{
 	ID: "2",
-	Fields: map[string]interface{}{
+	Source: map[string]interface{}{
 		"id":   "2",
 		"name": "bar",
 		"properties": map[string]interface{}{
@@ -41,7 +41,7 @@ func Test_FileStorage_All(t *testing.T) {
 		},
 		{
 			name:      "ok",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			erroneous: false,
 			expected:  []Document{testDoc1, testDoc2},
 		},
@@ -49,7 +49,7 @@ func Test_FileStorage_All(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage(d.file, "id")
+			p, err := NewFileStorage(d.file)
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -93,14 +93,14 @@ func Test_FileStorage_One(t *testing.T) {
 		},
 		{
 			name:      "ok",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			id:        "1",
 			erroneous: false,
 			expected:  testDoc1,
 		},
 		{
 			name:      "not_found",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			id:        "3",
 			erroneous: true,
 		},
@@ -108,7 +108,7 @@ func Test_FileStorage_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(d.file, "id")
+			p, _ := NewFileStorage(d.file)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -138,21 +138,21 @@ func Test_FileStorage_Multi(t *testing.T) {
 		},
 		{
 			name:      "one",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1"},
 			erroneous: false,
 			expected:  []Document{testDoc1},
 		},
 		{
 			name:      "one",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1", "2"},
 			erroneous: false,
 			expected:  []Document{testDoc1, testDoc2},
 		},
 		{
 			name:      "not_found",
-			file:      "../../test/testdata/document/provider_file.json",
+			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"3"},
 			erroneous: false,
 			expected:  []Document{},
@@ -161,7 +161,7 @@ func Test_FileStorage_Multi(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(d.file, "id")
+			p, _ := NewFileStorage(d.file)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -215,7 +215,7 @@ func Test_FileStorage_Insert(t *testing.T) {
 				idGenerator = d.idGenerator
 			}
 
-			p, err := NewFileStorage("", "id")
+			p, err := NewFileStorage("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -266,7 +266,7 @@ func Test_FileStorage_Update(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage("", "id")
+			p, err := NewFileStorage("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
