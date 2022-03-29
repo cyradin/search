@@ -1,6 +1,7 @@
 package document
 
 import (
+	"fmt"
 	"os"
 	"sync"
 )
@@ -13,6 +14,10 @@ type Storage interface {
 	One(id string) (Document, error)
 	// Multi get multiple documents by IDs
 	Multi(ids ...string) ([]Document, error)
+	// Insert add new document
+	Insert(id string, doc *Document) (string, error)
+	// Update existing document
+	Update(id string, doc *Document) (string, error)
 }
 
 var _ Storage = (*FileStorage)(nil)
@@ -85,6 +90,39 @@ func (s *FileStorage) Multi(ids ...string) ([]Document, error) {
 	}
 
 	return result, nil
+}
+
+func (s *FileStorage) Insert(id string, doc *Document) (string, error) {
+	if id == "" {
+		id = idGenerator()
+	}
+
+	s.docsMtx.Lock()
+	defer s.docsMtx.Unlock()
+
+	if _, ok := s.docs[id]; ok {
+		return id, NewErrAlreadyExists(id)
+	}
+	doc.ID = id
+	s.docs[id] = *doc
+
+	return id, nil
+}
+
+func (s *FileStorage) Update(id string, doc *Document) (string, error) {
+	if id == "" {
+		return id, fmt.Errorf("doc id must be defined")
+	}
+
+	s.docsMtx.Lock()
+	defer s.docsMtx.Unlock()
+
+	if _, ok := s.docs[id]; !ok {
+		return id, NewErrNotFound(id)
+	}
+	s.docs[id] = *doc
+
+	return id, nil
 }
 
 func (s *FileStorage) read() error {

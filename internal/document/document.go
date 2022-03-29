@@ -3,9 +3,13 @@ package document
 import (
 	"encoding/json"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type jsonDocs []json.RawMessage
+
+var idGenerator = uuid.NewString
 
 type Document struct {
 	ID     string
