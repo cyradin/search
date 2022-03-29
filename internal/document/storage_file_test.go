@@ -1,7 +1,11 @@
 package document
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -49,7 +53,7 @@ func Test_FileStorage_All(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage(d.file)
+			p, err := NewFileStorage(context.Background(), d.file)
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -108,7 +112,7 @@ func Test_FileStorage_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(d.file)
+			p, _ := NewFileStorage(context.Background(), d.file)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -161,7 +165,7 @@ func Test_FileStorage_Multi(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(d.file)
+			p, _ := NewFileStorage(context.Background(), d.file)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -215,7 +219,7 @@ func Test_FileStorage_Insert(t *testing.T) {
 				idGenerator = d.idGenerator
 			}
 
-			p, err := NewFileStorage("")
+			p, err := NewFileStorage(context.Background(), "")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -266,7 +270,7 @@ func Test_FileStorage_Update(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage("")
+			p, err := NewFileStorage(context.Background(), "")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -279,6 +283,65 @@ func Test_FileStorage_Update(t *testing.T) {
 
 			require.Nil(t, err)
 			require.Equal(t, d.expected, id)
+		})
+	}
+}
+
+func Test_FileStorage_dumpOnCancel(t *testing.T) {
+	data := []struct {
+		name     string
+		docs     map[string]Document
+		expected string
+	}{
+		{
+			name:     "empty",
+			docs:     make(map[string]Document),
+			expected: "[]",
+		},
+		{
+			name: "not empty",
+			docs: map[string]Document{
+				"id": {
+					ID: "id",
+					Source: map[string]interface{}{
+						"text": "qwerty",
+					},
+				},
+			},
+			expected: `
+				[
+					{
+						"_id": "id",
+						"_source": {
+							"text": "qwerty"
+						}
+					}
+				]`,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+
+			file := filepath.Join(dir, "storage.json")
+
+			ctx, cancel := context.WithCancel(context.Background())
+
+			p, err := NewFileStorage(ctx, file)
+			require.Nil(t, err)
+
+			p.docs = d.docs
+
+			cancel()
+			time.Sleep(100 * time.Millisecond)
+
+			result, err := os.ReadFile(file)
+			require.Nil(t, err)
+
+			require.JSONEq(t, d.expected, string(result))
 		})
 	}
 }

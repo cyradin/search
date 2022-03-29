@@ -1,6 +1,7 @@
 package document
 
 import (
+	"context"
 	"fmt"
 	"os"
 	"sync"
@@ -32,7 +33,7 @@ type FileStorage struct {
 }
 
 // NewFileStorage returns new instance of FileProvider
-func NewFileStorage(src string) (*FileStorage, error) {
+func NewFileStorage(ctx context.Context, src string) (*FileStorage, error) {
 	s := &FileStorage{
 		src:  src,
 		docs: make(map[string]Document),
@@ -41,6 +42,7 @@ func NewFileStorage(src string) (*FileStorage, error) {
 	if err != nil {
 		return nil, err
 	}
+	s.dumpOnCancel(ctx)
 
 	return s, nil
 }
@@ -123,8 +125,30 @@ func (s *FileStorage) Update(id string, doc *Document) (string, error) {
 	return id, nil
 }
 
+func (s *FileStorage) dumpOnCancel(ctx context.Context) {
+	go func() {
+		select {
+		case <-ctx.Done():
+			s.dump() // @todo log error
+		}
+	}()
+}
+
 func (s *FileStorage) dump() error {
-	return nil
+	s.docsMtx.RLock()
+	defer s.docsMtx.RUnlock()
+
+	docs := make([]Document, 0, len(s.docs))
+	for _, doc := range s.docs {
+		docs = append(docs, doc)
+	}
+
+	data, err := json.Marshal(docs)
+	if err != nil {
+		return err
+	}
+
+	return os.WriteFile(s.src, data, 0644)
 }
 
 func (s *FileStorage) read() error {
