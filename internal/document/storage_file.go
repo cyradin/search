@@ -25,19 +25,17 @@ var _ Storage = (*FileStorage)(nil)
 // FileStorage stores documents in a JSON file.
 // It is slow and stupid and is for testing purposes only.
 type FileStorage struct {
-	src     string
-	idField string
+	src string
 
 	docsMtx sync.RWMutex
 	docs    map[string]Document
 }
 
 // NewFileStorage returns new instance of FileProvider
-func NewFileStorage(src string, idField string) (*FileStorage, error) {
+func NewFileStorage(src string) (*FileStorage, error) {
 	s := &FileStorage{
-		src:     src,
-		idField: idField,
-		docs:    make(map[string]Document),
+		src:  src,
+		docs: make(map[string]Document),
 	}
 	err := s.read()
 	if err != nil {
@@ -125,6 +123,10 @@ func (s *FileStorage) Update(id string, doc *Document) (string, error) {
 	return id, nil
 }
 
+func (s *FileStorage) dump() error {
+	return nil
+}
+
 func (s *FileStorage) read() error {
 	data, err := os.ReadFile(s.src)
 	if err != nil {
@@ -134,7 +136,7 @@ func (s *FileStorage) read() error {
 		return err
 	}
 
-	docs, err := NewDocumentsFromJSON(s.idField, data)
+	docs, err := NewDocumentsFromJSON(data)
 	if err != nil {
 		return err
 	}
