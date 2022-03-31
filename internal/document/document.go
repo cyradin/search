@@ -2,13 +2,10 @@ package document
 
 import (
 	jsoniter "github.com/json-iterator/go"
-
-	"github.com/google/uuid"
 )
 
 var (
-	json        = jsoniter.ConfigCompatibleWithStandardLibrary
-	idGenerator = uuid.NewString
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type Document struct {
@@ -16,7 +13,7 @@ type Document struct {
 	Source map[string]interface{} `json:"_source"`
 }
 
-func NewDocument(id string, source map[string]interface{}) Document {
+func New(id string, source map[string]interface{}) Document {
 	return Document{ID: id, Source: source}
 }
 

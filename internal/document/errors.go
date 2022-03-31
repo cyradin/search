@@ -28,3 +28,11 @@ func NewErrAlreadyExists(id string) *ErrAlreadyExists {
 func (e *ErrAlreadyExists) Error() string {
 	return fmt.Sprintf("document #%s already exists", e.id)
 }
+
+type ErrEmptyId struct{}
+
+func NewErrEmptyId() *ErrEmptyId { return &ErrEmptyId{} }
+
+func (e *ErrEmptyId) Error() string {
+	return "doc id must be defined"
+}

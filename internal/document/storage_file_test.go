@@ -181,20 +181,18 @@ func Test_FileStorage_Multi(t *testing.T) {
 
 func Test_FileStorage_Insert(t *testing.T) {
 	data := []struct {
-		name        string
-		id          string
-		idGenerator func() string
-		expected    string
-		docs        map[string]Document
-		erroneous   bool
+		name      string
+		id        string
+		expected  string
+		docs      map[string]Document
+		erroneous bool
 	}{
 		{
-			name:        "empty_id",
-			erroneous:   false,
-			id:          "",
-			idGenerator: func() string { return "id" },
-			expected:    "id",
-			docs:        make(map[string]Document),
+			name:      "empty_id",
+			erroneous: true,
+			id:        "",
+			expected:  "",
+			docs:      make(map[string]Document),
 		},
 		{
 			name:      "ok",
@@ -215,10 +213,6 @@ func Test_FileStorage_Insert(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			if d.idGenerator != nil {
-				idGenerator = d.idGenerator
-			}
-
 			p, err := NewFileStorage(context.Background(), "")
 			require.Nil(t, err)
 

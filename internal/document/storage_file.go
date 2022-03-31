@@ -2,7 +2,6 @@ package document
 
 import (
 	"context"
-	"fmt"
 	"os"
 	"sync"
 )
@@ -94,7 +93,7 @@ func (s *FileStorage) Multi(ids ...string) ([]Document, error) {
 
 func (s *FileStorage) Insert(id string, doc *Document) (string, error) {
 	if id == "" {
-		id = idGenerator()
+		return id, NewErrEmptyId()
 	}
 
 	s.docsMtx.Lock()
@@ -111,7 +110,7 @@ func (s *FileStorage) Insert(id string, doc *Document) (string, error) {
 
 func (s *FileStorage) Update(id string, doc *Document) (string, error) {
 	if id == "" {
-		return id, fmt.Errorf("doc id must be defined")
+		return id, NewErrEmptyId()
 	}
 
 	s.docsMtx.Lock()
