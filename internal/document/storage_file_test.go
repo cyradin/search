@@ -218,14 +218,13 @@ func Test_FileStorage_Insert(t *testing.T) {
 
 			p.docs = d.docs
 
-			id, err := p.Insert(d.id, &Document{})
+			err = p.Insert(d.id, &Document{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
 			}
 
 			require.Nil(t, err)
-			require.Equal(t, d.expected, id)
 		})
 	}
 }
@@ -269,14 +268,13 @@ func Test_FileStorage_Update(t *testing.T) {
 
 			p.docs = d.docs
 
-			id, err := p.Update(d.id, &Document{})
+			err = p.Update(d.id, &Document{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
 			}
 
 			require.Nil(t, err)
-			require.Equal(t, d.expected, id)
 		})
 	}
 }

@@ -15,9 +15,9 @@ type Storage interface {
 	// Multi get multiple documents by IDs
 	Multi(ids ...string) ([]Document, error)
 	// Insert add new document
-	Insert(id string, doc *Document) (string, error)
+	Insert(id string, doc *Document) error
 	// Update existing document
-	Update(id string, doc *Document) (string, error)
+	Update(id string, doc *Document) error
 }
 
 var _ Storage = (*FileStorage)(nil)
@@ -91,37 +91,37 @@ func (s *FileStorage) Multi(ids ...string) ([]Document, error) {
 	return result, nil
 }
 
-func (s *FileStorage) Insert(id string, doc *Document) (string, error) {
+func (s *FileStorage) Insert(id string, doc *Document) error {
 	if id == "" {
-		return id, NewErrEmptyId()
+		return NewErrEmptyId()
 	}
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; ok {
-		return id, NewErrAlreadyExists(id)
+		return NewErrAlreadyExists(id)
 	}
 	doc.ID = id
 	s.docs[id] = *doc
 
-	return id, nil
+	return nil
 }
 
-func (s *FileStorage) Update(id string, doc *Document) (string, error) {
+func (s *FileStorage) Update(id string, doc *Document) error {
 	if id == "" {
-		return id, NewErrEmptyId()
+		return NewErrEmptyId()
 	}
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; !ok {
-		return id, NewErrNotFound(id)
+		return NewErrNotFound(id)
 	}
 	s.docs[id] = *doc
 
-	return id, nil
+	return nil
 }
 
 func (s *FileStorage) dumpOnCancel(ctx context.Context) {
