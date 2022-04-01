@@ -3,33 +3,54 @@ package index
 import (
 	"context"
 	"fmt"
+	"sync"
 	"time"
 
+	"github.com/cyradin/search/internal/document"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/google/uuid"
 )
 
 type Index struct {
 	CreatedAt time.Time
-	schema    *schema.Schema
+
+	schema *schema.Schema
+
+	fieldsMtx sync.RWMutex
 	fields    map[string]field.Field
+
+	idGet idGetter
+	idSet idSetter
+
+	sourceInsert sourceInserter
+
+	guidGenerate func() string
 }
 
-func New(ctx context.Context, s *schema.Schema) (*Index, error) {
+func New(ctx context.Context, s *schema.Schema, storage document.Storage, maxID uint32) (*Index, error) {
 	if err := schema.Validate(s); err != nil {
 		return nil, err
 	}
+
+	ids := NewIDs(maxID, nil)
 
 	result := &Index{
 		CreatedAt: time.Now(),
 		schema:    s,
 		fields:    make(map[string]field.Field),
+
+		idGet: ids.Get,
+		idSet: ids.Set,
+
+		guidGenerate: uuid.NewString,
+		sourceInsert: storage.Insert,
 	}
 
 	for _, f := range s.Fields {
 		err := result.addField(ctx, f)
 		if err != nil {
-			return nil, fmt.Errorf("cannot add field: %w", err)
+			return nil, fmt.Errorf("unable to add field: %w", err)
 		}
 	}
 
@@ -37,6 +58,9 @@ func New(ctx context.Context, s *schema.Schema) (*Index, error) {
 }
 
 func (i *Index) addField(ctx context.Context, f schema.Field) error {
+	i.fieldsMtx.RLock()
+	defer i.fieldsMtx.RUnlock()
+
 	switch f.Type {
 	case field.TypeBool:
 		i.fields[f.Name] = field.NewBool(ctx)
