@@ -12,6 +12,10 @@ type (
 )
 
 func (i *Index) Add(guid string, source map[string]interface{}) (string, error) {
+	if err := validateDoc(i.schema, source); err != nil {
+		return guid, err
+	}
+
 	if guid == "" {
 		guid = i.guidGenerate()
 	}
