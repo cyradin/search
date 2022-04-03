@@ -32,10 +32,6 @@ func validateField(f Field, path string) error {
 	}
 	path += f.Name
 
-	if f.Source == "" {
-		return fmt.Errorf("field %q source is empty", path)
-	}
-
 	if !f.Type.Valid() {
 		return fmt.Errorf("invalid field %q type %q", path, f.Type)
 	}

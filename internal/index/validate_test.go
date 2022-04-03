@@ -1,6 +1,7 @@
 package index
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
@@ -8,6 +9,45 @@ import (
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
+
+func Test_validateFields(t *testing.T) {
+	data := []struct {
+		name     string
+		fields   []schema.Field
+		source   map[string]interface{}
+		expected []error
+	}{
+		{
+			name: "ok",
+			fields: []schema.Field{
+				{
+					Name:     "name",
+					Type:     field.TypeKeyword,
+					Required: true,
+				},
+			},
+			source: map[string]interface{}{
+				"name": "name",
+			},
+			expected: nil,
+		},
+		{
+			name:   "unkown_field",
+			fields: []schema.Field{},
+			source: map[string]interface{}{
+				"name": "name",
+			},
+			expected: []error{fmt.Errorf("validation err: field \"name\" is not defined in index schema")},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			result := validateFields(d.fields, d.source)
+			require.Equal(t, d.expected, result)
+		})
+	}
+}
 
 func Test_validateValue(t *testing.T) {
 	data := []struct {
