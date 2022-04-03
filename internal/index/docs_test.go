@@ -7,6 +7,7 @@ import (
 
 	"github.com/cyradin/search/internal/document"
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -85,6 +86,7 @@ func Test_Index_Add(t *testing.T) {
 					"v": field.NewBool(ctx),
 				},
 				guidGenerate: d.generator,
+				schema:       &schema.Schema{},
 			}
 			guid, err := index.Add(d.guid, d.source)
 			if d.erroneous {
