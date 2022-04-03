@@ -16,7 +16,6 @@ var (
 type Field struct {
 	Name     string     `json:"name"`
 	Type     field.Type `json:"type"`
-	Source   string     `json:"source"`
 	Required bool       `json:"required"`
 
 	Children []Field `json:"children"`

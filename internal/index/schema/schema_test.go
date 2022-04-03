@@ -20,25 +20,21 @@ func Test_NewFromFile(t *testing.T) {
 					{
 						Name:     "field_keyword",
 						Type:     "keyword",
-						Source:   "field_keyword",
 						Required: true,
 					},
 					{
 						Name:     "field_slice",
 						Type:     "slice",
-						Source:   "field_slice",
 						Required: false,
 						Children: []Field{
 							{
 								Name:     "field_slice_child_keyword",
 								Type:     "keyword",
-								Source:   "field_slice_child_keyword",
 								Required: true,
 							},
 							{
 								Name:     "field_slice_child_bool",
 								Type:     "bool",
-								Source:   "field_slice_child_bool",
 								Required: true,
 							},
 						},

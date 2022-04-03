@@ -32,7 +32,11 @@ var validateDoc = func(schema *schema.Schema, source map[string]interface{}) err
 
 var validateFields = func(fields []schema.Field, source map[string]interface{}) []error {
 	var errors []error
+
+	visited := make(map[string]struct{})
 	for _, field := range fields {
+		visited[field.Name] = struct{}{}
+
 		value := source[field.Name]
 		err := validateValue(field, value)
 		if err != nil {
@@ -49,7 +53,13 @@ var validateFields = func(fields []schema.Field, source map[string]interface{}) 
 		// }
 	}
 
-	return nil
+	for name := range source {
+		if _, ok := visited[name]; !ok {
+			errors = append(errors, fmt.Errorf("validation err: field %q is not defined in index schema", name))
+		}
+	}
+
+	return errors
 }
 
 var validateValue = func(f schema.Field, value interface{}) error {
