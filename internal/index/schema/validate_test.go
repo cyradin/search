@@ -36,13 +36,6 @@ func Test_Validate(t *testing.T) {
 			valid: false,
 		},
 		{
-			name: "empty_source",
-			fields: []Field{
-				{Name: "name", Type: field.TypeKeyword},
-			},
-			valid: false,
-		},
-		{
 			name: "invalid_type",
 			fields: []Field{
 				{Name: "name", Type: field.Type("invalid")},
@@ -89,7 +82,7 @@ func Test_Validate(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			s := New(d.fields)
-			err := Validate(s)
+			err := Validate(*s)
 			if d.valid {
 				require.Nil(t, err)
 				return

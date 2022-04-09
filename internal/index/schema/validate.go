@@ -6,7 +6,7 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 )
 
-func Validate(s *Schema) error {
+func Validate(s Schema) error {
 	names := make(map[string]struct{})
 	for _, f := range s.Fields {
 		err := validateField(f, "")
