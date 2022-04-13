@@ -1,4 +1,4 @@
-package document
+package storage
 
 import (
 	"context"
@@ -10,34 +10,42 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testDoc1 = Document{
+type testDoc struct {
+	ID         string              `json:"id"`
+	Name       string              `json:"name"`
+	Properties map[string][]string `json:"properties"`
+}
+
+var testDoc1 = document[testDoc]{
 	ID: "1",
-	Source: map[string]interface{}{
-		"id":   "1",
-		"name": "foo",
-		"properties": map[string]interface{}{
-			"colors": []interface{}{"red", "blue"},
+	Source: testDoc{
+		ID:   "1",
+		Name: "foo",
+		Properties: map[string][]string{
+			"colors": {"red", "blue"},
 		},
 	},
 }
-var testDoc2 = Document{
+var testDoc2 = document[testDoc]{
 	ID: "2",
-	Source: map[string]interface{}{
-		"id":   "2",
-		"name": "bar",
-		"properties": map[string]interface{}{
-			"colors": []interface{}{"red", "green"},
+	Source: testDoc{
+		ID:   "2",
+		Name: "bar",
+		Properties: map[string][]string{
+			"colors": {"red", "green"},
 		},
 	},
 }
 
-func Test_FileStorage_All(t *testing.T) {
-	data := []struct {
+func Test_File_All(t *testing.T) {
+	type testData[T any] struct {
 		name      string
 		file      string
-		expected  []Document
+		expected  []T
 		erroneous bool
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
@@ -47,13 +55,13 @@ func Test_FileStorage_All(t *testing.T) {
 			name:      "ok",
 			file:      "../../test/testdata/document/storage_file.json",
 			erroneous: false,
-			expected:  []Document{testDoc1, testDoc2},
+			expected:  []testDoc{testDoc1.Source, testDoc2.Source},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage(context.Background(), d.file)
+			p, err := NewFile[testDoc](context.Background(), d.file)
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -62,7 +70,7 @@ func Test_FileStorage_All(t *testing.T) {
 
 			docs, errors := p.All()
 
-			var result []Document
+			var result []testDoc
 			a := func() {
 				for {
 					select {
@@ -81,14 +89,16 @@ func Test_FileStorage_All(t *testing.T) {
 	}
 }
 
-func Test_FileStorage_One(t *testing.T) {
-	data := []struct {
+func Test_File_One(t *testing.T) {
+	type testData[T any] struct {
 		name      string
 		file      string
 		id        string
-		expected  Document
+		expected  T
 		erroneous bool
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
@@ -100,7 +110,7 @@ func Test_FileStorage_One(t *testing.T) {
 			file:      "../../test/testdata/document/storage_file.json",
 			id:        "1",
 			erroneous: false,
-			expected:  testDoc1,
+			expected:  testDoc1.Source,
 		},
 		{
 			name:      "not_found",
@@ -112,7 +122,7 @@ func Test_FileStorage_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(context.Background(), d.file)
+			p, _ := NewFile[testDoc](context.Background(), d.file)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -126,46 +136,48 @@ func Test_FileStorage_One(t *testing.T) {
 	}
 }
 
-func Test_FileStorage_Multi(t *testing.T) {
-	data := []struct {
+func Test_File_Multi(t *testing.T) {
+	type testData[T any] struct {
 		name      string
 		file      string
 		ids       []string
-		expected  []Document
+		expected  []T
 		erroneous bool
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
 			erroneous: false,
-			expected:  []Document{},
+			expected:  []testDoc{},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1"},
 			erroneous: false,
-			expected:  []Document{testDoc1},
+			expected:  []testDoc{testDoc1.Source},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1", "2"},
 			erroneous: false,
-			expected:  []Document{testDoc1, testDoc2},
+			expected:  []testDoc{testDoc1.Source, testDoc2.Source},
 		},
 		{
 			name:      "not_found",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"3"},
 			erroneous: false,
-			expected:  []Document{},
+			expected:  []testDoc{},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFileStorage(context.Background(), d.file)
+			p, _ := NewFile[testDoc](context.Background(), d.file)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -179,32 +191,34 @@ func Test_FileStorage_Multi(t *testing.T) {
 	}
 }
 
-func Test_FileStorage_Insert(t *testing.T) {
-	data := []struct {
+func Test_File_Insert(t *testing.T) {
+	type testData[T any] struct {
 		name      string
 		id        string
 		expected  string
-		docs      map[string]Document
+		docs      map[string]document[T]
 		erroneous bool
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:      "empty_id",
 			erroneous: true,
 			id:        "",
 			expected:  "",
-			docs:      make(map[string]Document),
+			docs:      make(map[string]document[testDoc]),
 		},
 		{
 			name:      "ok",
 			erroneous: false,
 			id:        "id",
 			expected:  "id",
-			docs:      make(map[string]Document),
+			docs:      make(map[string]document[testDoc]),
 		},
 		{
 			name:      "already_exists",
 			erroneous: true,
-			docs: map[string]Document{
+			docs: map[string]document[testDoc]{
 				"id": {},
 			},
 			id: "id",
@@ -213,12 +227,12 @@ func Test_FileStorage_Insert(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage(context.Background(), "")
+			p, err := NewFile[testDoc](context.Background(), "")
 			require.Nil(t, err)
 
 			p.docs = d.docs
 
-			err = p.Insert(d.id, &Document{})
+			err = p.Insert(d.id, testDoc{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -229,46 +243,44 @@ func Test_FileStorage_Insert(t *testing.T) {
 	}
 }
 
-func Test_FileStorage_Update(t *testing.T) {
-	data := []struct {
+func Test_File_Update(t *testing.T) {
+	type testData[T any] struct {
 		name      string
 		id        string
-		expected  string
-		docs      map[string]Document
+		docs      map[string]document[T]
 		erroneous bool
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:      "empty_id",
 			erroneous: true,
 			id:        "",
-			expected:  "id",
-			docs:      make(map[string]Document),
+			docs:      make(map[string]document[testDoc]),
 		},
 		{
 			name:      "not_exists",
 			erroneous: true,
 			id:        "id",
-			docs:      make(map[string]Document),
+			docs:      make(map[string]document[testDoc]),
 		},
 		{
 			name:      "ok",
 			erroneous: false,
-			docs: map[string]Document{
+			id:        "id",
+			docs: map[string]document[testDoc]{
 				"id": {},
 			},
-			id:       "id",
-			expected: "id",
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage(context.Background(), "")
+			p, err := NewFile[testDoc](context.Background(), "")
 			require.Nil(t, err)
 
 			p.docs = d.docs
-
-			err = p.Update(d.id, &Document{})
+			err = p.Update(d.id, testDoc{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -279,24 +291,30 @@ func Test_FileStorage_Update(t *testing.T) {
 	}
 }
 
-func Test_FileStorage_dumpOnCancel(t *testing.T) {
-	data := []struct {
+func Test_File_dumpOnCancel(t *testing.T) {
+	type testData[T any] struct {
 		name     string
-		docs     map[string]Document
+		docs     map[string]document[T]
 		expected string
-	}{
+	}
+
+	data := []testData[testDoc]{
 		{
 			name:     "empty",
-			docs:     make(map[string]Document),
+			docs:     make(map[string]document[testDoc]),
 			expected: "[]",
 		},
 		{
 			name: "not empty",
-			docs: map[string]Document{
+			docs: map[string]document[testDoc]{
 				"id": {
 					ID: "id",
-					Source: map[string]interface{}{
-						"text": "qwerty",
+					Source: testDoc{
+						ID:   "id",
+						Name: "name",
+						Properties: map[string][]string{
+							"color": {"red", "green"},
+						},
 					},
 				},
 			},
@@ -305,7 +323,11 @@ func Test_FileStorage_dumpOnCancel(t *testing.T) {
 					{
 						"_id": "id",
 						"_source": {
-							"text": "qwerty"
+							"id": "id",
+							"name": "name",
+							"properties": {
+								"color": ["red", "green"]
+							}
 						}
 					}
 				]`,
@@ -322,7 +344,7 @@ func Test_FileStorage_dumpOnCancel(t *testing.T) {
 
 			ctx, cancel := context.WithCancel(context.Background())
 
-			p, err := NewFileStorage(ctx, file)
+			p, err := NewFile[testDoc](ctx, file)
 			require.Nil(t, err)
 
 			p.docs = d.docs
