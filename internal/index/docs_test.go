@@ -5,19 +5,45 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cyradin/search/internal/document"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/cyradin/search/internal/storage"
 	"github.com/stretchr/testify/require"
 )
+
+var _ storage.Storage[DocSource] = (*testDocStorage)(nil)
+
+type testDocStorage struct {
+	one    func(id string) (DocSource, error)
+	multi  func(ids ...string) ([]DocSource, error)
+	all    func() (<-chan DocSource, <-chan error)
+	insert func(id string, doc DocSource) error
+	update func(id string, doc DocSource) error
+}
+
+func (s *testDocStorage) One(id string) (DocSource, error) {
+	return s.one(id)
+}
+func (s *testDocStorage) Multi(ids ...string) ([]DocSource, error) {
+	return s.multi(ids...)
+}
+func (s *testDocStorage) All() (<-chan DocSource, <-chan error) {
+	return s.all()
+}
+func (s *testDocStorage) Insert(id string, doc DocSource) error {
+	return s.insert(id, doc)
+}
+func (s *testDocStorage) Update(id string, doc DocSource) error {
+	return s.update(id, doc)
+}
 
 func Test_Index_Add(t *testing.T) {
 	data := []struct {
 		name         string
 		guid         string
 		generator    func() string
-		sourceInsert sourceInserter
-		source       map[string]interface{}
+		sourceInsert func(id string, doc DocSource) error
+		source       DocSource
 		erroneous    bool
 		expected     string
 	}{
@@ -27,8 +53,8 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: map[string]interface{}{"v": true},
-			sourceInsert: func(guid string, doc *document.Document) error {
+			source: DocSource{"v": true},
+			sourceInsert: func(guid string, doc DocSource) error {
 				return nil
 			},
 			erroneous: false,
@@ -40,8 +66,8 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: map[string]interface{}{"v": true},
-			sourceInsert: func(guid string, doc *document.Document) error {
+			source: DocSource{"v": true},
+			sourceInsert: func(guid string, doc DocSource) error {
 				return fmt.Errorf("err")
 			},
 			erroneous: true,
@@ -53,8 +79,8 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: map[string]interface{}{"v": "1"},
-			sourceInsert: func(guid string, doc *document.Document) error {
+			source: DocSource{"v": "1"},
+			sourceInsert: func(guid string, doc DocSource) error {
 				return nil
 			},
 			erroneous: true,
@@ -66,8 +92,8 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: map[string]interface{}{"v": true},
-			sourceInsert: func(guid string, doc *document.Document) error {
+			source: DocSource{"v": true},
+			sourceInsert: func(guid string, doc DocSource) error {
 				return nil
 			},
 			erroneous: false,
@@ -80,13 +106,15 @@ func Test_Index_Add(t *testing.T) {
 			ctx := context.Background()
 
 			index := &Index{
-				idSet:        func(uid string) uint32 { return 1 },
-				sourceInsert: d.sourceInsert,
+				idSet: func(uid string) uint32 { return 1 },
 				fields: map[string]field.Field{
 					"v": field.NewBool(ctx),
 				},
 				guidGenerate: d.generator,
-				schema:       &schema.Schema{},
+				schema:       schema.Schema{},
+				sourceStorage: &testDocStorage{
+					insert: d.sourceInsert,
+				},
 			}
 			guid, err := index.Add(d.guid, d.source)
 			if d.erroneous {

@@ -1,14 +1,13 @@
 package index
 
-import (
-	"github.com/cyradin/search/internal/document"
-)
-
 type (
 	idGetter func(uid string) uint32
 	idSetter func(uid string) uint32
 
-	sourceInserter func(guid string, doc *document.Document) error
+	sourceStorage interface {
+		Insert(guid string, doc DocSource) error
+		All() (<-chan DocSource, <-chan error)
+	}
 )
 
 func (i *Index) Add(guid string, source map[string]interface{}) (string, error) {
@@ -20,8 +19,7 @@ func (i *Index) Add(guid string, source map[string]interface{}) (string, error) 
 		guid = i.guidGenerate()
 	}
 
-	doc := document.New(guid, source)
-	err := i.sourceInsert(guid, &doc)
+	err := i.sourceStorage.Insert(guid, source)
 	if err != nil {
 		return guid, err
 	}
