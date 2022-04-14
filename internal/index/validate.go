@@ -21,7 +21,7 @@ type FieldValidationError struct {
 	parent error
 }
 
-var validateDoc = func(schema *schema.Schema, source map[string]interface{}) error {
+var validateDoc = func(schema schema.Schema, source DocSource) error {
 	err := validateFields(schema.Fields, source)
 	if err != nil {
 		return nil
@@ -30,7 +30,7 @@ var validateDoc = func(schema *schema.Schema, source map[string]interface{}) err
 	return nil
 }
 
-var validateFields = func(fields []schema.Field, source map[string]interface{}) []error {
+var validateFields = func(fields []schema.Field, source DocSource) []error {
 	var errors []error
 
 	visited := make(map[string]struct{})

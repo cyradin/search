@@ -6,16 +6,18 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cyradin/search/internal/document"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/cyradin/search/internal/storage"
 	"github.com/google/uuid"
 )
+
+type DocSource map[string]interface{}
 
 type Index struct {
 	CreatedAt time.Time
 
-	schema *schema.Schema
+	schema schema.Schema
 
 	fieldsMtx sync.RWMutex
 	fields    map[string]field.Field
@@ -23,12 +25,12 @@ type Index struct {
 	idGet idGetter
 	idSet idSetter
 
-	sourceInsert sourceInserter
+	sourceStorage storage.Storage[DocSource]
 
 	guidGenerate func() string
 }
 
-func New(ctx context.Context, s *schema.Schema, storage document.Storage, maxID uint32) (*Index, error) {
+func New(ctx context.Context, s schema.Schema, sourceStorage storage.Storage[DocSource], maxID uint32) (*Index, error) {
 	if err := schema.Validate(s); err != nil {
 		return nil, err
 	}
@@ -43,8 +45,8 @@ func New(ctx context.Context, s *schema.Schema, storage document.Storage, maxID 
 		idGet: ids.Get,
 		idSet: ids.Set,
 
-		guidGenerate: uuid.NewString,
-		sourceInsert: storage.Insert,
+		guidGenerate:  uuid.NewString,
+		sourceStorage: sourceStorage,
 	}
 
 	for _, f := range s.Fields {
