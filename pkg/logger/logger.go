@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func New(level zapcore.Level, traceLevel zapcore.Level, name string, version string) (*zap.Logger, error) {
+func New(level zapcore.Level, traceLevel zapcore.Level, name string, version string, instanceID string, env string) (*zap.Logger, error) {
 	encoder := zapcore.NewJSONEncoder(zapcore.EncoderConfig{
 		NameKey:        "app",
 		LevelKey:       "level",
@@ -30,6 +30,8 @@ func New(level zapcore.Level, traceLevel zapcore.Level, name string, version str
 		zap.Fields(
 			zap.String("version", version),
 			zap.String("app", name),
+			zap.String("instance_id", instanceID),
+			zap.String("env", env),
 		),
 	), nil
 }
