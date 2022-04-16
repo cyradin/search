@@ -36,13 +36,13 @@ type LoggerConfig struct {
 }
 
 func initConfig() (Config, error) {
-	appEnv, err := loadEnv("PRICE_ENV")
+	appEnv, err := loadEnv("SEARCH_ENV")
 	if err != nil {
 		return Config{}, err
 	}
 
 	cfg := new(Config)
-	err = envconfig.Process("PRICE", cfg)
+	err = envconfig.Process("SEARCH", cfg)
 	cfg.Env = appEnv
 
 	return *cfg, err

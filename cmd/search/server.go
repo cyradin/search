@@ -4,9 +4,8 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/cyradin/search/internal/apiv1"
 	"github.com/go-chi/chi/v5"
-	"github.com/go-playground/validator/v10"
-	"go.uber.org/zap"
 )
 
 func initServer(address string, h http.Handler) *http.Server {
@@ -18,6 +17,9 @@ func initServer(address string, h http.Handler) *http.Server {
 	return server
 }
 
-func initHttpHandler(ctx context.Context, l *zap.Logger, v *validator.Validate) http.Handler {
-	return chi.NewMux() // @todo
+func initHttpHandler(ctx context.Context) (http.Handler, error) {
+	mux := chi.NewMux()
+	mux.Route("/v1", apiv1.NewHandler(ctx))
+
+	return mux, nil
 }

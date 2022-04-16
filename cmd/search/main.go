@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cyradin/search/pkg/logger"
-	"github.com/go-playground/validator/v10"
+	"github.com/google/uuid"
 	"github.com/pkg/profile"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
@@ -28,15 +28,19 @@ func main() {
 		defer profile.Start(profile.MemProfile).Stop()
 	}
 
-	l := initLogger(cfg.Logger.Level, cfg.Logger.TraceLevel)
-
-	ctx := context.Background()
+	instanceID := uuid.NewString()
+	l := initLogger(cfg.Logger.Level, cfg.Logger.TraceLevel, instanceID, cfg.Env)
+	ctx := logger.WithContext(context.Background(), l)
 	defer panicHandle(ctx, l)
 
-	srv := initServer(
-		cfg.Server.Address,
-		initHttpHandler(ctx, l, validator.New()),
-	)
+	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT)
+	defer cancel()
+
+	h, err := initHttpHandler(ctx)
+	panicOnError(err)
+
+	srv := initServer(cfg.Server.Address, h)
+
 	errors := make(chan error, 1)
 	go func(ctx context.Context) {
 		defer panicHandle(ctx, l)
@@ -46,9 +50,6 @@ func main() {
 			errors <- err
 		}
 	}(ctx)
-
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT)
-	defer cancel()
 
 	select {
 	case <-ctx.Done():
@@ -68,8 +69,8 @@ func main() {
 	}
 }
 
-func initLogger(level zapcore.Level, traceLevel zapcore.Level) *zap.Logger {
-	l, err := logger.New(level, traceLevel, "search", version)
+func initLogger(level zapcore.Level, traceLevel zapcore.Level, instanceID string, env string) *zap.Logger {
+	l, err := logger.New(level, traceLevel, "search", version, instanceID, env)
 	panicOnError(err)
 
 	return l
