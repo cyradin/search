@@ -4,13 +4,23 @@ import (
 	"context"
 	"net/http"
 
+	"github.com/cyradin/search/internal/index"
 	"github.com/cyradin/search/pkg/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	jsoniter "github.com/json-iterator/go"
+
+	"github.com/go-playground/validator/v10"
 )
 
-func NewHandler(ctx context.Context) func(chi.Router) {
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
+)
+
+func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi.Router) {
 	return func(r chi.Router) {
+		v := validator.New()
+
 		r.Use(
 			middleware.StripSlashes,
 			middleware.RequestID,
@@ -21,7 +31,11 @@ func NewHandler(ctx context.Context) func(chi.Router) {
 			middleware.Recoverer,
 		)
 
-		r.Route("/indexes", indexHandler(ctx))
+		r.Route("/indexes", func(r chi.Router) {
+			ic := NewIndexController(indexRepository)
+			r.Get("/", ic.ListAction())
+			r.Post("/", ic.AddAction(v))
+		})
 	}
 }
 
@@ -52,4 +66,18 @@ func bindContext(appCtx context.Context) func(next http.Handler) http.Handler {
 		}
 		return http.HandlerFunc(fn)
 	}
+}
+
+func decodeAndValidate(validator *validator.Validate, r *http.Request, data interface{}) error {
+	err := json.NewDecoder(r.Body).Decode(data)
+	if err != nil {
+		return err
+	}
+
+	err = validator.Struct(data)
+	if err != nil {
+		return err
+	}
+
+	return nil
 }
