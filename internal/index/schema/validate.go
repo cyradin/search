@@ -8,6 +8,11 @@ import (
 
 func Validate(s Schema) error {
 	names := make(map[string]struct{})
+
+	if len(s.Fields) == 0 {
+		return fmt.Errorf("schema fields must be defined")
+	}
+
 	for _, f := range s.Fields {
 		err := validateField(f, "")
 		if err != nil {

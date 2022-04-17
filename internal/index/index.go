@@ -6,93 +6,97 @@ import (
 	"sync"
 	"time"
 
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
-	"github.com/google/uuid"
 )
 
-type DocSource map[string]interface{}
+var ErrIndexNotFound = fmt.Errorf("index not found")
+var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
 
 type Index struct {
-	CreatedAt time.Time
+	Name      string        `json:"name"`
+	CreatedAt time.Time     `json:"createdAt"`
+	Schema    schema.Schema `json:"schema"`
+}
 
-	schema schema.Schema
+func New(ctx context.Context, name string, s schema.Schema) *Index {
+	return &Index{
+		Name:      name,
+		CreatedAt: time.Now(),
+		Schema:    s,
+	}
+}
 
-	fieldsMtx sync.RWMutex
-	fields    map[string]field.Field
+type Repository struct {
+	indexesMtx sync.RWMutex
+	indexes    map[string]*Index
 
-	idGet idGetter
-	idSet idSetter
-
-	sourceStorage storage.Storage[DocSource]
+	storage storage.Storage[*Index]
 
 	guidGenerate func() string
 }
 
-func New(ctx context.Context, s schema.Schema, sourceStorage storage.Storage[DocSource], maxID uint32) (*Index, error) {
-	if err := schema.Validate(s); err != nil {
-		return nil, err
+func NewRepository(ctx context.Context, storage storage.Storage[*Index]) *Repository {
+	r := &Repository{
+		indexes: make(map[string]*Index),
+		storage: storage,
 	}
 
-	ids := NewIDs(maxID, nil)
+	return r
+}
 
-	result := &Index{
-		CreatedAt: time.Now(),
-		schema:    s,
-		fields:    make(map[string]field.Field),
+func (r *Repository) Get(name string) (*Index, error) {
+	r.indexesMtx.RLock()
+	defer r.indexesMtx.RUnlock()
 
-		idGet: ids.Get,
-		idSet: ids.Set,
-
-		guidGenerate:  uuid.NewString,
-		sourceStorage: sourceStorage,
+	index, ok := r.indexes[name]
+	if !ok {
+		return nil, ErrIndexNotFound
 	}
 
-	for _, f := range s.Fields {
-		err := result.addField(ctx, f)
-		if err != nil {
-			return nil, fmt.Errorf("unable to add field: %w", err)
-		}
+	return index, nil
+}
+
+func (r *Repository) All() ([]*Index, error) {
+	r.indexesMtx.RLock()
+	defer r.indexesMtx.RUnlock()
+
+	result := make([]*Index, 0, len(r.indexes))
+	for _, index := range r.indexes {
+		result = append(result, index)
 	}
 
 	return result, nil
 }
 
-func (i *Index) addField(ctx context.Context, f schema.Field) error {
-	i.fieldsMtx.RLock()
-	defer i.fieldsMtx.RUnlock()
+func (r *Repository) Add(index *Index) error {
+	r.indexesMtx.Lock()
+	defer r.indexesMtx.Unlock()
 
-	switch f.Type {
-	case field.TypeBool:
-		i.fields[f.Name] = field.NewBool(ctx)
-	case field.TypeKeyword:
-		i.fields[f.Name] = field.NewKeyword(ctx)
-	case field.TypeText:
-		i.fields[f.Name] = field.NewText(ctx) // @todo pass analyzers from schema
-	// @todo implement slice type
-	// case field.TypeSlice:
-	// 	i.fields[f.Name] = field.NewSlice(ctx)
-	// @todo implement map type
-	// case field.TypeNap:
-	// 	i.fields[f.Name] = field.NewMap(ctx)
-	case field.TypeUnsignedLong:
-		i.fields[f.Name] = field.NewUnsignedLong(ctx)
-	case field.TypeLong:
-		i.fields[f.Name] = field.NewLong(ctx)
-	case field.TypeInteger:
-		i.fields[f.Name] = field.NewInteger(ctx)
-	case field.TypeShort:
-		i.fields[f.Name] = field.NewShort(ctx)
-	case field.TypeByte:
-		i.fields[f.Name] = field.NewByte(ctx)
-	case field.TypeDouble:
-		i.fields[f.Name] = field.NewDouble(ctx)
-	case field.TypeFloat:
-		i.fields[f.Name] = field.NewFloat(ctx)
-	default:
-		return fmt.Errorf("invalid field type %q", f.Type)
+	if _, ok := r.indexes[index.Name]; ok {
+		return ErrIndexAlreadyExists
 	}
 
+	if err := schema.Validate(index.Schema); err != nil {
+		return fmt.Errorf("schema validation failed: %w", err)
+	}
+
+	r.indexes[index.Name] = index
+
 	return nil
+}
+
+func (r *Repository) load(ctx context.Context) error {
+	r.indexesMtx.RLock()
+	defer r.indexesMtx.RUnlock()
+
+	indexes, errors := r.storage.All()
+	for {
+		select {
+		case indexRaw := <-indexes:
+			fmt.Println(indexRaw) // @todo load index
+		case err := <-errors:
+			return err
+		}
+	}
 }
