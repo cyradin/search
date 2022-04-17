@@ -80,3 +80,77 @@ func Test_Schema_ToSchema(t *testing.T) {
 		})
 	}
 }
+
+func Test_Schema_FromSchema(t *testing.T) {
+	data := []struct {
+		name     string
+		src      schema.Schema
+		expected Schema
+	}{
+		{
+			name:     "no_fields",
+			src:      schema.Schema{},
+			expected: Schema{Fields: make(map[string]SchemaField)},
+		},
+		{
+			name: "one_field",
+			src: schema.Schema{
+				Fields: []schema.Field{
+					{Name: "test", Type: field.TypeText},
+				},
+			},
+			expected: Schema{
+				Fields: map[string]SchemaField{
+					"test": {Type: "text"},
+				},
+			},
+		},
+		{
+			name: "two_fields",
+			src: schema.Schema{
+				Fields: []schema.Field{
+					{Name: "test2", Type: field.TypeByte},
+					{Name: "test", Type: field.TypeText},
+				},
+			},
+			expected: Schema{
+				Fields: map[string]SchemaField{
+					"test":  {Type: "text"},
+					"test2": {Type: "byte"},
+				},
+			},
+		},
+		{
+			name: "nested_fields",
+			src: schema.Schema{
+				Fields: []schema.Field{
+					{
+						Name: "test",
+						Type: field.TypeSlice,
+						Children: []schema.Field{
+							{Name: "test2", Type: field.TypeByte},
+						},
+					},
+				},
+			},
+			expected: Schema{
+				Fields: map[string]SchemaField{
+					"test": {
+						Type: "slice",
+						Fields: map[string]SchemaField{
+							"test2": {Type: "byte"},
+						},
+					},
+				},
+			},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			res := Schema{}
+			res.FromSchema(d.src)
+			require.EqualValues(t, d.expected, res)
+		})
+	}
+}
