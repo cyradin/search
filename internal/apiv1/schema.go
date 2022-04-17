@@ -44,3 +44,26 @@ func (s *Schema) toSchemaField(name string, f SchemaField) schema.Field {
 
 	return result
 }
+
+func (s *Schema) FromSchema(src schema.Schema) {
+	s.Fields = make(map[string]SchemaField)
+	for _, f := range src.Fields {
+		s.Fields[f.Name] = s.fromSchemaField(f)
+	}
+}
+
+func (s *Schema) fromSchemaField(f schema.Field) SchemaField {
+	result := SchemaField{
+		Type:     string(f.Type),
+		Required: f.Required,
+	}
+
+	if len(f.Children) > 0 {
+		result.Fields = make(map[string]SchemaField)
+		for _, child := range f.Children {
+			result.Fields[child.Name] = s.fromSchemaField(child)
+		}
+	}
+
+	return result
+}

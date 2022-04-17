@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/index"
+	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
@@ -14,9 +15,35 @@ type IndexList struct {
 	Items []IndexListItem `json:"items"`
 }
 
+func (l *IndexList) FromIndexes(indexes []*index.Index) {
+	l.Items = make([]IndexListItem, len(indexes))
+	for i, item := range indexes {
+		listItem := IndexListItem{}
+		listItem.FromIndex(item)
+		l.Items[i] = listItem
+	}
+}
+
 type IndexListItem struct {
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
+}
+
+func (i *IndexListItem) FromIndex(item *index.Index) {
+	i.Name = item.Name
+	i.CreatedAt = item.CreatedAt
+}
+
+type Index struct {
+	Name      string    `json:"name"`
+	CreatedAt time.Time `json:"createdAt"`
+	Schema    Schema    `json:"schema"`
+}
+
+func (i *Index) FromIndex(item *index.Index) {
+	i.Name = item.Name
+	i.CreatedAt = item.CreatedAt
+	i.Schema.FromSchema(item.Schema)
 }
 
 type IndexAddRequest struct {
@@ -42,15 +69,8 @@ func (c *IndexController) ListAction() http.HandlerFunc {
 			w.WriteHeader(500)
 			return
 		}
-
-		items := make([]IndexListItem, len(indexes))
-		for i, index := range indexes {
-			items[i] = c.transformIndexList(index)
-		}
-
-		resp := IndexList{
-			Items: items,
-		}
+		resp := IndexList{}
+		resp.FromIndexes(indexes)
 
 		render.Status(r, http.StatusOK)
 		render.Respond(w, r, resp)
@@ -81,6 +101,24 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 		}
 
 		w.WriteHeader(http.StatusCreated)
+	}
+}
+
+func (c *IndexController) GetAction(validator *validator.Validate) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		index, err := c.repo.Get(chi.URLParam(r, "index"))
+		if err != nil {
+			// @todo hande err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		resp := Index{}
+		resp.FromIndex(index)
+
+		render.Status(r, http.StatusOK)
+		render.Respond(w, r, resp)
 	}
 }
 
