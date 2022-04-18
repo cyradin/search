@@ -33,7 +33,7 @@ func main() {
 	ctx := logger.WithContext(context.Background(), l)
 	defer panicHandle(ctx, l)
 
-	ctx, cancel := signal.NotifyContext(context.Background(), syscall.SIGINT)
+	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
 
 	h, err := initHttpHandler(ctx)
