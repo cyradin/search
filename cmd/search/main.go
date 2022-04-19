@@ -7,11 +7,10 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/cyradin/search/pkg/logger"
+	"github.com/cyradin/search/pkg/ctxt"
 	"github.com/google/uuid"
 	"github.com/pkg/profile"
 	"go.uber.org/zap"
-	"go.uber.org/zap/zapcore"
 )
 
 var version = "dev"
@@ -29,9 +28,11 @@ func main() {
 	}
 
 	instanceID := uuid.NewString()
-	l := initLogger(cfg.Logger.Level, cfg.Logger.TraceLevel, instanceID, cfg.Env)
-	ctx := logger.WithContext(context.Background(), l)
-	defer panicHandle(ctx, l)
+	logger, err := newLogger(cfg.Logger.Level, cfg.Logger.TraceLevel, "search", version, instanceID, cfg.Env)
+	panicOnError(err)
+
+	ctx := ctxt.WithLogger(context.Background(), logger)
+	defer panicHandle(ctx, logger)
 
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
@@ -43,8 +44,8 @@ func main() {
 
 	errors := make(chan error, 1)
 	go func(ctx context.Context) {
-		defer panicHandle(ctx, l)
-		l.Info("app.server.start", logger.ExtractFields(ctx)...)
+		defer panicHandle(ctx, logger)
+		logger.Info("app.server.start", ctxt.ExtractFields(ctx)...)
 		err := srv.ListenAndServe()
 		if err != nil {
 			errors <- err
@@ -53,27 +54,22 @@ func main() {
 
 	select {
 	case <-ctx.Done():
-		l.Info("app.server.stopping", logger.ExtractFields(ctx)...)
+		logger.Info("app.server.stopping", ctxt.ExtractFields(ctx)...)
 		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 
 		if err := srv.Shutdown(ctx); err != nil && err != context.Canceled {
-			l.Error("app.server.error", logger.ExtractFields(ctx)...)
+			logger.Error("app.server.error", ctxt.ExtractFields(ctx)...)
 		}
 		if err := srv.Close(); err != nil {
-			l.Error("app.server.error", logger.ExtractFields(ctx)...)
+			logger.Error("app.server.error", ctxt.ExtractFields(ctx)...)
 		}
-		l.Info("app.server.stopped", logger.ExtractFields(ctx)...)
+		logger.Info("app.server.stopped", ctxt.ExtractFields(ctx)...)
 	case err := <-errors:
-		l.Error("app.server.error", logger.ExtractFields(ctx, zap.Error(err))...)
+		logger.Error("app.server.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
 	}
-}
 
-func initLogger(level zapcore.Level, traceLevel zapcore.Level, instanceID string, env string) *zap.Logger {
-	l, err := logger.New(level, traceLevel, "search", version, instanceID, env)
-	panicOnError(err)
-
-	return l
+	logger.Info("app.stopping", ctxt.ExtractFields(ctx)...)
 }
 
 func panicOnError(err error) {
@@ -89,6 +85,6 @@ func panicHandle(ctx context.Context, l *zap.Logger) {
 			err = fmt.Errorf("%v", r)
 		}
 
-		l.Fatal("app.panic", logger.ExtractFields(ctx, zap.Error(err))...)
+		l.Fatal("app.panic", ctxt.ExtractFields(ctx, zap.Error(err))...)
 	}
 }
