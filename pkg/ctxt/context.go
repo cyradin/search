@@ -21,7 +21,7 @@ func WithWg(ctx context.Context, v *sync.WaitGroup) context.Context {
 }
 
 func Wg(ctx context.Context) *sync.WaitGroup {
-	if v, ok := ctx.Value(ctxKeyLogger).(*sync.WaitGroup); ok {
+	if v, ok := ctx.Value(ctxKeyWaitGroup).(*sync.WaitGroup); ok {
 		return v
 	}
 	return &sync.WaitGroup{}

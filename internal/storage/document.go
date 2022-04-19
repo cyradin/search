@@ -1,9 +1,5 @@
 package storage
 
-import (
-	"encoding/json"
-)
-
 type document[T any] struct {
 	ID     string `json:"_id"`
 	Source T      `json:"_source"`

@@ -2,12 +2,16 @@ package storage
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"sync"
 
 	"github.com/cyradin/search/pkg/ctxt"
+	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 const dirPermissions = 0755
@@ -145,14 +149,14 @@ func (s *File[T]) read() error {
 }
 
 func (s *File[T]) dumpOnCancel(ctx context.Context) {
-	ctxt.Wg(ctx).Add(1)
+	wg := ctxt.Wg(ctx)
+	wg.Add(1)
 	go func() {
 		select {
 		case <-ctx.Done():
-			defer ctxt.Wg(ctx).Done()
+			defer wg.Done()
 			ctxt.Logger(ctx).Debug("storage.dump.start", ctxt.ExtractFields(ctx)...)
-			err := s.dump()
-			if err != nil {
+			if err := s.dump(); err != nil {
 				ctxt.Logger(ctx).Error("storage.dump.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
 				return
 			}
