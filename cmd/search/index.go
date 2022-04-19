@@ -9,7 +9,7 @@ import (
 	"github.com/cyradin/search/internal/storage"
 )
 
-const dataDir = ".data"
+const dataDir = "/home/user/app/.data"
 const dirPermissions = 0755
 const filePermissions = 0644
 
