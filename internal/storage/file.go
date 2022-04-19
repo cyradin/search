@@ -150,9 +150,11 @@ func (s *File[T]) read() error {
 }
 
 func (s *File[T]) dumpOnCancel(ctx context.Context) {
+	ctxt.Wg(ctx).Add(1)
 	go func() {
 		select {
 		case <-ctx.Done():
+			defer ctxt.Wg(ctx).Done()
 			ctxt.Logger(ctx).Debug("storage.dump.start", ctxt.ExtractFields(ctx)...)
 			err := s.dump()
 			if err != nil {

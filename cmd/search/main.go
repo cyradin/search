@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os/signal"
+	"sync"
 	"syscall"
 	"time"
 
@@ -33,6 +34,9 @@ func main() {
 
 	ctx := ctxt.WithLogger(context.Background(), logger)
 	defer panicHandle(ctx, logger)
+
+	wg := sync.WaitGroup{}
+	ctx = ctxt.WithWg(ctx, &wg)
 
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
@@ -70,6 +74,7 @@ func main() {
 	}
 
 	logger.Info("app.stopping", ctxt.ExtractFields(ctx)...)
+	wg.Wait()
 }
 
 func panicOnError(err error) {
