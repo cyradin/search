@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"time"
@@ -28,29 +29,25 @@ func New(ctx context.Context, name string, s schema.Schema) *Index {
 }
 
 type Repository struct {
-	indexesMtx sync.RWMutex
-	indexes    map[string]*Index
-
+	mtx     sync.Mutex
 	storage storage.Storage[*Index]
 
 	guidGenerate func() string
 }
 
 func NewRepository(ctx context.Context, storage storage.Storage[*Index]) *Repository {
-	r := &Repository{
-		indexes: make(map[string]*Index),
+	return &Repository{
 		storage: storage,
 	}
-
-	return r
 }
 
 func (r *Repository) Get(name string) (*Index, error) {
-	r.indexesMtx.RLock()
-	defer r.indexesMtx.RUnlock()
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 
-	index, ok := r.indexes[name]
-	if !ok {
+	index, err := r.storage.One(name)
+	nfErr := &storage.ErrNotFound{}
+	if errors.As(err, &nfErr) {
 		return nil, ErrIndexNotFound
 	}
 
@@ -58,45 +55,37 @@ func (r *Repository) Get(name string) (*Index, error) {
 }
 
 func (r *Repository) All() ([]*Index, error) {
-	r.indexesMtx.RLock()
-	defer r.indexesMtx.RUnlock()
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 
-	result := make([]*Index, 0, len(r.indexes))
-	for _, index := range r.indexes {
-		result = append(result, index)
+	var result []*Index
+
+	indexes, errors := r.storage.All()
+	for {
+		select {
+		case index := <-indexes:
+			result = append(result, index)
+		case err := <-errors:
+			return nil, err
+		default:
+			return result, nil
+		}
 	}
-
-	return result, nil
 }
 
 func (r *Repository) Add(index *Index) error {
-	r.indexesMtx.Lock()
-	defer r.indexesMtx.Unlock()
-
-	if _, ok := r.indexes[index.Name]; ok {
-		return ErrIndexAlreadyExists
-	}
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 
 	if err := schema.Validate(index.Schema); err != nil {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 
-	r.indexes[index.Name] = index
+	err := r.storage.Insert(index.Name, index)
+	nfErr := &storage.ErrAlreadyExists{}
+	if !errors.As(err, &nfErr) {
+		return ErrIndexAlreadyExists
+	}
 
 	return nil
-}
-
-func (r *Repository) load(ctx context.Context) error {
-	r.indexesMtx.RLock()
-	defer r.indexesMtx.RUnlock()
-
-	indexes, errors := r.storage.All()
-	for {
-		select {
-		case indexRaw := <-indexes:
-			fmt.Println(indexRaw) // @todo load index
-		case err := <-errors:
-			return err
-		}
-	}
 }

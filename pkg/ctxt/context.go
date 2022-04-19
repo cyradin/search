@@ -1,9 +1,7 @@
-package logger
+package ctxt
 
 import (
 	"context"
-
-	"go.uber.org/zap"
 )
 
 type ctxKey string
@@ -15,33 +13,6 @@ const (
 	ctxKeyRequestMethod ctxKey = "req_method"
 	ctxKeyRequestID     ctxKey = "req_id"
 )
-
-var noOpLogger = zap.NewNop()
-
-func WithContext(ctx context.Context, logger *zap.Logger) context.Context {
-	return context.WithValue(ctx, ctxKeyLogger, logger)
-}
-
-func FromContext(ctx context.Context) *zap.Logger {
-	if l, ok := ctx.Value(ctxKeyLogger).(*zap.Logger); ok {
-		return l
-	}
-	return noOpLogger
-}
-
-func ExtractFields(ctx context.Context, fields ...zap.Field) []zap.Field {
-	if v := RequestMethod(ctx); v != "" {
-		fields = append(fields, zap.String(string(ctxKeyRequestMethod), v))
-	}
-	if v := RequestRoute(ctx); v != "" {
-		fields = append(fields, zap.String(string(ctxKeyRequestRoute), v))
-	}
-	if v := RequestID(ctx); v != "" {
-		fields = append(fields, zap.String(string(ctxKeyRequestID), v))
-	}
-
-	return fields
-}
 
 func WithRequestMethod(ctx context.Context, v string) context.Context {
 	return context.WithValue(ctx, ctxKeyRequestMethod, v)

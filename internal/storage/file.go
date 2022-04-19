@@ -5,7 +5,12 @@ import (
 	"encoding/json"
 	"os"
 	"sync"
+
+	"github.com/cyradin/search/pkg/ctxt"
+	"go.uber.org/zap"
 )
+
+const filePermissions = 0644
 
 type Storage[T any] interface {
 	One(id string) (T, error)
@@ -30,10 +35,17 @@ func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
 		src:  src,
 		docs: make(map[string]document[T]),
 	}
-	err := s.read()
+
+	err := os.MkdirAll(src, filePermissions)
 	if err != nil {
 		return nil, err
 	}
+
+	err = s.read()
+	if err != nil {
+		return nil, err
+	}
+
 	s.dumpOnCancel(ctx)
 
 	return s, nil
@@ -141,7 +153,13 @@ func (s *File[T]) dumpOnCancel(ctx context.Context) {
 	go func() {
 		select {
 		case <-ctx.Done():
-			s.dump() // @todo log error
+			ctxt.Logger(ctx).Debug("storage.dump.start", ctxt.ExtractFields(ctx)...)
+			err := s.dump()
+			if err != nil {
+				ctxt.Logger(ctx).Error("storage.dump.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
+				return
+			}
+			ctxt.Logger(ctx).Debug("storage.dump.finish", ctxt.ExtractFields(ctx)...)
 		}
 	}()
 }
@@ -160,5 +178,5 @@ func (s *File[T]) dump() error {
 		return err
 	}
 
-	return os.WriteFile(s.src, data, 0644)
+	return os.WriteFile(s.src, data, filePermissions)
 }
