@@ -10,6 +10,7 @@ import (
 	"go.uber.org/zap"
 )
 
+const dirPermissions = 0755
 const filePermissions = 0644
 
 type Storage[T any] interface {
@@ -36,13 +37,7 @@ func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
 		docs: make(map[string]document[T]),
 	}
 
-	err := os.MkdirAll(src, filePermissions)
-	if err != nil {
-		return nil, err
-	}
-
-	err = s.read()
-	if err != nil {
+	if err := s.read(); err != nil {
 		return nil, err
 	}
 

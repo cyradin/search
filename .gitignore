@@ -1,7 +1,10 @@
-scripts/docker-compose.override.yml
+/scripts/docker-compose.override.yml
 
-vendor
+/vendor/
 
 # Local env files
 .env.local
 .env.*.local
+
+# default data folder
+/.data/
