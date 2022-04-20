@@ -16,7 +16,7 @@ type testDoc struct {
 	Properties map[string][]string `json:"properties"`
 }
 
-var testDoc1 = document[testDoc]{
+var testDoc1 = Document[testDoc]{
 	ID: "1",
 	Source: testDoc{
 		ID:   "1",
@@ -26,7 +26,7 @@ var testDoc1 = document[testDoc]{
 		},
 	},
 }
-var testDoc2 = document[testDoc]{
+var testDoc2 = Document[testDoc]{
 	ID: "2",
 	Source: testDoc{
 		ID:   "2",
@@ -41,7 +41,7 @@ func Test_File_All(t *testing.T) {
 	type testData[T any] struct {
 		name      string
 		file      string
-		expected  []T
+		expected  []Document[T]
 		erroneous bool
 	}
 
@@ -55,7 +55,7 @@ func Test_File_All(t *testing.T) {
 			name:      "ok",
 			file:      "../../test/testdata/document/storage_file.json",
 			erroneous: false,
-			expected:  []testDoc{testDoc1.Source, testDoc2.Source},
+			expected:  []Document[testDoc]{testDoc1, testDoc2},
 		},
 	}
 
@@ -70,7 +70,7 @@ func Test_File_All(t *testing.T) {
 
 			docs, errors := p.All()
 
-			var result []testDoc
+			var result []Document[testDoc]
 			a := func() {
 				for {
 					select {
@@ -94,7 +94,7 @@ func Test_File_One(t *testing.T) {
 		name      string
 		file      string
 		id        string
-		expected  T
+		expected  Document[T]
 		erroneous bool
 	}
 
@@ -110,7 +110,7 @@ func Test_File_One(t *testing.T) {
 			file:      "../../test/testdata/document/storage_file.json",
 			id:        "1",
 			erroneous: false,
-			expected:  testDoc1.Source,
+			expected:  testDoc1,
 		},
 		{
 			name:      "not_found",
@@ -141,7 +141,7 @@ func Test_File_Multi(t *testing.T) {
 		name      string
 		file      string
 		ids       []string
-		expected  []T
+		expected  []Document[T]
 		erroneous bool
 	}
 
@@ -150,28 +150,28 @@ func Test_File_Multi(t *testing.T) {
 			name:      "invalid_file",
 			file:      "invalid",
 			erroneous: false,
-			expected:  []testDoc{},
+			expected:  []Document[testDoc]{},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1"},
 			erroneous: false,
-			expected:  []testDoc{testDoc1.Source},
+			expected:  []Document[testDoc]{testDoc1},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"1", "2"},
 			erroneous: false,
-			expected:  []testDoc{testDoc1.Source, testDoc2.Source},
+			expected:  []Document[testDoc]{testDoc1, testDoc2},
 		},
 		{
 			name:      "not_found",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []string{"3"},
 			erroneous: false,
-			expected:  []testDoc{},
+			expected:  []Document[testDoc]{},
 		},
 	}
 
@@ -195,30 +195,21 @@ func Test_File_Insert(t *testing.T) {
 	type testData[T any] struct {
 		name      string
 		id        string
-		expected  string
-		docs      map[string]document[T]
+		docs      map[string]Document[T]
 		erroneous bool
 	}
 
 	data := []testData[testDoc]{
 		{
-			name:      "empty_id",
-			erroneous: true,
-			id:        "",
-			expected:  "",
-			docs:      make(map[string]document[testDoc]),
-		},
-		{
 			name:      "ok",
 			erroneous: false,
 			id:        "id",
-			expected:  "id",
-			docs:      make(map[string]document[testDoc]),
+			docs:      make(map[string]Document[testDoc]),
 		},
 		{
 			name:      "already_exists",
 			erroneous: true,
-			docs: map[string]document[testDoc]{
+			docs: map[string]Document[testDoc]{
 				"id": {},
 			},
 			id: "id",
@@ -228,17 +219,21 @@ func Test_File_Insert(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFile[testDoc](context.Background(), "")
+			p.idGenerator = func() string {
+				return d.id
+			}
 			require.Nil(t, err)
 
 			p.docs = d.docs
 
-			err = p.Insert(d.id, testDoc{})
+			id, err := p.Insert(testDoc{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
 			}
 
 			require.Nil(t, err)
+			require.Equal(t, d.id, id)
 		})
 	}
 }
@@ -247,7 +242,7 @@ func Test_File_Update(t *testing.T) {
 	type testData[T any] struct {
 		name      string
 		id        string
-		docs      map[string]document[T]
+		docs      map[string]Document[T]
 		erroneous bool
 	}
 
@@ -256,19 +251,19 @@ func Test_File_Update(t *testing.T) {
 			name:      "empty_id",
 			erroneous: true,
 			id:        "",
-			docs:      make(map[string]document[testDoc]),
+			docs:      make(map[string]Document[testDoc]),
 		},
 		{
 			name:      "not_exists",
 			erroneous: true,
 			id:        "id",
-			docs:      make(map[string]document[testDoc]),
+			docs:      make(map[string]Document[testDoc]),
 		},
 		{
 			name:      "ok",
 			erroneous: false,
 			id:        "id",
-			docs: map[string]document[testDoc]{
+			docs: map[string]Document[testDoc]{
 				"id": {},
 			},
 		},
@@ -294,19 +289,19 @@ func Test_File_Update(t *testing.T) {
 func Test_File_dumpOnCancel(t *testing.T) {
 	type testData[T any] struct {
 		name     string
-		docs     map[string]document[T]
+		docs     map[string]Document[T]
 		expected string
 	}
 
 	data := []testData[testDoc]{
 		{
 			name:     "empty",
-			docs:     make(map[string]document[testDoc]),
+			docs:     make(map[string]Document[testDoc]),
 			expected: "[]",
 		},
 		{
 			name: "not empty",
-			docs: map[string]document[testDoc]{
+			docs: map[string]Document[testDoc]{
 				"id": {
 					ID: "id",
 					Source: testDoc{
