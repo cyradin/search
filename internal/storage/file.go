@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/cyradin/search/pkg/ctxt"
+	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
 	"go.uber.org/zap"
 )
@@ -18,27 +19,29 @@ const dirPermissions = 0755
 const filePermissions = 0644
 
 type Storage[T any] interface {
-	One(id string) (T, error)
-	Multi(ids ...string) ([]T, error)
-	All() (<-chan T, <-chan error)
+	One(id string) (Document[T], error)
+	Multi(ids ...string) ([]Document[T], error)
+	All() (<-chan Document[T], <-chan error)
 
-	Insert(id string, doc T) error
+	Insert(doc T) (string, error)
 	Update(id string, doc T) error
 }
 
 var _ Storage[bool] = (*File[bool])(nil)
 
 type File[T any] struct {
-	src string
+	src         string
+	idGenerator func() string
 
 	docsMtx sync.RWMutex
-	docs    map[string]document[T]
+	docs    map[string]Document[T]
 }
 
 func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
 	s := &File[T]{
-		src:  src,
-		docs: make(map[string]document[T]),
+		src:         src,
+		idGenerator: uuid.NewString,
+		docs:        make(map[string]Document[T]),
 	}
 
 	if err := s.read(); err != nil {
@@ -50,8 +53,8 @@ func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
 	return s, nil
 }
 
-func (s *File[T]) All() (<-chan T, <-chan error) {
-	ch := make(chan T)
+func (s *File[T]) All() (<-chan Document[T], <-chan error) {
+	ch := make(chan Document[T])
 	errors := make(chan error)
 
 	go func() {
@@ -61,54 +64,52 @@ func (s *File[T]) All() (<-chan T, <-chan error) {
 		defer close(errors)
 
 		for _, doc := range s.docs {
-			ch <- doc.Source
+			ch <- doc
 		}
 	}()
 
 	return ch, errors
 }
 
-func (s *File[T]) One(id string) (T, error) {
+func (s *File[T]) One(id string) (Document[T], error) {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
 	doc, ok := s.docs[id]
 	if !ok {
-		return doc.Source, NewErrNotFound(id)
+		return doc, NewErrNotFound(id)
 	}
 
-	return doc.Source, nil
+	return doc, nil
 }
 
-func (s *File[T]) Multi(ids ...string) ([]T, error) {
+func (s *File[T]) Multi(ids ...string) ([]Document[T], error) {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
-	result := make([]T, 0, len(ids))
+	result := make([]Document[T], 0, len(ids))
 
 	for _, id := range ids {
 		if doc, ok := s.docs[id]; ok {
-			result = append(result, doc.Source)
+			result = append(result, doc)
 		}
 	}
 
 	return result, nil
 }
 
-func (s *File[T]) Insert(id string, doc T) error {
-	if id == "" {
-		return NewErrEmptyId()
-	}
+func (s *File[T]) Insert(doc T) (string, error) {
+	id := s.idGenerator()
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; ok {
-		return NewErrAlreadyExists(id)
+		return "", NewErrAlreadyExists(id)
 	}
 	s.docs[id] = newDocument(id, doc)
 
-	return nil
+	return id, nil
 }
 
 func (s *File[T]) Update(id string, doc T) error {
@@ -169,7 +170,7 @@ func (s *File[T]) dump() error {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
-	docs := make([]document[T], 0, len(s.docs))
+	docs := make([]Document[T], 0, len(s.docs))
 	for _, doc := range s.docs {
 		docs = append(docs, doc)
 	}
