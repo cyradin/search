@@ -23,7 +23,7 @@ type Storage[T any] interface {
 	Multi(ids ...string) ([]Document[T], error)
 	All() (<-chan Document[T], <-chan error)
 
-	Insert(doc T) (string, error)
+	Insert(id string, doc T) (string, error)
 	Update(id string, doc T) error
 }
 
@@ -98,8 +98,10 @@ func (s *File[T]) Multi(ids ...string) ([]Document[T], error) {
 	return result, nil
 }
 
-func (s *File[T]) Insert(doc T) (string, error) {
-	id := s.idGenerator()
+func (s *File[T]) Insert(id string, doc T) (string, error) {
+	if id == "" {
+		id = s.idGenerator()
+	}
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()

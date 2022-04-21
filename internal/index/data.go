@@ -8,7 +8,6 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
-	"github.com/google/uuid"
 )
 
 type (
@@ -33,8 +32,6 @@ type Data struct {
 	idSet idSetter
 
 	sourceStorage storage.Storage[DocSource]
-
-	guidGenerate func() string
 }
 
 func NewData(ctx context.Context, index *Index, sourceStorage storage.Storage[DocSource]) (*Data, error) {
@@ -46,7 +43,6 @@ func NewData(ctx context.Context, index *Index, sourceStorage storage.Storage[Do
 		idGet: ids.Get,
 		idSet: ids.Set,
 
-		guidGenerate:  uuid.NewString,
 		sourceStorage: sourceStorage,
 	}
 
@@ -103,11 +99,7 @@ func (d *Data) Add(guid string, source map[string]interface{}) (string, error) {
 		return guid, err
 	}
 
-	if guid == "" {
-		guid = d.guidGenerate()
-	}
-
-	err := d.sourceStorage.Insert(guid, source)
+	guid, err := d.sourceStorage.Insert(guid, source)
 	if err != nil {
 		return guid, err
 	}

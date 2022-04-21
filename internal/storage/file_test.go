@@ -193,10 +193,11 @@ func Test_File_Multi(t *testing.T) {
 
 func Test_File_Insert(t *testing.T) {
 	type testData[T any] struct {
-		name      string
-		id        string
-		docs      map[string]Document[T]
-		erroneous bool
+		name       string
+		id         string
+		docs       map[string]Document[T]
+		erroneous  bool
+		expectedId string
 	}
 
 	data := []testData[testDoc]{
@@ -226,7 +227,7 @@ func Test_File_Insert(t *testing.T) {
 
 			p.docs = d.docs
 
-			id, err := p.Insert(testDoc{})
+			id, err := p.Insert(d.id, testDoc{})
 			if d.erroneous {
 				require.NotNil(t, err)
 				return

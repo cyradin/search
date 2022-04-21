@@ -45,13 +45,13 @@ func (r *Repository) Get(name string) (*Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	index, err := r.storage.One(name)
+	doc, err := r.storage.One(name)
 	nfErr := &storage.ErrNotFound{}
 	if errors.As(err, &nfErr) {
 		return nil, ErrIndexNotFound
 	}
 
-	return index, nil
+	return doc.Source, nil
 }
 
 func (r *Repository) All() ([]*Index, error) {
@@ -63,8 +63,8 @@ func (r *Repository) All() ([]*Index, error) {
 	indexes, errors := r.storage.All()
 	for {
 		select {
-		case index := <-indexes:
-			result = append(result, index)
+		case doc := <-indexes:
+			result = append(result, doc.Source)
 		case err := <-errors:
 			return nil, err
 		default:
@@ -81,7 +81,7 @@ func (r *Repository) Add(index *Index) error {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 
-	err := r.storage.Insert(index.Name, index)
+	_, err := r.storage.Insert(index.Name, index)
 	nfErr := &storage.ErrAlreadyExists{}
 	if !errors.As(err, &nfErr) {
 		return ErrIndexAlreadyExists
