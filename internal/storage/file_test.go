@@ -287,6 +287,66 @@ func Test_File_Update(t *testing.T) {
 	}
 }
 
+func Test_File_Delete(t *testing.T) {
+	type testData[T any] struct {
+		name         string
+		id           string
+		docs         map[string]Document[T]
+		erroneous    bool
+		expectedDocs map[string]Document[T]
+	}
+
+	data := []testData[testDoc]{
+		{
+			name:      "empty_id",
+			erroneous: true,
+			id:        "",
+			docs: map[string]Document[testDoc]{
+				"id": {},
+			},
+			expectedDocs: map[string]Document[testDoc]{
+				"id": {},
+			},
+		},
+		{
+			name:      "not_exists",
+			erroneous: true,
+			id:        "id2",
+			docs: map[string]Document[testDoc]{
+				"id": {},
+			},
+			expectedDocs: map[string]Document[testDoc]{
+				"id": {},
+			},
+		},
+		{
+			name:      "ok",
+			erroneous: false,
+			id:        "id",
+			docs: map[string]Document[testDoc]{
+				"id": {},
+			},
+			expectedDocs: map[string]Document[testDoc]{},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			p, err := NewFile[testDoc](context.Background(), "")
+			require.Nil(t, err)
+
+			p.docs = d.docs
+			err = p.Delete(d.id)
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+
+			require.Nil(t, err)
+			require.EqualValues(t, d.docs, d.expectedDocs)
+		})
+	}
+}
 func Test_File_dumpOnCancel(t *testing.T) {
 	type testData[T any] struct {
 		name     string
