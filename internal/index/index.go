@@ -83,8 +83,24 @@ func (r *Repository) Add(index *Index) error {
 
 	_, err := r.storage.Insert(index.Name, index)
 	nfErr := &storage.ErrAlreadyExists{}
-	if !errors.As(err, &nfErr) {
+	if errors.As(err, &nfErr) {
 		return ErrIndexAlreadyExists
+	}
+
+	return nil
+}
+
+func (r *Repository) Delete(name string) error {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	if err := r.storage.Delete(name); err != nil {
+		nfErr := &storage.ErrNotFound{}
+		if errors.As(err, &nfErr) {
+			return nil
+		}
+
+		return err
 	}
 
 	return nil

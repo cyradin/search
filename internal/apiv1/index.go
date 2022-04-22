@@ -104,7 +104,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 	}
 }
 
-func (c *IndexController) GetAction(validator *validator.Validate) http.HandlerFunc {
+func (c *IndexController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		index, err := c.repo.Get(chi.URLParam(r, "index"))
 		if err != nil {
@@ -119,6 +119,19 @@ func (c *IndexController) GetAction(validator *validator.Validate) http.HandlerF
 
 		render.Status(r, http.StatusOK)
 		render.Respond(w, r, resp)
+	}
+}
+
+func (c *IndexController) DeleteAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		if err := c.repo.Delete(chi.URLParam(r, "index")); err != nil {
+			// @todo hande err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusNotFound)
+			return
+		}
+
+		render.Status(r, http.StatusOK)
 	}
 }
 
