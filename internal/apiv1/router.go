@@ -35,7 +35,8 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 			ic := NewIndexController(indexRepository)
 			r.Get("/", ic.ListAction())
 			r.Post("/", ic.AddAction(v))
-			r.Get("/{index}", ic.GetAction(v))
+			r.Get("/{index}", ic.GetAction())
+			r.Delete("/{index}", ic.DeleteAction())
 		})
 	}
 }
