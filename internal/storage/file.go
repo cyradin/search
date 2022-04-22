@@ -25,6 +25,7 @@ type Storage[T any] interface {
 
 	Insert(id string, doc T) (string, error)
 	Update(id string, doc T) error
+	Delete(id string) error
 }
 
 var _ Storage[bool] = (*File[bool])(nil)
@@ -126,6 +127,22 @@ func (s *File[T]) Update(id string, doc T) error {
 		return NewErrNotFound(id)
 	}
 	s.docs[id] = newDocument(id, doc)
+
+	return nil
+}
+
+func (s *File[T]) Delete(id string) error {
+	if id == "" {
+		return NewErrEmptyId()
+	}
+
+	s.docsMtx.Lock()
+	defer s.docsMtx.Unlock()
+
+	if _, ok := s.docs[id]; !ok {
+		return NewErrNotFound(id)
+	}
+	delete(s.docs, id)
 
 	return nil
 }
