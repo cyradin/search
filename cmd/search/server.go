@@ -18,7 +18,7 @@ func initServer(address string, h http.Handler) *http.Server {
 }
 
 func initHttpHandler(ctx context.Context) (http.Handler, error) {
-	indexRepository := initIndexes()
+	indexRepository := initIndexes(ctx)
 
 	mux := chi.NewMux()
 	mux.Route("/v1", apiv1.NewHandler(ctx, indexRepository))
