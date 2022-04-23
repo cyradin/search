@@ -35,7 +35,7 @@ type Repository struct {
 	guidGenerate func() string
 }
 
-func NewRepository(ctx context.Context, storage storage.Storage[*Index]) *Repository {
+func NewRepository(storage storage.Storage[*Index]) *Repository {
 	return &Repository{
 		storage: storage,
 	}

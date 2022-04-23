@@ -5,7 +5,6 @@ import (
 	"os"
 	"path/filepath"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -61,7 +60,7 @@ func Test_File_All(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](context.Background(), d.file)
+			p, err := NewFile[testDoc](d.file)
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -122,7 +121,7 @@ func Test_File_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFile[testDoc](context.Background(), d.file)
+			p, _ := NewFile[testDoc](d.file)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -177,7 +176,7 @@ func Test_File_Multi(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFile[testDoc](context.Background(), d.file)
+			p, _ := NewFile[testDoc](d.file)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -219,7 +218,7 @@ func Test_File_Insert(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](context.Background(), "")
+			p, err := NewFile[testDoc]("")
 			p.idGenerator = func() string {
 				return d.id
 			}
@@ -272,7 +271,7 @@ func Test_File_Update(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](context.Background(), "")
+			p, err := NewFile[testDoc]("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -332,7 +331,7 @@ func Test_File_Delete(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](context.Background(), "")
+			p, err := NewFile[testDoc]("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -347,7 +346,8 @@ func Test_File_Delete(t *testing.T) {
 		})
 	}
 }
-func Test_File_dumpOnCancel(t *testing.T) {
+
+func Test_File_Stop(t *testing.T) {
 	type testData[T any] struct {
 		name     string
 		docs     map[string]Document[T]
@@ -398,15 +398,13 @@ func Test_File_dumpOnCancel(t *testing.T) {
 
 			file := filepath.Join(dir, "storage.json")
 
-			ctx, cancel := context.WithCancel(context.Background())
-
-			p, err := NewFile[testDoc](ctx, file)
+			p, err := NewFile[testDoc](file)
 			require.Nil(t, err)
 
 			p.docs = d.docs
 
-			cancel()
-			time.Sleep(100 * time.Millisecond)
+			ctx := context.Background()
+			p.Stop(ctx)
 
 			result, err := os.ReadFile(file)
 			require.Nil(t, err)

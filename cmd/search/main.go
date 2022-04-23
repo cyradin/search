@@ -4,11 +4,11 @@ import (
 	"context"
 	"fmt"
 	"os/signal"
-	"sync"
 	"syscall"
 	"time"
 
 	"github.com/cyradin/search/pkg/ctxt"
+	"github.com/cyradin/search/pkg/finisher"
 	"github.com/google/uuid"
 	"github.com/pkg/profile"
 	"go.uber.org/zap"
@@ -34,9 +34,6 @@ func main() {
 
 	ctx := ctxt.WithLogger(context.Background(), logger)
 	defer panicHandle(ctx, logger)
-
-	wg := sync.WaitGroup{}
-	ctx = ctxt.WithWg(ctx, &wg)
 
 	ctx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
@@ -74,7 +71,7 @@ func main() {
 	}
 
 	logger.Info("app.stopping", ctxt.ExtractFields(ctx)...)
-	wg.Wait()
+	finisher.Wait(ctx)
 }
 
 func panicOnError(err error) {

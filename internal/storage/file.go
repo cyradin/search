@@ -5,10 +5,8 @@ import (
 	"os"
 	"sync"
 
-	"github.com/cyradin/search/pkg/ctxt"
 	"github.com/google/uuid"
 	jsoniter "github.com/json-iterator/go"
-	"go.uber.org/zap"
 )
 
 var (
@@ -38,7 +36,7 @@ type File[T any] struct {
 	docs    map[string]Document[T]
 }
 
-func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
+func NewFile[T any](src string) (*File[T], error) {
 	s := &File[T]{
 		src:         src,
 		idGenerator: uuid.NewString,
@@ -48,8 +46,6 @@ func NewFile[T any](ctx context.Context, src string) (*File[T], error) {
 	if err := s.read(); err != nil {
 		return nil, err
 	}
-
-	s.dumpOnCancel(ctx)
 
 	return s, nil
 }
@@ -168,24 +164,7 @@ func (s *File[T]) read() error {
 	return nil
 }
 
-func (s *File[T]) dumpOnCancel(ctx context.Context) {
-	wg := ctxt.Wg(ctx)
-	wg.Add(1)
-	go func() {
-		select {
-		case <-ctx.Done():
-			defer wg.Done()
-			ctxt.Logger(ctx).Debug("storage.dump.start", ctxt.ExtractFields(ctx)...)
-			if err := s.dump(); err != nil {
-				ctxt.Logger(ctx).Error("storage.dump.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
-				return
-			}
-			ctxt.Logger(ctx).Debug("storage.dump.finish", ctxt.ExtractFields(ctx)...)
-		}
-	}()
-}
-
-func (s *File[T]) dump() error {
+func (s *File[T]) Stop(ctx context.Context) error {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
