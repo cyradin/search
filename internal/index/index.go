@@ -4,11 +4,13 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"path"
 	"sync"
 	"time"
 
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 var ErrIndexNotFound = fmt.Errorf("index not found")
@@ -33,12 +35,31 @@ type Repository struct {
 	storage storage.Storage[*Index]
 
 	guidGenerate func() string
+
+	dataSrc string
+	data    map[string]*Data
 }
 
-func NewRepository(storage storage.Storage[*Index]) *Repository {
-	return &Repository{
+func NewRepository(ctx context.Context, storage storage.Storage[*Index], dataSrc string) (*Repository, error) {
+	r := &Repository{
 		storage: storage,
+		dataSrc: dataSrc,
+		data:    make(map[string]*Data),
 	}
+
+	indexes, err := r.All()
+	if err != nil {
+		return nil, err
+	}
+
+	for _, index := range indexes {
+		err := r.initData(ctx, index)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return r, nil
 }
 
 func (r *Repository) Get(name string) (*Index, error) {
@@ -73,7 +94,7 @@ func (r *Repository) All() ([]*Index, error) {
 	}
 }
 
-func (r *Repository) Add(index *Index) error {
+func (r *Repository) Add(ctx context.Context, index *Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -87,7 +108,7 @@ func (r *Repository) Add(index *Index) error {
 		return ErrIndexAlreadyExists
 	}
 
-	return nil
+	return r.initData(ctx, index)
 }
 
 func (r *Repository) Delete(name string) error {
@@ -102,6 +123,22 @@ func (r *Repository) Delete(name string) error {
 
 		return err
 	}
+
+	return nil
+}
+
+func (r *Repository) initData(ctx context.Context, index *Index) error {
+	storage, err := storage.NewFile[DocSource](path.Join(r.dataSrc, index.Name+".json"))
+	if err != nil {
+		return err
+	}
+	finisher.Add(storage)
+	data, err := NewData(ctx, index, storage)
+
+	if err != nil {
+		return err
+	}
+	r.data[index.Name] = data
 
 	return nil
 }

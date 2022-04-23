@@ -92,7 +92,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 		newIndex := index.New(ctx, req.Name, req.Schema.ToSchema())
 
-		err := c.repo.Add(newIndex)
+		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
 			// @todo hande err properly
 			fmt.Println(err)
