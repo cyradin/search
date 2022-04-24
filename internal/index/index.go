@@ -84,12 +84,13 @@ func (r *Repository) All() ([]*Index, error) {
 	indexes, errors := r.storage.All()
 	for {
 		select {
-		case doc := <-indexes:
+		case doc, ok := <-indexes:
+			if !ok {
+				return result, nil
+			}
 			result = append(result, doc.Source)
 		case err := <-errors:
 			return nil, err
-		default:
-			return result, nil
 		}
 	}
 }
