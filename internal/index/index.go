@@ -128,6 +128,20 @@ func (r *Repository) Delete(name string) error {
 	return nil
 }
 
+func (r *Repository) AddDocument(index string, id string, src DocSource) (string, error) {
+	data, ok := r.data[index]
+	if !ok {
+		return "", ErrIndexNotFound
+	}
+
+	id, err := data.Add(id, src)
+	if err != nil {
+		return "", fmt.Errorf("document add err: %w", err)
+	}
+
+	return id, nil
+}
+
 func (r *Repository) initData(ctx context.Context, index *Index) error {
 	storage, err := storage.NewFile[DocSource](path.Join(r.dataSrc, index.Name+".json"))
 	if err != nil {

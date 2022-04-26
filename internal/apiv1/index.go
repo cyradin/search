@@ -11,6 +11,11 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
+const (
+	indexParam    = "index"
+	documentParam = "document"
+)
+
 type IndexList struct {
 	Items []IndexListItem `json:"items"`
 }
@@ -38,6 +43,11 @@ type Index struct {
 	Name      string    `json:"name"`
 	CreatedAt time.Time `json:"createdAt"`
 	Schema    Schema    `json:"schema"`
+}
+
+type Document struct {
+	ID     string
+	Source map[string]interface{}
 }
 
 func (i *Index) FromIndex(item *index.Index) {
@@ -84,7 +94,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 		var req IndexAddRequest
 
 		if err := decodeAndValidate(validator, r, &req); err != nil {
-			// @todo hande err properly
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -94,7 +104,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
-			// @todo hande err properly
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -106,9 +116,9 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 func (c *IndexController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		index, err := c.repo.Get(chi.URLParam(r, "index"))
+		index, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
-			// @todo hande err properly
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusNotFound)
 			return
@@ -124,14 +134,43 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 
 func (c *IndexController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := c.repo.Delete(chi.URLParam(r, "index")); err != nil {
-			// @todo hande err properly
+		if err := c.repo.Delete(chi.URLParam(r, indexParam)); err != nil {
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusNotFound)
 			return
 		}
 
 		render.Status(r, http.StatusOK)
+	}
+}
+
+func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req Document
+
+		if err := decodeAndValidate(validator, r, &req); err != nil {
+			// @todo hande err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
+		id, err := c.repo.AddDocument(chi.URLParam(r, indexParam), req.ID, req.Source)
+		if err != nil {
+			// @todo hande err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
+		resp := struct {
+			ID string `json:"id"`
+		}{
+			ID: id,
+		}
+		render.Status(r, http.StatusCreated)
+		render.Respond(w, r, resp)
 	}
 }
 
