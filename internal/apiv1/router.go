@@ -41,6 +41,7 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 				r.Delete("/", ic.DeleteAction())
 				r.Route("/documents", func(r chi.Router) {
 					r.Post("/", ic.DocumentAddAction(v))
+					r.Get("/{"+documentParam+"}", ic.DocumentGetAction())
 				})
 			})
 

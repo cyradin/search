@@ -46,8 +46,8 @@ type Index struct {
 }
 
 type Document struct {
-	ID     string
-	Source map[string]interface{}
+	ID     string                 `json:"id"`
+	Source map[string]interface{} `json:"source"`
 }
 
 func (i *Index) FromIndex(item *index.Index) {
@@ -150,7 +150,7 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 		var req Document
 
 		if err := decodeAndValidate(validator, r, &req); err != nil {
-			// @todo hande err properly
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -158,7 +158,7 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 
 		id, err := c.repo.AddDocument(chi.URLParam(r, indexParam), req.ID, req.Source)
 		if err != nil {
-			// @todo hande err properly
+			// @todo handle err properly
 			fmt.Println(err)
 			w.WriteHeader(http.StatusUnprocessableEntity)
 			return
@@ -170,6 +170,27 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 			ID: id,
 		}
 		render.Status(r, http.StatusCreated)
+		render.Respond(w, r, resp)
+	}
+}
+
+func (c *IndexController) DocumentGetAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		id := chi.URLParam(r, documentParam)
+		doc, err := c.repo.GetDocument(chi.URLParam(r, indexParam), id)
+		if err != nil {
+			// @todo handle err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
+		resp := Document{
+			ID:     id,
+			Source: doc,
+		}
+
+		render.Status(r, http.StatusOK)
 		render.Respond(w, r, resp)
 	}
 }
