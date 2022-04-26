@@ -94,7 +94,7 @@ func (d *Data) addField(ctx context.Context, f schema.Field) error {
 	return nil
 }
 
-func (d *Data) Add(guid string, source map[string]interface{}) (string, error) {
+func (d *Data) Add(guid string, source DocSource) (string, error) {
 	if err := validateDoc(d.index.Schema, source); err != nil {
 		return guid, err
 	}
@@ -116,4 +116,13 @@ func (d *Data) Add(guid string, source map[string]interface{}) (string, error) {
 	}
 
 	return guid, nil
+}
+
+func (d *Data) Get(guid string) (DocSource, error) {
+	doc, err := d.sourceStorage.One(guid)
+	if err != nil {
+		return nil, err
+	}
+
+	return doc.Source, err
 }

@@ -142,6 +142,20 @@ func (r *Repository) AddDocument(index string, id string, src DocSource) (string
 	return id, nil
 }
 
+func (r *Repository) GetDocument(index string, id string) (DocSource, error) {
+	data, ok := r.data[index]
+	if !ok {
+		return nil, ErrIndexNotFound
+	}
+
+	doc, err := data.Get(id)
+	if err != nil {
+		return nil, fmt.Errorf("document get err: %w", err)
+	}
+
+	return doc, nil
+}
+
 func (r *Repository) initData(ctx context.Context, index *Index) error {
 	storage, err := storage.NewFile[DocSource](path.Join(r.dataSrc, index.Name+".json"))
 	if err != nil {
