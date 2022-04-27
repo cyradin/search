@@ -128,32 +128,16 @@ func (r *Repository) Delete(name string) error {
 	return nil
 }
 
-func (r *Repository) AddDocument(index string, id string, src DocSource) (string, error) {
-	data, ok := r.data[index]
-	if !ok {
-		return "", ErrIndexNotFound
-	}
+func (r *Repository) Data(index string) (*Data, error) {
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
 
-	id, err := data.Add(id, src)
-	if err != nil {
-		return "", fmt.Errorf("document add err: %w", err)
-	}
-
-	return id, nil
-}
-
-func (r *Repository) GetDocument(index string, id string) (DocSource, error) {
 	data, ok := r.data[index]
 	if !ok {
 		return nil, ErrIndexNotFound
 	}
 
-	doc, err := data.Get(id)
-	if err != nil {
-		return nil, fmt.Errorf("document get err: %w", err)
-	}
-
-	return doc, nil
+	return data, nil
 }
 
 func (r *Repository) initData(ctx context.Context, index *Index) error {
