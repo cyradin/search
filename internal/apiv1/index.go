@@ -156,7 +156,15 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 			return
 		}
 
-		id, err := c.repo.AddDocument(chi.URLParam(r, indexParam), req.ID, req.Source)
+		data, err := c.repo.Data(chi.URLParam(r, indexParam))
+		if err != nil {
+			// @todo handle err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
+		id, err := data.Add(req.ID, req.Source)
 		if err != nil {
 			// @todo handle err properly
 			fmt.Println(err)
@@ -177,7 +185,16 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, documentParam)
-		doc, err := c.repo.GetDocument(chi.URLParam(r, indexParam), id)
+
+		data, err := c.repo.Data(chi.URLParam(r, indexParam))
+		if err != nil {
+			// @todo handle err properly
+			fmt.Println(err)
+			w.WriteHeader(http.StatusUnprocessableEntity)
+			return
+		}
+
+		doc, err := data.Get(id)
 		if err != nil {
 			// @todo handle err properly
 			fmt.Println(err)
