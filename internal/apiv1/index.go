@@ -1,7 +1,6 @@
 package apiv1
 
 import (
-	"fmt"
 	"net/http"
 	"time"
 
@@ -75,8 +74,7 @@ func (c *IndexController) ListAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		indexes, err := c.repo.All()
 		if err != nil {
-			// @todo handle error properly
-			w.WriteHeader(500)
+			handleErr(w, r, err)
 			return
 		}
 		resp := IndexList{}
@@ -94,9 +92,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 		var req IndexAddRequest
 
 		if err := decodeAndValidate(validator, r, &req); err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
@@ -104,9 +100,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
@@ -118,9 +112,7 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		index, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusNotFound)
+			handleErr(w, r, err)
 			return
 		}
 
@@ -135,9 +127,7 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 func (c *IndexController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		if err := c.repo.Delete(chi.URLParam(r, indexParam)); err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusNotFound)
+			handleErr(w, r, err)
 			return
 		}
 
@@ -150,25 +140,19 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 		var req Document
 
 		if err := decodeAndValidate(validator, r, &req); err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
 		data, err := c.repo.Data(chi.URLParam(r, indexParam))
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
 		id, err := data.Add(req.ID, req.Source)
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
@@ -188,17 +172,13 @@ func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 
 		data, err := c.repo.Data(chi.URLParam(r, indexParam))
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 
 		doc, err := data.Get(id)
 		if err != nil {
-			// @todo handle err properly
-			fmt.Println(err)
-			w.WriteHeader(http.StatusUnprocessableEntity)
+			handleErr(w, r, err)
 			return
 		}
 

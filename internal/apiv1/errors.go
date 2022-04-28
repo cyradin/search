@@ -1,9 +1,16 @@
 package apiv1
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/go-chi/render"
+	"github.com/go-playground/validator/v10"
+)
+
+var (
+	errJsonUnmarshal = fmt.Errorf("unmarshal err")
 )
 
 type Error struct {
@@ -90,4 +97,30 @@ func SendErrResponse(rw http.ResponseWriter, r *http.Request, status int, body E
 
 type APIError interface {
 	APIErr() (Error, int)
+}
+
+func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
+	var validationErr validator.ValidationErrors
+
+	switch true {
+	case errors.Is(err, errJsonUnmarshal):
+		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
+		SendErrResponse(rw, r, status, resp)
+	case errors.As(err, &validationErr):
+		errDetails := make([]ErrorDetail, len(validationErr))
+		for i, v := range validationErr {
+			errDetails[i] = ErrorDetail{
+
+				Field: v.StructNamespace(),
+				Rule:  v.Tag(),
+				Value: v.Param(),
+			}
+		}
+
+		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))
+		SendErrResponse(rw, r, status, resp)
+	default:
+		resp, status := NewErrResponse500()
+		SendErrResponse(rw, r, status, resp)
+	}
 }

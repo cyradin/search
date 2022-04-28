@@ -2,6 +2,7 @@ package apiv1
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/cyradin/search/internal/index"
@@ -81,7 +82,7 @@ func bindContext(appCtx context.Context) func(next http.Handler) http.Handler {
 func decodeAndValidate(validator *validator.Validate, r *http.Request, data interface{}) error {
 	err := json.NewDecoder(r.Body).Decode(data)
 	if err != nil {
-		return err
+		return fmt.Errorf("%w: %s", errJsonUnmarshal, err.Error())
 	}
 
 	err = validator.Struct(data)
