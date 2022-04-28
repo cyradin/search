@@ -100,6 +100,7 @@ type APIError interface {
 }
 
 func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
+	fmt.Println(err)
 	var validationErr validator.ValidationErrors
 
 	switch true {

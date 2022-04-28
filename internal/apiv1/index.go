@@ -1,6 +1,7 @@
 package apiv1
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -100,6 +101,12 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
+			if errors.Is(err, index.ErrIndexAlreadyExists) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
 			handleErr(w, r, err)
 			return
 		}
@@ -110,14 +117,20 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 
 func (c *IndexController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		index, err := c.repo.Get(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
 			handleErr(w, r, err)
 			return
 		}
 
 		resp := Index{}
-		resp.FromIndex(index)
+		resp.FromIndex(i)
 
 		render.Status(r, http.StatusOK)
 		render.Respond(w, r, resp)
@@ -146,6 +159,12 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 
 		data, err := c.repo.Data(chi.URLParam(r, indexParam))
 		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
 			handleErr(w, r, err)
 			return
 		}
@@ -172,6 +191,12 @@ func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 
 		data, err := c.repo.Data(chi.URLParam(r, indexParam))
 		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
 			handleErr(w, r, err)
 			return
 		}
