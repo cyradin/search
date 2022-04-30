@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"os"
+	"path"
 	"sync"
 
 	"github.com/google/uuid"
@@ -15,6 +16,18 @@ var (
 
 const dirPermissions = 0755
 const filePermissions = 0644
+
+type FileConfig struct {
+	Dir string
+}
+
+func (c FileConfig) PathIndexes() string {
+	return path.Join(c.Dir, "indexes.json")
+}
+
+func (c FileConfig) PathIndexSourceStorage(name string) string {
+	return path.Join(c.Dir, name, "source.json")
+}
 
 type Storage[T any] interface {
 	One(id string) (Document[T], error)
