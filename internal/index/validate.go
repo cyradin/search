@@ -6,6 +6,7 @@ import (
 	"reflect"
 	"strconv"
 
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	jsoniter "github.com/json-iterator/go"
@@ -21,7 +22,7 @@ type FieldValidationError struct {
 	parent error
 }
 
-var validateDoc = func(schema schema.Schema, source DocSource) error {
+var validateDoc = func(schema schema.Schema, source entity.DocSource) error {
 	err := validateFields(schema.Fields, source)
 	if err != nil {
 		return nil
@@ -30,7 +31,7 @@ var validateDoc = func(schema schema.Schema, source DocSource) error {
 	return nil
 }
 
-var validateFields = func(fields []schema.Field, source DocSource) []error {
+var validateFields = func(fields []schema.Field, source entity.DocSource) []error {
 	var errors []error
 
 	visited := make(map[string]struct{})

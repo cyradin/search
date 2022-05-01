@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
@@ -20,7 +21,7 @@ type IndexList struct {
 	Items []IndexListItem `json:"items"`
 }
 
-func (l *IndexList) FromIndexes(indexes []*index.Index) {
+func (l *IndexList) FromIndexes(indexes []entity.Index) {
 	l.Items = make([]IndexListItem, len(indexes))
 	for i, item := range indexes {
 		listItem := IndexListItem{}
@@ -34,7 +35,7 @@ type IndexListItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func (i *IndexListItem) FromIndex(item *index.Index) {
+func (i *IndexListItem) FromIndex(item entity.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 }
@@ -50,7 +51,7 @@ type Document struct {
 	Source map[string]interface{} `json:"source"`
 }
 
-func (i *Index) FromIndex(item *index.Index) {
+func (i *Index) FromIndex(item entity.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 	i.Schema.FromSchema(item.Schema)
@@ -97,7 +98,7 @@ func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerF
 			return
 		}
 
-		newIndex := index.New(ctx, req.Name, req.Schema.ToSchema())
+		newIndex := entity.NewIndex(req.Name, req.Schema.ToSchema())
 
 		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
@@ -217,7 +218,7 @@ func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) transformIndexList(i *index.Index) IndexListItem {
+func (c *IndexController) transformIndexList(i entity.Index) IndexListItem {
 	return IndexListItem{
 		Name:      i.Name,
 		CreatedAt: i.CreatedAt,

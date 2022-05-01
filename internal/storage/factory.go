@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/cyradin/search/internal/entity"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 type Driver string
@@ -20,9 +21,9 @@ type Factory struct {
 }
 
 func NewFactory(driver Driver, config interface{}) (*Factory, error) {
-
 	return &Factory{
 		driver: driver,
+		config: config,
 	}, nil
 }
 
@@ -33,21 +34,49 @@ func SetDriver(d Driver) {
 }
 
 func (f *Factory) NewIndexStorage() (Storage[entity.Index], error) {
+	var (
+		storage Storage[entity.Index]
+		err     error
+	)
+
 	switch driver {
 	case FileDriver:
 		config := f.config.(FileConfig)
-		return NewFile[entity.Index](config.PathIndexes())
+		storage, err = NewFile[entity.Index](config.PathIndexes())
+	default:
+		return nil, ErrInvalidDriver
 	}
 
-	return nil, ErrInvalidDriver
+	if err != nil {
+		return nil, err
+	}
+
+	if s, ok := storage.(finisher.Stoppable); ok {
+		finisher.Add(s)
+	}
+
+	return storage, nil
 }
 
-func (f *Factory) NewIndexSourceStorage(name string) (Storage[entity.Index], error) {
+func (f *Factory) NewIndexSourceStorage(name string) (Storage[entity.DocSource], error) {
+	var (
+		storage Storage[entity.DocSource]
+		err     error
+	)
+
 	switch driver {
 	case FileDriver:
 		config := f.config.(FileConfig)
-		return NewFile[entity.Index](config.PathIndexSourceStorage(name))
+		storage, err = NewFile[entity.DocSource](config.PathIndexSourceStorage(name))
 	}
 
-	return nil, ErrInvalidDriver
+	if err != nil {
+		return nil, err
+	}
+
+	if s, ok := storage.(finisher.Stoppable); ok {
+		finisher.Add(s)
+	}
+
+	return storage, nil
 }

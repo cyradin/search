@@ -5,25 +5,23 @@ import (
 	"fmt"
 	"sync"
 
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
 )
 
 type (
-	DocSource map[string]interface{}
-
 	idGetter func(uid string) uint32
 	idSetter func(uid string) uint32
 
 	sourceStorage interface {
-		Insert(guid string, doc DocSource) error
-		All() (<-chan DocSource, <-chan error)
+		Insert(guid string, doc entity.DocSource) error
+		All() (<-chan entity.DocSource, <-chan error)
 	}
 )
-
 type Data struct {
-	index *Index
+	index entity.Index
 
 	fieldsMtx sync.RWMutex
 	fields    map[string]field.Field
@@ -31,10 +29,10 @@ type Data struct {
 	idGet idGetter
 	idSet idSetter
 
-	sourceStorage storage.Storage[DocSource]
+	sourceStorage storage.Storage[entity.DocSource]
 }
 
-func NewData(ctx context.Context, index *Index, sourceStorage storage.Storage[DocSource]) (*Data, error) {
+func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Storage[entity.DocSource]) (*Data, error) {
 	ids := NewIDs(0, nil)
 	result := &Data{
 		index:  index,
@@ -94,7 +92,7 @@ func (d *Data) addField(ctx context.Context, f schema.Field) error {
 	return nil
 }
 
-func (d *Data) Add(guid string, source DocSource) (string, error) {
+func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 	if err := validateDoc(d.index.Schema, source); err != nil {
 		return guid, err
 	}
@@ -118,7 +116,7 @@ func (d *Data) Add(guid string, source DocSource) (string, error) {
 	return guid, nil
 }
 
-func (d *Data) Get(guid string) (DocSource, error) {
+func (d *Data) Get(guid string) (entity.DocSource, error) {
 	doc, err := d.sourceStorage.One(guid)
 	if err != nil {
 		return nil, err

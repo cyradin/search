@@ -4,35 +4,25 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
 	"sync"
-	"time"
 
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
-	"github.com/cyradin/search/pkg/finisher"
 )
 
 var ErrIndexNotFound = fmt.Errorf("index not found")
 var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
 
-type Index struct {
-	Name      string        `json:"name"`
-	CreatedAt time.Time     `json:"createdAt"`
-	Schema    schema.Schema `json:"schema"`
-}
-
-func New(ctx context.Context, name string, s schema.Schema) *Index {
-	return &Index{
-		Name:      name,
-		CreatedAt: time.Now(),
-		Schema:    s,
-	}
+type storageFactory interface {
+	NewIndexStorage() (storage.Storage[entity.Index], error)
+	NewIndexSourceStorage(name string) (storage.Storage[entity.DocSource], error)
 }
 
 type Repository struct {
-	mtx     sync.Mutex
-	storage storage.Storage[*Index]
+	mtx            sync.Mutex
+	storage        storage.Storage[entity.Index]
+	storageFactory storageFactory
 
 	guidGenerate func() string
 
@@ -40,11 +30,17 @@ type Repository struct {
 	data    map[string]*Data
 }
 
-func NewRepository(ctx context.Context, storage storage.Storage[*Index], dataSrc string) (*Repository, error) {
+func NewRepository(ctx context.Context, storageFactory storageFactory, dataSrc string) (*Repository, error) {
+	storage, err := storageFactory.NewIndexStorage()
+	if err != nil {
+		return nil, err
+	}
+
 	r := &Repository{
-		storage: storage,
-		dataSrc: dataSrc,
-		data:    make(map[string]*Data),
+		storageFactory: storageFactory,
+		storage:        storage,
+		dataSrc:        dataSrc,
+		data:           make(map[string]*Data),
 	}
 
 	indexes, err := r.All()
@@ -62,24 +58,24 @@ func NewRepository(ctx context.Context, storage storage.Storage[*Index], dataSrc
 	return r, nil
 }
 
-func (r *Repository) Get(name string) (*Index, error) {
+func (r *Repository) Get(name string) (entity.Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
 	doc, err := r.storage.One(name)
 	nfErr := &storage.ErrNotFound{}
 	if errors.As(err, &nfErr) {
-		return nil, ErrIndexNotFound
+		return entity.Index{}, ErrIndexNotFound
 	}
 
 	return doc.Source, nil
 }
 
-func (r *Repository) All() ([]*Index, error) {
+func (r *Repository) All() ([]entity.Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	var result []*Index
+	var result []entity.Index
 
 	indexes, errors := r.storage.All()
 	for {
@@ -95,7 +91,7 @@ func (r *Repository) All() ([]*Index, error) {
 	}
 }
 
-func (r *Repository) Add(ctx context.Context, index *Index) error {
+func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -140,13 +136,13 @@ func (r *Repository) Data(index string) (*Data, error) {
 	return data, nil
 }
 
-func (r *Repository) initData(ctx context.Context, index *Index) error {
-	storage, err := storage.NewFile[DocSource](path.Join(r.dataSrc, index.Name+".json"))
+func (r *Repository) initData(ctx context.Context, index entity.Index) error {
+	sourceStorage, err := r.storageFactory.NewIndexSourceStorage(index.Name)
 	if err != nil {
 		return err
 	}
-	finisher.Add(storage)
-	data, err := NewData(ctx, index, storage)
+
+	data, err := NewData(ctx, index, sourceStorage)
 
 	if err != nil {
 		return err
