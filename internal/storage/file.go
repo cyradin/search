@@ -50,6 +50,12 @@ type File[T any] struct {
 }
 
 func NewFile[T any](src string) (*File[T], error) {
+	dir := path.Dir(src)
+	err := os.MkdirAll(dir, dirPermissions)
+	if err != nil {
+		return nil, err
+	}
+
 	s := &File[T]{
 		src:         src,
 		idGenerator: uuid.NewString,
