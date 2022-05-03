@@ -29,6 +29,10 @@ func (c FileConfig) PathIndexSourceStorage(name string) string {
 	return path.Join(c.Dir, name, "source.json")
 }
 
+func (c FileConfig) PathIndexFieldStorage(name string, field string) string {
+	return path.Join(c.Dir, name, "fields", field+".json")
+}
+
 type Storage[T any] interface {
 	One(id string) (Document[T], error)
 	Multi(ids ...string) ([]Document[T], error)

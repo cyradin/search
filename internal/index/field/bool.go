@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 var _ Field = (*Bool)(nil)
@@ -14,12 +15,23 @@ var _ Field = (*Bool)(nil)
 type Bool struct {
 	data map[bool]*roaring.Bitmap
 	mtx  sync.RWMutex
+
+	src string
 }
 
-func NewBool(ctx context.Context) *Bool {
-	return &Bool{
-		data: make(map[bool]*roaring.Bitmap),
+func NewBool(ctx context.Context, src string) (*Bool, error) {
+	data, err := readField[bool](src)
+	if err != nil {
+		return nil, err
 	}
+
+	result := &Bool{
+		data: data,
+		src:  src,
+	}
+	finisher.Add(result)
+
+	return result, nil
 }
 
 func (f *Bool) Type() Type {
@@ -56,4 +68,11 @@ func (f *Bool) addValue(id uint32, value bool) {
 	m.Add(id)
 
 	return
+}
+
+func (f *Bool) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }

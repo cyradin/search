@@ -5,36 +5,41 @@ import (
 	"fmt"
 	"testing"
 
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/storage"
 	"github.com/stretchr/testify/require"
 )
 
-var _ storage.Storage[DocSource] = (*testDocStorage)(nil)
+var _ storage.Storage[entity.DocSource] = (*testDocStorage)(nil)
 
 type testDocStorage struct {
-	one    func(id string) (DocSource, error)
-	multi  func(ids ...string) ([]DocSource, error)
-	all    func() (<-chan DocSource, <-chan error)
-	insert func(id string, doc DocSource) error
-	update func(id string, doc DocSource) error
+	one    func(id string) (storage.Document[entity.DocSource], error)
+	multi  func(ids ...string) ([]storage.Document[entity.DocSource], error)
+	all    func() (<-chan storage.Document[entity.DocSource], <-chan error)
+	insert func(id string, doc entity.DocSource) (string, error)
+	update func(id string, doc entity.DocSource) error
+	delete func(id string) error
 }
 
-func (s *testDocStorage) One(id string) (DocSource, error) {
+func (s *testDocStorage) One(id string) (storage.Document[entity.DocSource], error) {
 	return s.one(id)
 }
-func (s *testDocStorage) Multi(ids ...string) ([]DocSource, error) {
+func (s *testDocStorage) Multi(ids ...string) ([]storage.Document[entity.DocSource], error) {
 	return s.multi(ids...)
 }
-func (s *testDocStorage) All() (<-chan DocSource, <-chan error) {
+func (s *testDocStorage) All() (<-chan storage.Document[entity.DocSource], <-chan error) {
 	return s.all()
 }
-func (s *testDocStorage) Insert(id string, doc DocSource) error {
+func (s *testDocStorage) Insert(id string, doc entity.DocSource) (string, error) {
 	return s.insert(id, doc)
 }
-func (s *testDocStorage) Update(id string, doc DocSource) error {
+func (s *testDocStorage) Update(id string, doc entity.DocSource) error {
 	return s.update(id, doc)
+}
+
+func (s *testDocStorage) Delete(id string) error {
+	return s.delete(id)
 }
 
 func Test_Index_Add(t *testing.T) {
@@ -42,8 +47,8 @@ func Test_Index_Add(t *testing.T) {
 		name         string
 		guid         string
 		generator    func() string
-		sourceInsert func(id string, doc DocSource) error
-		source       DocSource
+		sourceInsert func(id string, doc entity.DocSource) (string, error)
+		source       entity.DocSource
 		erroneous    bool
 		expected     string
 	}{
@@ -53,9 +58,9 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: DocSource{"v": true},
-			sourceInsert: func(guid string, doc DocSource) error {
-				return nil
+			source: entity.DocSource{"v": true},
+			sourceInsert: func(guid string, doc entity.DocSource) (string, error) {
+				return "id", nil
 			},
 			erroneous: false,
 			expected:  "id",
@@ -66,9 +71,9 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: DocSource{"v": true},
-			sourceInsert: func(guid string, doc DocSource) error {
-				return fmt.Errorf("err")
+			source: entity.DocSource{"v": true},
+			sourceInsert: func(guid string, doc entity.DocSource) (string, error) {
+				return "", fmt.Errorf("err")
 			},
 			erroneous: true,
 			expected:  "id",
@@ -79,9 +84,9 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: DocSource{"v": "1"},
-			sourceInsert: func(guid string, doc DocSource) error {
-				return nil
+			source: entity.DocSource{"v": "1"},
+			sourceInsert: func(guid string, doc entity.DocSource) (string, error) {
+				return "id", nil
 			},
 			erroneous: true,
 			expected:  "id",
@@ -92,9 +97,9 @@ func Test_Index_Add(t *testing.T) {
 			generator: func() string {
 				return "id"
 			},
-			source: DocSource{"v": true},
-			sourceInsert: func(guid string, doc DocSource) error {
-				return nil
+			source: entity.DocSource{"v": true},
+			sourceInsert: func(guid string, doc entity.DocSource) (string, error) {
+				return "id", nil
 			},
 			erroneous: false,
 			expected:  "id",
@@ -105,13 +110,14 @@ func Test_Index_Add(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			index := &Index{
+			f, err := field.NewBool(ctx, "")
+			require.Nil(t, err)
+
+			index := &Data{
 				idSet: func(uid string) uint32 { return 1 },
 				fields: map[string]field.Field{
-					"v": field.NewBool(ctx),
+					"v": f,
 				},
-				guidGenerate: d.generator,
-				schema:       schema.Schema{},
 				sourceStorage: &testDocStorage{
 					insert: d.sourceInsert,
 				},

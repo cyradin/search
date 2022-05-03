@@ -121,7 +121,8 @@ func Test_File_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFile[testDoc](d.file)
+			p, err := NewFile[testDoc](d.file)
+			require.Nil(t, err)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
@@ -176,7 +177,8 @@ func Test_File_Multi(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, _ := NewFile[testDoc](d.file)
+			p, err := NewFile[testDoc](d.file)
+			require.Nil(t, err)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
@@ -185,7 +187,7 @@ func Test_File_Multi(t *testing.T) {
 			}
 
 			require.Nil(t, err)
-			require.EqualValues(t, d.expected, docs)
+			require.ElementsMatch(t, d.expected, docs)
 		})
 	}
 }

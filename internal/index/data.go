@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"path"
 	"sync"
 
 	"github.com/cyradin/search/internal/entity"
@@ -32,7 +33,7 @@ type Data struct {
 	sourceStorage storage.Storage[entity.DocSource]
 }
 
-func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Storage[entity.DocSource]) (*Data, error) {
+func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Storage[entity.DocSource], fieldPath string) (*Data, error) {
 	ids := NewIDs(0, nil)
 	result := &Data{
 		index:  index,
@@ -45,7 +46,7 @@ func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Stor
 	}
 
 	for _, f := range index.Schema.Fields {
-		err := result.addField(ctx, f)
+		err := result.addField(ctx, f, fieldPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add field: %w", err)
 		}
@@ -54,17 +55,23 @@ func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Stor
 	return result, nil
 }
 
-func (d *Data) addField(ctx context.Context, f schema.Field) error {
+func (d *Data) addField(ctx context.Context, schemaField schema.Field, src string) error {
 	d.fieldsMtx.RLock()
 	defer d.fieldsMtx.RUnlock()
 
-	switch f.Type {
+	src = path.Join(src, schemaField.Name+".json")
+	var (
+		f   field.Field
+		err error
+	)
+
+	switch schemaField.Type {
 	case field.TypeBool:
-		d.fields[f.Name] = field.NewBool(ctx)
+		f, err = field.NewBool(ctx, src)
 	case field.TypeKeyword:
-		d.fields[f.Name] = field.NewKeyword(ctx)
+		f, err = field.NewKeyword(ctx, src)
 	case field.TypeText:
-		d.fields[f.Name] = field.NewText(ctx) // @todo pass analyzers from schema
+		f = field.NewText(ctx) // @todo pass analyzers from schema
 	// @todo implement slice type
 	// case field.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice(ctx)
@@ -72,22 +79,28 @@ func (d *Data) addField(ctx context.Context, f schema.Field) error {
 	// case field.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap(ctx)
 	case field.TypeUnsignedLong:
-		d.fields[f.Name] = field.NewUnsignedLong(ctx)
+		f = field.NewUnsignedLong(ctx)
 	case field.TypeLong:
-		d.fields[f.Name] = field.NewLong(ctx)
+		f = field.NewLong(ctx)
 	case field.TypeInteger:
-		d.fields[f.Name] = field.NewInteger(ctx)
+		f = field.NewInteger(ctx)
 	case field.TypeShort:
-		d.fields[f.Name] = field.NewShort(ctx)
+		f = field.NewShort(ctx)
 	case field.TypeByte:
-		d.fields[f.Name] = field.NewByte(ctx)
+		f = field.NewByte(ctx)
 	case field.TypeDouble:
-		d.fields[f.Name] = field.NewDouble(ctx)
+		f = field.NewDouble(ctx)
 	case field.TypeFloat:
-		d.fields[f.Name] = field.NewFloat(ctx)
+		f = field.NewFloat(ctx)
 	default:
-		return fmt.Errorf("invalid field type %q", f.Type)
+		return fmt.Errorf("invalid field type %q", schemaField.Type)
 	}
+
+	if err != nil {
+		return err
+	}
+
+	d.fields[schemaField.Name] = f
 
 	return nil
 }

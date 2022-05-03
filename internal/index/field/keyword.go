@@ -7,17 +7,29 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 type Keyword struct {
 	data map[string]*roaring.Bitmap
 	mtx  sync.RWMutex
+
+	src string
 }
 
-func NewKeyword(ctx context.Context) *Keyword {
-	return &Keyword{
-		data: make(map[string]*roaring.Bitmap),
+func NewKeyword(ctx context.Context, src string) (*Keyword, error) {
+	data, err := readField[string](src)
+	if err != nil {
+		return nil, err
 	}
+
+	result := &Keyword{
+		data: data,
+		src:  src,
+	}
+	finisher.Add(result)
+
+	return result, nil
 }
 
 func (f *Keyword) Type() Type {
@@ -54,4 +66,11 @@ func (f *Keyword) addValue(id uint32, value string) {
 	m.Add(id)
 
 	return
+}
+
+func (f *Keyword) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }

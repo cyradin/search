@@ -9,5 +9,5 @@ run:
 	./scripts/run.sh $(call args)
 
 test:
-	go test ./api/... ./internal/...
+	go test ./internal/...
 

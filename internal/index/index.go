@@ -4,6 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"os"
+	"path"
 	"sync"
 
 	"github.com/cyradin/search/internal/entity"
@@ -142,7 +144,13 @@ func (r *Repository) initData(ctx context.Context, index entity.Index) error {
 		return err
 	}
 
-	data, err := NewData(ctx, index, sourceStorage)
+	fieldPath := r.fieldPath(index.Name)
+	err = os.MkdirAll(fieldPath, 0755)
+	if err != nil {
+		return err
+	}
+
+	data, err := NewData(ctx, index, sourceStorage, fieldPath)
 
 	if err != nil {
 		return err
@@ -150,4 +158,8 @@ func (r *Repository) initData(ctx context.Context, index entity.Index) error {
 	r.data[index.Name] = data
 
 	return nil
+}
+
+func (r *Repository) fieldPath(indexName string) string {
+	return path.Join(r.dataSrc, indexName, "fields")
 }
