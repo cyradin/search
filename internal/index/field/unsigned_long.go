@@ -7,17 +7,28 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 type UnsignedLong struct {
 	data map[uint64]*roaring.Bitmap
 	mtx  sync.RWMutex
+	src  string
 }
 
-func NewUnsignedLong(ctx context.Context) *UnsignedLong {
-	return &UnsignedLong{
-		data: make(map[uint64]*roaring.Bitmap),
+func NewUnsignedLong(ctx context.Context, src string) (*UnsignedLong, error) {
+	data, err := readField[uint64](src)
+	if err != nil {
+		return nil, err
 	}
+
+	result := &UnsignedLong{
+		data: data,
+		src:  src,
+	}
+	finisher.Add(result)
+
+	return result, nil
 }
 
 func (f *UnsignedLong) Type() Type {
@@ -54,4 +65,11 @@ func (f *UnsignedLong) addValue(id uint32, value uint64) {
 	m.Add(id)
 
 	return
+}
+
+func (f *UnsignedLong) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }

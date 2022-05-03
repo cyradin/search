@@ -1,10 +1,12 @@
 package field
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,9 +79,12 @@ func Test_Keyword_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			field := &Keyword{
-				data: make(map[string]*roaring.Bitmap),
-			}
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
+			ctx := context.Background()
+			field, err := NewKeyword(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -175,9 +180,12 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			field := Keyword{
-				data: make(map[string]*roaring.Bitmap),
-			}
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
+			ctx := context.Background()
+			field, err := NewKeyword(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

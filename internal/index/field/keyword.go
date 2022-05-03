@@ -13,8 +13,7 @@ import (
 type Keyword struct {
 	data map[string]*roaring.Bitmap
 	mtx  sync.RWMutex
-
-	src string
+	src  string
 }
 
 func NewKeyword(ctx context.Context, src string) (*Keyword, error) {

@@ -1,10 +1,12 @@
 package field
 
 import (
+	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,9 +79,13 @@ func Test_Bool_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			field := &Bool{
-				data: make(map[bool]*roaring.Bitmap),
-			}
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
+			ctx := context.Background()
+			field, err := NewBool(ctx, testFile)
+			require.Nil(t, err)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -175,9 +181,12 @@ func Test_Bool_AddValueSync(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			field := &Bool{
-				data: make(map[bool]*roaring.Bitmap),
-			}
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
+			ctx := context.Background()
+			field, err := NewBool(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

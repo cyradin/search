@@ -15,8 +15,7 @@ var _ Field = (*Bool)(nil)
 type Bool struct {
 	data map[bool]*roaring.Bitmap
 	mtx  sync.RWMutex
-
-	src string
+	src  string
 }
 
 func NewBool(ctx context.Context, src string) (*Bool, error) {
