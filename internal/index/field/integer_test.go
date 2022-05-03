@@ -2,6 +2,8 @@ package field
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -85,8 +87,12 @@ func Test_Integer_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field := NewInteger(ctx)
+			field, err := NewInteger(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -185,8 +191,12 @@ func Test_Integer_AddValueSync(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field := NewInteger(ctx)
+			field, err := NewInteger(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

@@ -7,6 +7,7 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 type (
@@ -17,19 +18,29 @@ type (
 		analyzer Analyzer
 		data     map[string]*roaring.Bitmap
 		mtx      sync.RWMutex
+		src      string
 	}
 )
 
-func NewText(ctx context.Context, analyzers ...AnalyzerHandler) *Text {
+func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Text, error) {
 	analyzer := func(s []string) []string { return s }
 	for i := len(analyzers) - 1; i >= 0; i-- {
 		analyzer = analyzers[i](analyzer)
 	}
 
-	return &Text{
-		analyzer: analyzer,
-		data:     make(map[string]*roaring.Bitmap),
+	data, err := readField[string](src)
+	if err != nil {
+		return nil, err
 	}
+
+	result := &Text{
+		analyzer: analyzer,
+		data:     data,
+		src:      src,
+	}
+	finisher.Add(result)
+
+	return result, nil
 }
 
 func (f *Text) Type() Type {
@@ -68,4 +79,11 @@ func (f *Text) addValue(id uint32, value string) {
 
 		m.Add(id)
 	}
+}
+
+func (f *Text) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }

@@ -2,6 +2,8 @@ package field
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
@@ -80,8 +82,12 @@ func Test_Double_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field := NewDouble(ctx)
+			field, err := NewDouble(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -180,8 +186,12 @@ func Test_Double_AddValueSync(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
+			dir, err := os.MkdirTemp("", "testdir")
+			require.Nil(t, err)
+			defer os.RemoveAll(dir)
+			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field := NewDouble(ctx)
+			field, err := NewDouble(ctx, testFile)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

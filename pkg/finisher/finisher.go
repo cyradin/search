@@ -9,13 +9,21 @@ import (
 )
 
 var mtx sync.Mutex
-var items []Stoppable
+var items []Stop
+
+type Stop func(ctx context.Context) error
 
 type Stoppable interface {
 	Stop(ctx context.Context) error
 }
 
 func Add(item Stoppable) {
+	mtx.Lock()
+	defer mtx.Unlock()
+	items = append(items, item.Stop)
+}
+
+func AddFunc(item Stop) {
 	mtx.Lock()
 	defer mtx.Unlock()
 	items = append(items, item)
@@ -35,16 +43,16 @@ func stopAll(ctx context.Context) {
 	mtx.Lock()
 	defer mtx.Unlock()
 	wg := sync.WaitGroup{}
-	for _, item := range items {
+	for _, f := range items {
 		wg.Add(1)
-		go func(ctx context.Context, item Stoppable) {
+		go func(ctx context.Context, f Stop) {
 			defer wg.Done()
 			// @todo pass new, not canceled context?
-			err := item.Stop(ctx)
+			err := f(ctx)
 			if err != nil {
 				ctxt.Logger(ctx).Error("finisher.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
 			}
-		}(ctx, item)
+		}(ctx, f)
 	}
 	wg.Wait()
 }

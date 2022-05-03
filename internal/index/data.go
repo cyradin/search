@@ -71,27 +71,27 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 	case field.TypeKeyword:
 		f, err = field.NewKeyword(ctx, src)
 	case field.TypeText:
-		f = field.NewText(ctx) // @todo pass analyzers from schema
+		f, err = field.NewText(ctx, src) // @todo pass analyzers from schema
 	// @todo implement slice type
 	// case field.TypeSlice:
-	// 	i.fields[f.Name] = field.NewSlice(ctx)
+	// 	i.fields[f.Name] = field.NewSlice(ctx, src)
 	// @todo implement map type
 	// case field.TypeNap:
-	// 	i.fields[f.Name] = field.NewMap(ctx)
+	// 	i.fields[f.Name] = field.NewMap(ctx, src)
 	case field.TypeUnsignedLong:
-		f = field.NewUnsignedLong(ctx)
+		f, err = field.NewUnsignedLong(ctx, src)
 	case field.TypeLong:
-		f = field.NewLong(ctx)
+		f, err = field.NewLong(ctx, src)
 	case field.TypeInteger:
-		f = field.NewInteger(ctx)
+		f, err = field.NewInteger(ctx, src)
 	case field.TypeShort:
-		f = field.NewShort(ctx)
+		f, err = field.NewShort(ctx, src)
 	case field.TypeByte:
-		f = field.NewByte(ctx)
+		f, err = field.NewByte(ctx, src)
 	case field.TypeDouble:
-		f = field.NewDouble(ctx)
+		f, err = field.NewDouble(ctx, src)
 	case field.TypeFloat:
-		f = field.NewFloat(ctx)
+		f, err = field.NewFloat(ctx, src)
 	default:
 		return fmt.Errorf("invalid field type %q", schemaField.Type)
 	}

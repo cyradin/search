@@ -7,17 +7,28 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 )
 
 type Integer struct {
 	data map[int32]*roaring.Bitmap
 	mtx  sync.RWMutex
+	src  string
 }
 
-func NewInteger(ctx context.Context) *Integer {
-	return &Integer{
-		data: make(map[int32]*roaring.Bitmap),
+func NewInteger(ctx context.Context, src string) (*Integer, error) {
+	data, err := readField[int32](src)
+	if err != nil {
+		return nil, err
 	}
+
+	result := &Integer{
+		data: data,
+		src:  src,
+	}
+	finisher.Add(result)
+
+	return result, nil
 }
 
 func (f *Integer) Type() Type {
@@ -54,4 +65,11 @@ func (f *Integer) addValue(id uint32, value int32) {
 	m.Add(id)
 
 	return
+}
+
+func (f *Integer) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }
