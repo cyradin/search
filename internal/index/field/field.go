@@ -1,6 +1,8 @@
 package field
 
 import (
+	"bytes"
+	"encoding/gob"
 	"os"
 
 	"github.com/RoaringBitmap/roaring"
@@ -59,11 +61,6 @@ type Field interface {
 	AddValueSync(id uint32, value interface{}) error
 }
 
-type StorageData[T any] struct {
-	Key   T `json:"key"`
-	Value []byte
-}
-
 func readField[T comparable](src string) (map[T]*roaring.Bitmap, error) {
 	result := make(map[T]*roaring.Bitmap)
 
@@ -75,43 +72,18 @@ func readField[T comparable](src string) (map[T]*roaring.Bitmap, error) {
 		return nil, err
 	}
 
-	var items []StorageData[T]
-	err = json.Unmarshal(data, &items)
-	if err != nil {
+	if err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&result); err != nil {
 		return nil, err
-	}
-
-	for _, item := range items {
-		value := new(roaring.Bitmap)
-		err := value.UnmarshalBinary(item.Value)
-		if err != nil {
-			return nil, err
-		}
-
-		result[item.Key] = value
 	}
 
 	return result, nil
 }
 
 func dumpField[T comparable](src string, data map[T]*roaring.Bitmap) error {
-	values := make([]StorageData[T], 0, len(data))
-	for k, v := range data {
-		value, err := v.MarshalBinary()
-		if err != nil {
-			return err
-		}
-
-		values = append(values, StorageData[T]{
-			Key:   k,
-			Value: value,
-		})
-	}
-
-	raw, err := json.Marshal(values)
-	if err != nil {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
 		return err
 	}
 
-	return os.WriteFile(src, raw, 0644)
+	return os.WriteFile(src, buf.Bytes(), 0644)
 }

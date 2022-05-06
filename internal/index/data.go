@@ -59,7 +59,7 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 	d.fieldsMtx.RLock()
 	defer d.fieldsMtx.RUnlock()
 
-	src = path.Join(src, schemaField.Name+".json")
+	src = path.Join(src, schemaField.Name+".gob")
 	var (
 		f   field.Field
 		err error
