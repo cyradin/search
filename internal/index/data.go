@@ -9,7 +9,6 @@ import (
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/cyradin/search/internal/storage"
 )
 
 type (
@@ -30,13 +29,13 @@ type Data struct {
 	idGet idGetter
 	idSet idSetter
 
-	sourceStorage storage.Storage[entity.DocSource]
+	sourceStorage Storage[entity.DocSource]
 }
 
-func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Storage[entity.DocSource], fieldPath string) (*Data, error) {
+func NewData(ctx context.Context, i entity.Index, sourceStorage Storage[entity.DocSource], fieldPath string) (*Data, error) {
 	ids := NewIDs(0, nil)
 	result := &Data{
-		index:  index,
+		index:  i,
 		fields: make(map[string]field.Field),
 
 		idGet: ids.Get,
@@ -45,7 +44,7 @@ func NewData(ctx context.Context, index entity.Index, sourceStorage storage.Stor
 		sourceStorage: sourceStorage,
 	}
 
-	for _, f := range index.Schema.Fields {
+	for _, f := range i.Schema.Fields {
 		err := result.addField(ctx, f, fieldPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add field: %w", err)

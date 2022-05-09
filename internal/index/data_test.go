@@ -7,28 +7,27 @@ import (
 
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/storage"
 	"github.com/stretchr/testify/require"
 )
 
-var _ storage.Storage[entity.DocSource] = (*testDocStorage)(nil)
+var _ Storage[entity.DocSource] = (*testDocStorage)(nil)
 
 type testDocStorage struct {
-	one    func(id string) (storage.Document[entity.DocSource], error)
-	multi  func(ids ...string) ([]storage.Document[entity.DocSource], error)
-	all    func() (<-chan storage.Document[entity.DocSource], <-chan error)
+	one    func(id string) (Document[entity.DocSource], error)
+	multi  func(ids ...string) ([]Document[entity.DocSource], error)
+	all    func() (<-chan Document[entity.DocSource], <-chan error)
 	insert func(id string, doc entity.DocSource) (string, error)
 	update func(id string, doc entity.DocSource) error
 	delete func(id string) error
 }
 
-func (s *testDocStorage) One(id string) (storage.Document[entity.DocSource], error) {
+func (s *testDocStorage) One(id string) (Document[entity.DocSource], error) {
 	return s.one(id)
 }
-func (s *testDocStorage) Multi(ids ...string) ([]storage.Document[entity.DocSource], error) {
+func (s *testDocStorage) Multi(ids ...string) ([]Document[entity.DocSource], error) {
 	return s.multi(ids...)
 }
-func (s *testDocStorage) All() (<-chan storage.Document[entity.DocSource], <-chan error) {
+func (s *testDocStorage) All() (<-chan Document[entity.DocSource], <-chan error) {
 	return s.all()
 }
 func (s *testDocStorage) Insert(id string, doc entity.DocSource) (string, error) {

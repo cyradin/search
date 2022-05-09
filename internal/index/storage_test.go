@@ -1,4 +1,4 @@
-package storage
+package index
 
 import (
 	"context"
@@ -60,7 +60,7 @@ func Test_File_All(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](d.file)
+			p, err := NewFileStorage[testDoc](d.file)
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -83,7 +83,7 @@ func Test_File_All(t *testing.T) {
 			a()
 
 			require.Nil(t, err)
-			require.EqualValues(t, d.expected, result)
+			require.ElementsMatch(t, d.expected, result)
 		})
 	}
 }
@@ -121,7 +121,7 @@ func Test_File_One(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](d.file)
+			p, err := NewFileStorage[testDoc](d.file)
 			require.Nil(t, err)
 
 			doc, err := p.One(d.id)
@@ -177,7 +177,7 @@ func Test_File_Multi(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc](d.file)
+			p, err := NewFileStorage[testDoc](d.file)
 			require.Nil(t, err)
 
 			docs, err := p.Multi(d.ids...)
@@ -220,7 +220,7 @@ func Test_File_Insert(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc]("")
+			p, err := NewFileStorage[testDoc]("")
 			p.idGenerator = func() string {
 				return d.id
 			}
@@ -273,7 +273,7 @@ func Test_File_Update(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc]("")
+			p, err := NewFileStorage[testDoc]("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -333,7 +333,7 @@ func Test_File_Delete(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFile[testDoc]("")
+			p, err := NewFileStorage[testDoc]("")
 			require.Nil(t, err)
 
 			p.docs = d.docs
@@ -400,7 +400,7 @@ func Test_File_Stop(t *testing.T) {
 
 			file := filepath.Join(dir, "storage.json")
 
-			p, err := NewFile[testDoc](file)
+			p, err := NewFileStorage[testDoc](file)
 			require.Nil(t, err)
 
 			p.docs = d.docs
