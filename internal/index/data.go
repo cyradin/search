@@ -96,7 +96,7 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 	}
 
 	if err != nil {
-		return err
+		return fmt.Errorf("field init err: %w", err)
 	}
 
 	d.fields[schemaField.Name] = f
@@ -106,12 +106,12 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 
 func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 	if err := validateDoc(d.index.Schema, source); err != nil {
-		return guid, err
+		return guid, fmt.Errorf("source validation err: %w", err)
 	}
 
 	guid, err := d.sourceStorage.Insert(guid, source)
 	if err != nil {
-		return guid, err
+		return guid, fmt.Errorf("source insert err: %w", err)
 	}
 
 	id := d.idSet(guid)
@@ -120,7 +120,7 @@ func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 		if v, ok := source[name]; ok {
 			err := field.AddValue(id, v)
 			if err != nil {
-				return guid, err
+				return guid, fmt.Errorf("field value insert err: %w", err)
 			}
 		}
 	}
@@ -131,7 +131,7 @@ func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 func (d *Data) Get(guid string) (entity.DocSource, error) {
 	doc, err := d.sourceStorage.One(guid)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("source get err: %w", err)
 	}
 
 	return doc.Source, err

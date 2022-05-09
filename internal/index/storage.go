@@ -2,6 +2,7 @@ package index
 
 import (
 	"context"
+	"fmt"
 	"os"
 	"path"
 	"sync"
@@ -13,6 +14,12 @@ import (
 
 const dirPermissions = 0755
 const filePermissions = 0644
+
+var (
+	ErrDocNotFound      = fmt.Errorf("document not found")
+	ErrDocAlreadyExists = fmt.Errorf("document with the same id already exists")
+	ErrEmptyDocId       = fmt.Errorf("doc id must be defined")
+)
 
 type Document[T any] struct {
 	ID     string `json:"_id"`
@@ -107,7 +114,7 @@ func (s *FileStorage[T]) One(id string) (Document[T], error) {
 
 	doc, ok := s.docs[id]
 	if !ok {
-		return doc, NewErrDocNotFound(id)
+		return doc, ErrDocNotFound
 	}
 
 	return doc, nil
@@ -137,7 +144,7 @@ func (s *FileStorage[T]) Insert(id string, doc T) (string, error) {
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; ok {
-		return "", NewErrDocAlreadyExists(id)
+		return "", ErrDocAlreadyExists
 	}
 	s.docs[id] = newDocument(id, doc)
 
@@ -146,14 +153,14 @@ func (s *FileStorage[T]) Insert(id string, doc T) (string, error) {
 
 func (s *FileStorage[T]) Update(id string, doc T) error {
 	if id == "" {
-		return NewErrEmptyDocId()
+		return ErrEmptyDocId
 	}
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; !ok {
-		return NewErrDocNotFound(id)
+		return ErrDocNotFound
 	}
 	s.docs[id] = newDocument(id, doc)
 
@@ -162,14 +169,14 @@ func (s *FileStorage[T]) Update(id string, doc T) error {
 
 func (s *FileStorage[T]) Delete(id string) error {
 	if id == "" {
-		return NewErrEmptyDocId()
+		return ErrEmptyDocId
 	}
 
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
 	if _, ok := s.docs[id]; !ok {
-		return NewErrDocNotFound(id)
+		return ErrDocNotFound
 	}
 	delete(s.docs, id)
 
