@@ -1,4 +1,4 @@
-package storage
+package index
 
 import "fmt"
 
@@ -9,7 +9,7 @@ type ErrNotFound struct {
 	id string
 }
 
-func NewErrNotFound(id string) *ErrNotFound {
+func NewErrDocNotFound(id string) *ErrNotFound {
 	return &ErrNotFound{id: id}
 }
 
@@ -21,7 +21,7 @@ type ErrAlreadyExists struct {
 	id string
 }
 
-func NewErrAlreadyExists(id string) *ErrAlreadyExists {
+func NewErrDocAlreadyExists(id string) *ErrAlreadyExists {
 	return &ErrAlreadyExists{id: id}
 }
 
@@ -31,7 +31,7 @@ func (e *ErrAlreadyExists) Error() string {
 
 type ErrEmptyId struct{}
 
-func NewErrEmptyId() *ErrEmptyId { return &ErrEmptyId{} }
+func NewErrEmptyDocId() *ErrEmptyId { return &ErrEmptyId{} }
 
 func (e *ErrEmptyId) Error() string {
 	return "doc id must be defined"

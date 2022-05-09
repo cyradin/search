@@ -10,39 +10,32 @@ import (
 
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/cyradin/search/internal/storage"
 )
 
 var ErrIndexNotFound = fmt.Errorf("index not found")
 var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
 
-type storageFactory interface {
-	NewIndexStorage() (storage.Storage[entity.Index], error)
-	NewIndexSourceStorage(name string) (storage.Storage[entity.DocSource], error)
-}
-
 type Repository struct {
-	mtx            sync.Mutex
-	storage        storage.Storage[entity.Index]
-	storageFactory storageFactory
+	mtx           sync.Mutex
+	storage       Storage[entity.Index]
+	sourceStorage Storage[entity.DocSource]
 
 	guidGenerate func() string
 
-	dataSrc string
+	dataDir string
 	data    map[string]*Data
 }
 
-func NewRepository(ctx context.Context, storageFactory storageFactory, dataSrc string) (*Repository, error) {
-	storage, err := storageFactory.NewIndexStorage()
+func NewRepository(ctx context.Context, dataDir string) (*Repository, error) {
+	storage, err := NewIndexStorage(dataDir)
 	if err != nil {
 		return nil, err
 	}
 
 	r := &Repository{
-		storageFactory: storageFactory,
-		storage:        storage,
-		dataSrc:        dataSrc,
-		data:           make(map[string]*Data),
+		storage: storage,
+		dataDir: dataDir,
+		data:    make(map[string]*Data),
 	}
 
 	indexes, err := r.All()
@@ -65,7 +58,7 @@ func (r *Repository) Get(name string) (entity.Index, error) {
 	defer r.mtx.Unlock()
 
 	doc, err := r.storage.One(name)
-	nfErr := &storage.ErrNotFound{}
+	nfErr := &ErrNotFound{}
 	if errors.As(err, &nfErr) {
 		return entity.Index{}, ErrIndexNotFound
 	}
@@ -102,7 +95,7 @@ func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 	}
 
 	_, err := r.storage.Insert(index.Name, index)
-	nfErr := &storage.ErrAlreadyExists{}
+	nfErr := &ErrAlreadyExists{}
 	if errors.As(err, &nfErr) {
 		return ErrIndexAlreadyExists
 	}
@@ -115,7 +108,7 @@ func (r *Repository) Delete(name string) error {
 	defer r.mtx.Unlock()
 
 	if err := r.storage.Delete(name); err != nil {
-		nfErr := &storage.ErrNotFound{}
+		nfErr := &ErrNotFound{}
 		if errors.As(err, &nfErr) {
 			return nil
 		}
@@ -139,13 +132,12 @@ func (r *Repository) Data(index string) (*Data, error) {
 }
 
 func (r *Repository) initData(ctx context.Context, index entity.Index) error {
-	sourceStorage, err := r.storageFactory.NewIndexSourceStorage(index.Name)
-	if err != nil {
+	fieldPath := r.fieldPath(index.Name)
+	if err := os.MkdirAll(fieldPath, dirPermissions); err != nil {
 		return err
 	}
 
-	fieldPath := r.fieldPath(index.Name)
-	err = os.MkdirAll(fieldPath, 0755)
+	sourceStorage, err := NewIndexSourceStorage(r.dataDir, index.Name)
 	if err != nil {
 		return err
 	}
@@ -161,5 +153,5 @@ func (r *Repository) initData(ctx context.Context, index entity.Index) error {
 }
 
 func (r *Repository) fieldPath(indexName string) string {
-	return path.Join(r.dataSrc, indexName, "fields")
+	return path.Join(r.dataDir, indexName, "fields")
 }
