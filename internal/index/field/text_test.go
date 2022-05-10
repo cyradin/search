@@ -141,7 +141,7 @@ func Test_Text_AddValue(t *testing.T) {
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.data[k]
+				bm, ok := field.inner.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}
@@ -248,7 +248,7 @@ func Test_Text_AddValueSync(t *testing.T) {
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.data[k]
+				bm, ok := field.inner.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}

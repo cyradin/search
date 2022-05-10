@@ -2,33 +2,23 @@ package field
 
 import (
 	"context"
-	"fmt"
-	"reflect"
-	"sync"
-
-	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/pkg/finisher"
 )
 
+var _ Field = (*Short)(nil)
+
 type Short struct {
-	data map[int16]*roaring.Bitmap
-	mtx  sync.RWMutex
-	src  string
+	inner *field[int16]
 }
 
 func NewShort(ctx context.Context, src string) (*Short, error) {
-	data, err := readField[int16](src)
+	gf, err := newGenericField[int16](ctx, src)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &Short{
-		data: data,
-		src:  src,
-	}
-	finisher.Add(result)
-
-	return result, nil
+	return &Short{
+		inner: gf,
+	}, nil
 }
 
 func (f *Short) Type() Type {
@@ -36,40 +26,9 @@ func (f *Short) Type() Type {
 }
 
 func (f *Short) AddValue(id uint32, value interface{}) error {
-	v, ok := value.(int16)
-	if !ok {
-		return fmt.Errorf("required int16, got %s", reflect.TypeOf(value))
-	}
-	go f.addValue(id, v)
-	return nil
+	return f.inner.AddValue(id, value)
 }
 
 func (f *Short) AddValueSync(id uint32, value interface{}) error {
-	v, ok := value.(int16)
-	if !ok {
-		return fmt.Errorf("required int16, got %s", reflect.TypeOf(value))
-	}
-	f.addValue(id, v)
-	return nil
-}
-
-func (f *Short) addValue(id uint32, value int16) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	m, ok := f.data[value]
-	if !ok {
-		m = roaring.New()
-		f.data[value] = m
-	}
-
-	m.Add(id)
-
-	return
-}
-
-func (f *Short) Stop(ctx context.Context) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	return dumpField(f.src, f.data)
+	return f.inner.AddValueSync(id, value)
 }
