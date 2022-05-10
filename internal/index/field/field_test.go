@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Bool_AddValue(t *testing.T) {
+func Test_genericField_AddValue(t *testing.T) {
 	data := []struct {
 		name                string
 		values              []testFieldValue
@@ -23,7 +23,7 @@ func Test_Bool_AddValue(t *testing.T) {
 			erroneous: true,
 		},
 		{
-			name: "ok",
+			name: "one",
 			values: []testFieldValue{
 				{id: 1, value: true},
 			},
@@ -31,12 +31,54 @@ func Test_Bool_AddValue(t *testing.T) {
 				true: 1,
 			},
 		},
+		{
+			name: "same_value",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 2, value: true},
+			},
+			expectedCardinality: map[bool]uint64{
+				true: 2,
+			},
+		},
+		{
+			name: "same_id",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 1, value: false},
+			},
+			expectedCardinality: map[bool]uint64{
+				true:  1,
+				false: 1,
+			},
+		},
+		{
+			name: "same_value",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 1, value: true},
+			},
+			expectedCardinality: map[bool]uint64{
+				true: 1,
+			},
+		},
+		{
+			name: "different",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 2, value: false},
+			},
+			expectedCardinality: map[bool]uint64{
+				true:  1,
+				false: 1,
+			},
+		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewBool(ctx, "")
+			field, err := newGenericField[bool](ctx, "")
 			require.Nil(t, err)
 
 			for _, v := range d.values {
@@ -50,13 +92,13 @@ func Test_Bool_AddValue(t *testing.T) {
 				time.Sleep(time.Millisecond)
 
 				vv := v.value.(bool)
-				bm, ok := field.inner.data[vv]
+				bm, ok := field.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
+				bm, ok := field.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}
@@ -64,7 +106,7 @@ func Test_Bool_AddValue(t *testing.T) {
 	}
 }
 
-func Test_Bool_AddValueSync(t *testing.T) {
+func Test_genericField_AddValueSync(t *testing.T) {
 	data := []struct {
 		name                string
 		values              []testFieldValue
@@ -87,12 +129,54 @@ func Test_Bool_AddValueSync(t *testing.T) {
 				true: 1,
 			},
 		},
+		{
+			name: "same_value",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 2, value: true},
+			},
+			expectedCardinality: map[bool]uint64{
+				true: 2,
+			},
+		},
+		{
+			name: "same_id",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 1, value: false},
+			},
+			expectedCardinality: map[bool]uint64{
+				true:  1,
+				false: 1,
+			},
+		},
+		{
+			name: "same_value",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 1, value: true},
+			},
+			expectedCardinality: map[bool]uint64{
+				true: 1,
+			},
+		},
+		{
+			name: "different",
+			values: []testFieldValue{
+				{id: 1, value: true},
+				{id: 2, value: false},
+			},
+			expectedCardinality: map[bool]uint64{
+				true:  1,
+				false: 1,
+			},
+		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewBool(ctx, "")
+			field, err := newGenericField[bool](ctx, "")
 			require.Nil(t, err)
 
 			for _, v := range d.values {
@@ -106,13 +190,13 @@ func Test_Bool_AddValueSync(t *testing.T) {
 				}
 
 				vv := v.value.(bool)
-				bm, ok := field.inner.data[vv]
+				bm, ok := field.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
+				bm, ok := field.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}
