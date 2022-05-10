@@ -2,8 +2,6 @@ package field
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -12,7 +10,6 @@ import (
 
 func Test_Byte_AddValue(t *testing.T) {
 	var value1 int8 = 1
-	var value2 int8 = 2
 
 	data := []struct {
 		name                string
@@ -36,58 +33,13 @@ func Test_Byte_AddValue(t *testing.T) {
 				value1: 1,
 			},
 		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 2, value: value1},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 2,
-			},
-		},
-		{
-			name: "same_id",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 1, value: value2},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-				value2: 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 1, value: value1},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-			},
-		},
-		{
-			name: "different",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 2, value: value2},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-				value2: 1,
-			},
-		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "testdir")
-			require.Nil(t, err)
-			defer os.RemoveAll(dir)
-			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field, err := NewByte(ctx, testFile)
+			field, err := NewByte(ctx, "")
+			require.Nil(t, err)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -116,7 +68,6 @@ func Test_Byte_AddValue(t *testing.T) {
 
 func Test_Byte_AddValueSync(t *testing.T) {
 	var value1 int8 = 1
-	var value2 int8 = 2
 
 	data := []struct {
 		name                string
@@ -140,58 +91,13 @@ func Test_Byte_AddValueSync(t *testing.T) {
 				value1: 1,
 			},
 		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 2, value: value1},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 2,
-			},
-		},
-		{
-			name: "same_id",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 1, value: value2},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-				value2: 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 1, value: value1},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-			},
-		},
-		{
-			name: "different",
-			values: []testFieldValue{
-				{id: 1, value: value1},
-				{id: 2, value: value2},
-			},
-			expectedCardinality: map[int8]uint64{
-				value1: 1,
-				value2: 1,
-			},
-		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "testdir")
-			require.Nil(t, err)
-			defer os.RemoveAll(dir)
-			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field, err := NewByte(ctx, testFile)
+			field, err := NewByte(ctx, "")
+			require.Nil(t, err)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

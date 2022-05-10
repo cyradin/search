@@ -2,8 +2,6 @@ package field
 
 import (
 	"context"
-	"os"
-	"path/filepath"
 	"regexp"
 	"testing"
 	"time"
@@ -65,68 +63,12 @@ func Test_Text_AddValue(t *testing.T) {
 				"value_addition1_addition2": 1,
 			},
 		},
-		{
-			name: "one_value_two_tokens",
-			values: []testFieldValue{
-				{id: 1, value: "value1 value2"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value1_addition1_addition2": 1,
-				"value2_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "two_values_same_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-				{id: 2, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 2,
-			},
-		},
-		{
-			name: "same_id",
-			values: []testFieldValue{
-				{id: 1, value: "value_1"},
-				{id: 1, value: "value_2"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_1_addition1_addition2": 1,
-				"value_2_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "different",
-			values: []testFieldValue{
-				{id: 1, value: "value_1 value_2"},
-				{id: 2, value: "value_2 value_1"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_1_addition1_addition2": 2,
-				"value_2_addition1_addition2": 2,
-			},
-		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "testdir")
-			require.Nil(t, err)
-			defer os.RemoveAll(dir)
-			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field, err := NewText(ctx, testFile, testAnalyzer1, testAnalyzer2, testAnalyzer3)
+			field, err := NewText(ctx, "")
 			require.Nil(t, err)
 
 			for _, v := range d.values {
@@ -172,68 +114,12 @@ func Test_Text_AddValueSync(t *testing.T) {
 				"value_addition1_addition2": 1,
 			},
 		},
-		{
-			name: "one_value_two_tokens",
-			values: []testFieldValue{
-				{id: 1, value: "value1 value2"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value1_addition1_addition2": 1,
-				"value2_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "two_values_same_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-				{id: 2, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 2,
-			},
-		},
-		{
-			name: "same_id",
-			values: []testFieldValue{
-				{id: 1, value: "value_1"},
-				{id: 1, value: "value_2"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_1_addition1_addition2": 1,
-				"value_2_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 1,
-			},
-		},
-		{
-			name: "different",
-			values: []testFieldValue{
-				{id: 1, value: "value_1 value_2"},
-				{id: 2, value: "value_2 value_1"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_1_addition1_addition2": 2,
-				"value_2_addition1_addition2": 2,
-			},
-		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "testdir")
-			require.Nil(t, err)
-			defer os.RemoveAll(dir)
-			testFile := filepath.Join(dir, "file.json")
 			ctx := context.Background()
-			field, err := NewText(ctx, testFile, testAnalyzer1, testAnalyzer2, testAnalyzer3)
+			field, err := NewText(ctx, "")
 			require.Nil(t, err)
 
 			for _, v := range d.values {
