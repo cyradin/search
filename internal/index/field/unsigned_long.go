@@ -2,33 +2,23 @@ package field
 
 import (
 	"context"
-	"fmt"
-	"reflect"
-	"sync"
-
-	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/pkg/finisher"
 )
 
+var _ Field = (*UnsignedLong)(nil)
+
 type UnsignedLong struct {
-	data map[uint64]*roaring.Bitmap
-	mtx  sync.RWMutex
-	src  string
+	inner *field[uint64]
 }
 
 func NewUnsignedLong(ctx context.Context, src string) (*UnsignedLong, error) {
-	data, err := readField[uint64](src)
+	gf, err := newGenericField[uint64](ctx, src)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &UnsignedLong{
-		data: data,
-		src:  src,
-	}
-	finisher.Add(result)
-
-	return result, nil
+	return &UnsignedLong{
+		inner: gf,
+	}, nil
 }
 
 func (f *UnsignedLong) Type() Type {
@@ -36,40 +26,9 @@ func (f *UnsignedLong) Type() Type {
 }
 
 func (f *UnsignedLong) AddValue(id uint32, value interface{}) error {
-	v, ok := value.(uint64)
-	if !ok {
-		return fmt.Errorf("required uint64, got %s", reflect.TypeOf(value))
-	}
-	go f.addValue(id, v)
-	return nil
+	return f.inner.AddValue(id, value)
 }
 
 func (f *UnsignedLong) AddValueSync(id uint32, value interface{}) error {
-	v, ok := value.(uint64)
-	if !ok {
-		return fmt.Errorf("required uint64, got %s", reflect.TypeOf(value))
-	}
-	f.addValue(id, v)
-	return nil
-}
-
-func (f *UnsignedLong) addValue(id uint32, value uint64) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	m, ok := f.data[value]
-	if !ok {
-		m = roaring.New()
-		f.data[value] = m
-	}
-
-	m.Add(id)
-
-	return
-}
-
-func (f *UnsignedLong) Stop(ctx context.Context) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	return dumpField(f.src, f.data)
+	return f.inner.AddValueSync(id, value)
 }

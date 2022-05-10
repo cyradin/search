@@ -2,33 +2,23 @@ package field
 
 import (
 	"context"
-	"fmt"
-	"reflect"
-	"sync"
-
-	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/pkg/finisher"
 )
 
+var _ Field = (*Float)(nil)
+
 type Float struct {
-	data map[float32]*roaring.Bitmap
-	mtx  sync.RWMutex
-	src  string
+	inner *field[float32]
 }
 
 func NewFloat(ctx context.Context, src string) (*Float, error) {
-	data, err := readField[float32](src)
+	gf, err := newGenericField[float32](ctx, src)
 	if err != nil {
 		return nil, err
 	}
 
-	result := &Float{
-		data: data,
-		src:  src,
-	}
-	finisher.Add(result)
-
-	return result, nil
+	return &Float{
+		inner: gf,
+	}, nil
 }
 
 func (f *Float) Type() Type {
@@ -36,40 +26,9 @@ func (f *Float) Type() Type {
 }
 
 func (f *Float) AddValue(id uint32, value interface{}) error {
-	v, ok := value.(float32)
-	if !ok {
-		return fmt.Errorf("required float32, got %s", reflect.TypeOf(value))
-	}
-	go f.addValue(id, v)
-	return nil
+	return f.inner.AddValue(id, value)
 }
 
 func (f *Float) AddValueSync(id uint32, value interface{}) error {
-	v, ok := value.(float32)
-	if !ok {
-		return fmt.Errorf("required float32, got %s", reflect.TypeOf(value))
-	}
-	f.addValue(id, v)
-	return nil
-}
-
-func (f *Float) addValue(id uint32, value float32) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	m, ok := f.data[value]
-	if !ok {
-		m = roaring.New()
-		f.data[value] = m
-	}
-
-	m.Add(id)
-
-	return
-}
-
-func (f *Float) Stop(ctx context.Context) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	return dumpField(f.src, f.data)
+	return f.inner.AddValueSync(id, value)
 }

@@ -100,13 +100,13 @@ func Test_Byte_AddValue(t *testing.T) {
 				time.Sleep(time.Millisecond)
 
 				vv := v.value.(int8)
-				bm, ok := field.data[vv]
+				bm, ok := field.inner.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.data[k]
+				bm, ok := field.inner.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}
@@ -204,13 +204,13 @@ func Test_Byte_AddValueSync(t *testing.T) {
 				}
 
 				vv := v.value.(int8)
-				bm, ok := field.data[vv]
+				bm, ok := field.inner.data[vv]
 				require.True(t, ok)
 				require.True(t, bm.Contains(v.id))
 			}
 
 			for k, v := range d.expectedCardinality {
-				bm, ok := field.data[k]
+				bm, ok := field.inner.data[k]
 				require.True(t, ok)
 				require.Equal(t, v, bm.GetCardinality())
 			}
