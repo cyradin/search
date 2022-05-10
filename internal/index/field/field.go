@@ -2,10 +2,15 @@ package field
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
+	"fmt"
 	"os"
+	"reflect"
+	"sync"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/pkg/finisher"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -59,6 +64,12 @@ type Field interface {
 	AddValue(id uint32, value interface{}) error
 	// AddValueSync add document field value synchronously
 	AddValueSync(id uint32, value interface{}) error
+	// GetValue get bitmap clone by value
+	// GetValue(value interface{}) (*roaring.Bitmap, bool)
+	// GetValuesOr compute the union between bitmaps of the passed values
+	// GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
+	// GetValuesAnd compute the intersection between bitmaps of the passed values
+	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
 }
 
 func readField[T comparable](src string) (map[T]*roaring.Bitmap, error) {
@@ -86,4 +97,68 @@ func dumpField[T comparable](src string, data map[T]*roaring.Bitmap) error {
 	}
 
 	return os.WriteFile(src, buf.Bytes(), 0644)
+}
+
+type field[T comparable] struct {
+	src string
+
+	mtx  sync.Mutex
+	data map[T]*roaring.Bitmap
+}
+
+func newGenericField[T comparable](ctx context.Context, src string) (*field[T], error) {
+	data, err := readField[T](src)
+	if err != nil {
+		return nil, err
+	}
+
+	result := &field[T]{
+		data: data,
+		src:  src,
+	}
+	finisher.Add(result)
+
+	return result, nil
+}
+
+func (f *field[T]) AddValue(id uint32, value interface{}) error {
+	v, ok := value.(T)
+
+	if !ok {
+		var val T
+		return fmt.Errorf("required %s, got %s", reflect.TypeOf(val), reflect.TypeOf(value))
+	}
+	go f.addValue(id, v)
+	return nil
+}
+
+func (f *field[T]) AddValueSync(id uint32, value interface{}) error {
+	v, ok := value.(T)
+	if !ok {
+		var val T
+		return fmt.Errorf("required %s, got %s", reflect.TypeOf(val), reflect.TypeOf(value))
+	}
+	f.addValue(id, v)
+	return nil
+}
+
+func (f *field[T]) addValue(id uint32, value T) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	m, ok := f.data[value]
+	if !ok {
+		m = roaring.New()
+		f.data[value] = m
+	}
+
+	m.Add(id)
+
+	return
+}
+
+func (f *field[T]) Stop(ctx context.Context) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	return dumpField(f.src, f.data)
 }
