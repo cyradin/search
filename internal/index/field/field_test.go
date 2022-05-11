@@ -2,9 +2,12 @@ package field
 
 import (
 	"context"
+	"os"
+	"path/filepath"
 	"testing"
 	"time"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -201,5 +204,90 @@ func Test_genericField_AddValueSync(t *testing.T) {
 				require.Equal(t, v, bm.GetCardinality())
 			}
 		})
+	}
+}
+
+func Test_genericField_load(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+
+	data := []struct {
+		name      string
+		src       string
+		erroneous bool
+		expected  map[string]*roaring.Bitmap
+	}{
+		{
+			name:      "file_not_exists",
+			src:       "not_exists",
+			erroneous: false,
+			expected:  make(map[string]*roaring.Bitmap),
+		},
+		{
+			name:      "ok",
+			src:       "../../../test/testdata/field/test.gob",
+			erroneous: false,
+			expected: map[string]*roaring.Bitmap{
+				"value": bm,
+			},
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			f, err := newGenericField[string](context.Background(), d.src)
+			if d.erroneous {
+				require.NotNil(t, err)
+				return
+			}
+			require.Nil(t, err)
+
+			var expectedKeys []string
+			for k := range d.expected {
+				expectedKeys = append(expectedKeys, k)
+			}
+			var dataKeys []string
+			for k := range f.data {
+				dataKeys = append(dataKeys, k)
+			}
+			require.EqualValues(t, expectedKeys, dataKeys)
+
+			for k, v := range d.expected {
+				require.True(t, f.data[k].Equals(v))
+			}
+		})
+	}
+}
+
+func Test_genericField_dump(t *testing.T) {
+	dir, err := os.MkdirTemp("", "testdir")
+	require.Nil(t, err)
+	defer os.RemoveAll(dir)
+
+	src := filepath.Join(dir, "data.gob")
+
+	f1, err := newGenericField[string](context.Background(), src)
+	require.Nil(t, err)
+
+	f1.AddValueSync(1, "value")
+
+	err = f1.dump()
+	require.Nil(t, err)
+
+	f2, err := newGenericField[string](context.Background(), src)
+	require.Nil(t, err)
+
+	var expectedKeys []string
+	for k := range f1.data {
+		expectedKeys = append(expectedKeys, k)
+	}
+	var dataKeys []string
+	for k := range f2.data {
+		dataKeys = append(dataKeys, k)
+	}
+	require.EqualValues(t, expectedKeys, dataKeys)
+
+	for k, v := range f1.data {
+		require.True(t, f2.data[k].Equals(v))
 	}
 }

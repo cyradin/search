@@ -72,33 +72,6 @@ type Field interface {
 	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
 }
 
-func readField[T comparable](src string) (map[T]*roaring.Bitmap, error) {
-	result := make(map[T]*roaring.Bitmap)
-
-	data, err := os.ReadFile(src)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return result, nil
-		}
-		return nil, err
-	}
-
-	if err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&result); err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func dumpField[T comparable](src string, data map[T]*roaring.Bitmap) error {
-	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(data); err != nil {
-		return err
-	}
-
-	return os.WriteFile(src, buf.Bytes(), 0644)
-}
-
 type field[T comparable] struct {
 	src string
 
@@ -107,14 +80,11 @@ type field[T comparable] struct {
 }
 
 func newGenericField[T comparable](ctx context.Context, src string) (*field[T], error) {
-	data, err := readField[T](src)
-	if err != nil {
-		return nil, err
-	}
-
 	result := &field[T]{
-		data: data,
-		src:  src,
+		src: src,
+	}
+	if err := result.load(); err != nil {
+		return nil, err
 	}
 	finisher.Add(result)
 
@@ -160,5 +130,32 @@ func (f *field[T]) Stop(ctx context.Context) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	return dumpField(f.src, f.data)
+	return f.dump()
+}
+
+func (f *field[T]) load() error {
+	f.data = make(map[T]*roaring.Bitmap)
+
+	data, err := os.ReadFile(f.src)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return nil
+		}
+		return err
+	}
+
+	if err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&f.data); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *field[T]) dump() error {
+	var buf bytes.Buffer
+	if err := gob.NewEncoder(&buf).Encode(f.data); err != nil {
+		return err
+	}
+
+	return os.WriteFile(f.src, buf.Bytes(), 0644)
 }
