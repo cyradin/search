@@ -7,6 +7,8 @@ import (
 	"github.com/spf13/cast"
 )
 
+var _ Field = (*Double)(nil)
+
 type Double struct {
 	inner *field[float64]
 }
@@ -36,4 +38,8 @@ func (f *Double) AddValueSync(id uint32, value interface{}) error {
 
 func (f *Double) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValue(value, cast.ToFloat64E)
+}
+
+func (f *Double) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValuesOr(values, cast.ToFloat64E)
 }

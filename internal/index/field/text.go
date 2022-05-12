@@ -79,3 +79,7 @@ func (f *Text) Stop(ctx context.Context) error {
 func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValue(value, cast.ToStringE)
 }
+
+func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValuesOr(values, cast.ToStringE)
+}

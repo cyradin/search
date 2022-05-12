@@ -67,7 +67,7 @@ type Field interface {
 	// GetValue get bitmap clone by value
 	GetValue(value interface{}) (*roaring.Bitmap, bool)
 	// GetValuesOr compute the union between bitmaps of the passed values
-	// GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
+	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 	// GetValuesAnd compute the intersection between bitmaps of the passed values
 	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
 }
@@ -175,4 +175,31 @@ func (f *field[T]) getValue(v interface{}, comparator func(v interface{}) (T, er
 	}
 
 	return vv.Clone(), true
+}
+
+func (f *field[T]) getValuesOr(values []interface{}, comparator func(v interface{}) (T, error)) (*roaring.Bitmap, bool) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	var result *roaring.Bitmap
+	for _, v := range values {
+		val, err := comparator(v)
+		if err != nil {
+			continue
+		}
+
+		bm, ok := f.data[val]
+		if !ok {
+			continue
+		}
+
+		if result == nil {
+			result = bm.Clone()
+			continue
+		}
+
+		result.Or(bm)
+	}
+
+	return result, result != nil
 }
