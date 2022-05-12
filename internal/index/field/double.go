@@ -2,6 +2,9 @@ package field
 
 import (
 	"context"
+
+	"github.com/RoaringBitmap/roaring"
+	"github.com/spf13/cast"
 )
 
 type Double struct {
@@ -29,4 +32,8 @@ func (f *Double) AddValue(id uint32, value interface{}) error {
 
 func (f *Double) AddValueSync(id uint32, value interface{}) error {
 	return f.inner.AddValueSync(id, value)
+}
+
+func (f *Double) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValue(value, cast.ToFloat64E)
 }

@@ -2,6 +2,9 @@ package field
 
 import (
 	"context"
+
+	"github.com/RoaringBitmap/roaring"
+	"github.com/spf13/cast"
 )
 
 var _ Field = (*UnsignedLong)(nil)
@@ -31,4 +34,8 @@ func (f *UnsignedLong) AddValue(id uint32, value interface{}) error {
 
 func (f *UnsignedLong) AddValueSync(id uint32, value interface{}) error {
 	return f.inner.AddValueSync(id, value)
+}
+
+func (f *UnsignedLong) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValue(value, cast.ToUint64E)
 }

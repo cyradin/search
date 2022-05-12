@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"reflect"
+
+	"github.com/RoaringBitmap/roaring"
+	"github.com/spf13/cast"
 )
 
 type (
@@ -15,6 +18,8 @@ type (
 		inner    *field[string]
 	}
 )
+
+var _ Field = (*Text)(nil)
 
 func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Text, error) {
 	gf, err := newGenericField[string](ctx, src)
@@ -69,4 +74,8 @@ func (f *Text) AddValueSync(id uint32, value interface{}) error {
 
 func (f *Text) Stop(ctx context.Context) error {
 	return f.inner.Stop(ctx)
+}
+
+func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValue(value, cast.ToStringE)
 }
