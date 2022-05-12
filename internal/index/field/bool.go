@@ -2,6 +2,9 @@ package field
 
 import (
 	"context"
+
+	"github.com/RoaringBitmap/roaring"
+	"github.com/spf13/cast"
 )
 
 var _ Field = (*Bool)(nil)
@@ -31,4 +34,8 @@ func (f *Bool) AddValue(id uint32, value interface{}) error {
 
 func (f *Bool) AddValueSync(id uint32, value interface{}) error {
 	return f.inner.AddValueSync(id, value)
+}
+
+func (f *Bool) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValue(value, cast.ToBoolE)
 }

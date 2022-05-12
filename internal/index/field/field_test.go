@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/spf13/cast"
 	"github.com/stretchr/testify/require"
 )
 
@@ -289,5 +290,58 @@ func Test_genericField_dump(t *testing.T) {
 
 	for k, v := range f1.data {
 		require.True(t, f2.data[k].Equals(v))
+	}
+}
+
+func Test_genericField_getValue(t *testing.T) {
+	data := []struct {
+		name  string
+		data  map[bool]*roaring.Bitmap
+		value interface{}
+		ok    bool
+	}{
+		{
+			name: "ok",
+			data: map[bool]*roaring.Bitmap{
+				true: roaring.New(),
+			},
+			value: true,
+			ok:    true,
+		},
+		{
+			name: "not_found",
+			data: map[bool]*roaring.Bitmap{
+				true: roaring.New(),
+			},
+			value: false,
+			ok:    false,
+		},
+		{
+			name: "invalid_value",
+			data: map[bool]*roaring.Bitmap{
+				true: roaring.New(),
+			},
+			value: "qwerty",
+			ok:    false,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			f, err := newGenericField[bool](context.Background(), "")
+			require.Nil(t, err)
+
+			f.data = d.data
+
+			result, ok := f.getValue(d.value, cast.ToBoolE)
+			if d.ok {
+				require.True(t, ok)
+				require.NotNil(t, result)
+				return
+			}
+
+			require.False(t, ok)
+			require.Nil(t, result)
+		})
 	}
 }

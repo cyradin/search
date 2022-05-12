@@ -65,7 +65,7 @@ type Field interface {
 	// AddValueSync add document field value synchronously
 	AddValueSync(id uint32, value interface{}) error
 	// GetValue get bitmap clone by value
-	// GetValue(value interface{}) (*roaring.Bitmap, bool)
+	GetValue(value interface{}) (*roaring.Bitmap, bool)
 	// GetValuesOr compute the union between bitmaps of the passed values
 	// GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 	// GetValuesAnd compute the intersection between bitmaps of the passed values
@@ -158,4 +158,21 @@ func (f *field[T]) dump() error {
 	}
 
 	return os.WriteFile(f.src, buf.Bytes(), 0644)
+}
+
+func (f *field[T]) getValue(v interface{}, comparator func(v interface{}) (T, error)) (*roaring.Bitmap, bool) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	val, err := comparator(v)
+	if err != nil {
+		return nil, false
+	}
+
+	vv, ok := f.data[val]
+	if !ok {
+		return nil, false
+	}
+
+	return vv.Clone(), true
 }

@@ -12,6 +12,7 @@ require (
 	github.com/json-iterator/go v1.1.12
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/pkg/profile v1.6.0
+	github.com/spf13/cast v1.5.0
 	github.com/stretchr/testify v1.7.0
 	go.uber.org/zap v1.21.0
 )
