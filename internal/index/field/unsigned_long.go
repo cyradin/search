@@ -39,3 +39,7 @@ func (f *UnsignedLong) AddValueSync(id uint32, value interface{}) error {
 func (f *UnsignedLong) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValue(value, cast.ToUint64E)
 }
+
+func (f *UnsignedLong) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValuesOr(values, cast.ToUint64E)
+}

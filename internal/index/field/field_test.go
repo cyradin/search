@@ -332,11 +332,104 @@ func Test_genericField_getValue(t *testing.T) {
 			require.Nil(t, err)
 
 			f.data = d.data
+			f.data[true].Add(1)
 
 			result, ok := f.getValue(d.value, cast.ToBoolE)
 			if d.ok {
 				require.True(t, ok)
 				require.NotNil(t, result)
+
+				// check if we return cloned value
+				cmap := make(map[bool]uint64)
+				for k, v := range f.data {
+					cmap[k] = v.GetCardinality()
+				}
+				result.Add(100)
+				for k, v := range f.data {
+					require.Equal(t, cmap[k], v.GetCardinality())
+				}
+
+				return
+			}
+
+			require.False(t, ok)
+			require.Nil(t, result)
+		})
+	}
+}
+
+func Test_genericField_getValuesOr(t *testing.T) {
+	map1 := roaring.New()
+	map1.Add(1)
+	map1.Add(2)
+
+	map2 := roaring.New()
+	map2.Add(2)
+	map2.Add(3)
+	map2.Add(4)
+
+	data := []struct {
+		name                string
+		data                map[int]*roaring.Bitmap
+		values              []interface{}
+		ok                  bool
+		expectedCardinality uint64
+	}{
+		{
+			name: "both_found",
+			data: map[int]*roaring.Bitmap{
+				0: map1,
+				1: map2,
+			},
+			values:              []interface{}{0, 1, "qwe"},
+			ok:                  true,
+			expectedCardinality: 4,
+		},
+		{
+			name: "one_found",
+			data: map[int]*roaring.Bitmap{
+				0: map1,
+				1: map2,
+			},
+			values:              []interface{}{0, 2, "qwe"},
+			ok:                  true,
+			expectedCardinality: 2,
+		},
+		{
+			name: "none_found",
+			data: map[int]*roaring.Bitmap{
+				0: map1,
+				1: map2,
+			},
+			values: []interface{}{2, 3, "qwe"},
+			ok:     false,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			f, err := newGenericField[int](context.Background(), "")
+			require.Nil(t, err)
+
+			f.data = d.data
+
+			result, ok := f.getValuesOr(d.values, cast.ToIntE)
+			if d.ok {
+				require.True(t, ok)
+				require.NotNil(t, result)
+
+				require.Equal(t, d.expectedCardinality, result.GetCardinality())
+
+				// check if we return cloned value
+				cmap := make(map[int]uint64)
+				for k, v := range f.data {
+					cmap[k] = v.GetCardinality()
+				}
+				result.Add(100)
+				for k, v := range f.data {
+					require.Equal(t, cmap[k], v.GetCardinality())
+				}
+
 				return
 			}
 

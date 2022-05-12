@@ -39,3 +39,7 @@ func (f *Float) AddValueSync(id uint32, value interface{}) error {
 func (f *Float) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValue(value, cast.ToFloat32E)
 }
+
+func (f *Float) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+	return f.inner.getValuesOr(values, cast.ToFloat32E)
+}
