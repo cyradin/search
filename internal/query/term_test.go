@@ -1,23 +1,13 @@
 package query
 
 import (
+	"context"
 	"testing"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/field"
 	"github.com/stretchr/testify/require"
 )
-
-type testFieldValue struct {
-	values map[interface{}]*roaring.Bitmap
-}
-
-func (f *testFieldValue) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	if v, ok := f.values[value]; ok {
-		return v, true
-	}
-
-	return nil, false
-}
 
 func Test_term(t *testing.T) {
 	bm := roaring.New()
@@ -26,62 +16,48 @@ func Test_term(t *testing.T) {
 	data := []struct {
 		name      string
 		data      map[string]interface{}
-		fields    map[string]fieldValue
+		fieldName string
 		erroneous bool
 		expected  *roaring.Bitmap
 	}{
 		{
 			name:      "empty",
 			data:      map[string]interface{}{},
-			fields:    nil,
+			fieldName: "f1",
 			erroneous: true,
 		},
 		{
 			name: "multiple_fields",
 			data: map[string]interface{}{
-				"val1": "1", "val2": "2",
+				"f1": "1", "f2": "2",
 			},
-			fields:    nil,
+			fieldName: "f1",
 			erroneous: true,
 		},
 		{
 			name: "field_not_found",
 			data: map[string]interface{}{
-				"val1": "1",
+				"f2": "1",
 			},
-			fields: map[string]fieldValue{
-				"val2": &testFieldValue{},
-			},
+			fieldName: "f1",
 			erroneous: false,
 			expected:  roaring.New(),
 		},
 		{
 			name: "value_not_found",
 			data: map[string]interface{}{
-				"val1": "1",
+				"f1": "2",
 			},
-			fields: map[string]fieldValue{
-				"val1": &testFieldValue{
-					values: map[interface{}]*roaring.Bitmap{
-						"2": roaring.New(),
-					},
-				},
-			},
+			fieldName: "f1",
 			erroneous: false,
 			expected:  roaring.New(),
 		},
 		{
 			name: "ok",
 			data: map[string]interface{}{
-				"val1": "1",
+				"f1": "1",
 			},
-			fields: map[string]fieldValue{
-				"val1": &testFieldValue{
-					values: map[interface{}]*roaring.Bitmap{
-						"1": bm,
-					},
-				},
-			},
+			fieldName: "f1",
 			erroneous: false,
 			expected:  bm,
 		},
@@ -89,7 +65,17 @@ func Test_term(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			bm, err := term(d.data, d.fields)
+			f, err := field.NewKeyword(context.Background(), "")
+			require.Nil(t, err)
+
+			err = f.AddValueSync(1, "1")
+			require.Nil(t, err)
+
+			fields := map[string]fieldValue{
+				d.fieldName: f,
+			}
+
+			bm, err := term(d.data, fields)
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, bm)
@@ -98,6 +84,122 @@ func Test_term(t *testing.T) {
 
 			require.Nil(t, err)
 			require.Equal(t, d.expected, bm)
+		})
+	}
+}
+
+func Test_terms(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+	bm.Add(2)
+	bm.Add(3)
+
+	data := []struct {
+		name        string
+		data        map[string]interface{}
+		fieldName   string
+		fieldValues map[string][]uint32
+		erroneous   bool
+		expected    *roaring.Bitmap
+	}{
+		{
+			name:      "empty",
+			data:      map[string]interface{}{},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: true,
+		},
+		{
+			name: "multiple_fields",
+			data: map[string]interface{}{
+				"f1": []string{"1"}, "f2": []string{"2"},
+			},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: true,
+		},
+		{
+			name: "values_not_an_array",
+			data: map[string]interface{}{
+				"val1": "1",
+			},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: true,
+		},
+
+		{
+			name: "field_not_found",
+			data: map[string]interface{}{
+				"f2": []string{"1"},
+			},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: false,
+			expected:  roaring.New(),
+		},
+		{
+			name: "values_not_found",
+			data: map[string]interface{}{
+				"f1": []string{"3", "4"},
+			},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: false,
+			expected:  roaring.New(),
+		},
+		{
+			name: "ok",
+			data: map[string]interface{}{
+				"f1": []string{"1", "2"},
+			},
+			fieldName: "f1",
+			fieldValues: map[string][]uint32{
+				"1": {1, 2},
+				"2": {1, 2, 3},
+			},
+			erroneous: false,
+			expected:  bm,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			f, err := field.NewKeyword(context.Background(), "")
+			require.Nil(t, err)
+
+			for v, ids := range d.fieldValues {
+				for _, id := range ids {
+					err := f.AddValueSync(id, v)
+					require.Nil(t, err)
+				}
+			}
+			fields := map[string]fieldValue{d.fieldName: f}
+
+			bm, err := terms(d.data, fields)
+			if d.erroneous {
+				require.NotNil(t, err)
+				require.Nil(t, bm)
+				return
+			}
+
+			require.Nil(t, err)
+			require.Equal(t, d.expected.GetCardinality(), bm.GetCardinality())
 		})
 	}
 }

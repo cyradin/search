@@ -4,6 +4,7 @@ import "github.com/RoaringBitmap/roaring"
 
 type fieldValue interface {
 	GetValue(value interface{}) (*roaring.Bitmap, bool)
+	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 }
 
 // var ErrEmptyQuery = fmt.Errorf("\"query\" field must not be empty")
