@@ -6,22 +6,22 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-func term(m map[string]interface{}, fields map[string]fieldValue) (*roaring.Bitmap, error) {
-	if len(m) == 0 {
-		return nil, NewErrSyntax("term query cannot be empty")
+func execTerm(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+	if len(data) == 0 {
+		return nil, NewErrSyntax(cannotBeEmpty, path)
 	}
-	if len(m) > 1 {
-		return nil, NewErrSyntax("term query cannot have multiple fields")
+	if len(data) > 1 {
+		return nil, NewErrSyntax(cannotHaveMultipleFields, path)
 	}
 
-	k, v := firstVal(m)
+	key, val := firstVal(data)
 
-	f, ok := fields[k]
+	field, ok := fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}
 
-	bm, ok := f.GetValue(v)
+	bm, ok := field.GetValue(val)
 	if !ok {
 		return roaring.New(), nil
 	}
@@ -29,33 +29,33 @@ func term(m map[string]interface{}, fields map[string]fieldValue) (*roaring.Bitm
 	return bm, nil
 }
 
-func terms(m map[string]interface{}, fields map[string]fieldValue) (*roaring.Bitmap, error) {
-	if len(m) == 0 {
-		return nil, NewErrSyntax("terms query cannot be empty")
+func execTerms(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+	if len(data) == 0 {
+		return nil, NewErrSyntax(cannotBeEmpty, path)
 	}
-	if len(m) > 1 {
-		return nil, NewErrSyntax("terms query cannot have multiple fields")
+	if len(data) > 1 {
+		return nil, NewErrSyntax(cannotHaveMultipleFields, path)
 	}
 
-	k, v := firstVal(m)
+	key, val := firstVal(data)
 
 	var values []interface{}
-	if reflect.TypeOf(v).Kind() == reflect.Slice {
-		s := reflect.ValueOf(v)
+	if reflect.TypeOf(val).Kind() == reflect.Slice {
+		s := reflect.ValueOf(val)
 		values = make([]interface{}, s.Len())
 		for i := 0; i < s.Len(); i++ {
 			values[i] = s.Index(i)
 		}
 	} else {
-		return nil, NewErrSyntax("terms query values must be an array")
+		return nil, NewErrSyntax(arrayValueRequired, pathJoin(path, key))
 	}
 
-	f, ok := fields[k]
+	field, ok := fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}
 
-	bm, ok := f.GetValuesOr(values)
+	bm, ok := field.GetValuesOr(values)
 	if !ok {
 		return roaring.New(), nil
 	}
