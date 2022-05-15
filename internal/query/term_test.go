@@ -75,7 +75,7 @@ func Test_term(t *testing.T) {
 				d.fieldName: f,
 			}
 
-			bm, err := term(d.data, fields)
+			bm, err := execTerm(d.data, fields, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, bm)
@@ -88,7 +88,7 @@ func Test_term(t *testing.T) {
 	}
 }
 
-func Test_terms(t *testing.T) {
+func Test_execTerms(t *testing.T) {
 	bm := roaring.New()
 	bm.Add(1)
 	bm.Add(2)
@@ -191,7 +191,7 @@ func Test_terms(t *testing.T) {
 			}
 			fields := map[string]fieldValue{d.fieldName: f}
 
-			bm, err := terms(d.data, fields)
+			bm, err := execTerms(d.data, fields, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, bm)

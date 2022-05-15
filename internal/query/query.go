@@ -1,6 +1,20 @@
 package query
 
-import "github.com/RoaringBitmap/roaring"
+import (
+	"github.com/RoaringBitmap/roaring"
+)
+
+type queryType string
+
+const (
+	queryTerm  queryType = "term"
+	queryTerms queryType = "terms"
+
+	queryBool       queryType = "bool"
+	queryBoolShould queryType = "should"
+	queryBoolMust   queryType = "must"
+	queryBoolFilter queryType = "filter"
+)
 
 type fieldValue interface {
 	GetValue(value interface{}) (*roaring.Bitmap, bool)
@@ -43,4 +57,8 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 	}
 
 	return "", nil
+}
+
+func pathJoin(path string, value string) string {
+	return path + "." + value
 }
