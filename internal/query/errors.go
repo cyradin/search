@@ -1,38 +1,42 @@
 package query
 
-import "fmt"
-
-type syntaxErrType string
-
-const (
-	cannotBeEmpty            syntaxErrType = "cannot-be-empty"
-	cannotHaveMultipleFields syntaxErrType = "cannot-have-multiple-fields"
-	arrayValueRequired       syntaxErrType = "array-value-required"
+import (
+	"fmt"
+	"strings"
 )
 
 type ErrSyntax struct {
-	errType syntaxErrType
-	field   string
+	msg  string
+	path string
 }
 
-func NewErrSyntax(t syntaxErrType, field string) *ErrSyntax {
+func NewErrSyntax(msg string, path string) *ErrSyntax {
 	return &ErrSyntax{
-		errType: t,
-		field:   field,
+		msg:  msg,
+		path: path,
 	}
 }
 
 func (e *ErrSyntax) Error() string {
-	var msg string
+	return fmt.Sprintf("syntax err: path %q: %s", e.path, e.msg)
+}
 
-	switch e.errType {
-	case cannotBeEmpty:
-		msg = "cannot be empty"
-	case cannotHaveMultipleFields:
-		msg = "cannot have multiple fields"
-	case arrayValueRequired:
-		msg = "values must be an array"
-	}
+func errMsgCantBeEmpty() string {
+	return "cannot be empty"
+}
 
-	return fmt.Sprintf("syntax err: field %s: %s", e.field, msg)
+func errMsgCantHaveMultipleFields() string {
+	return "cannot have multiple fields"
+}
+
+func errMsgArrayValueRequired() string {
+	return "value must be an array"
+}
+
+func errMsgObjectValueRequired() string {
+	return "value must be an object"
+}
+
+func errMsgOneOf(values []string, invalid string) string {
+	return fmt.Sprintf("provided: %q, but required one of: %s", invalid, strings.Join(values, ","))
 }

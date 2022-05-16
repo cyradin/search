@@ -4,14 +4,15 @@ import (
 	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/entity"
 )
 
-func execTerm(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerm(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
-		return nil, NewErrSyntax(cannotBeEmpty, path)
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
 	if len(data) > 1 {
-		return nil, NewErrSyntax(cannotHaveMultipleFields, path)
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
 	}
 
 	key, val := firstVal(data)
@@ -29,12 +30,12 @@ func execTerm(data map[string]interface{}, fields map[string]fieldValue, path st
 	return bm, nil
 }
 
-func execTerms(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerms(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
-		return nil, NewErrSyntax(cannotBeEmpty, path)
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
 	if len(data) > 1 {
-		return nil, NewErrSyntax(cannotHaveMultipleFields, path)
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
 	}
 
 	key, val := firstVal(data)
@@ -47,7 +48,7 @@ func execTerms(data map[string]interface{}, fields map[string]fieldValue, path s
 			values[i] = s.Index(i)
 		}
 	} else {
-		return nil, NewErrSyntax(arrayValueRequired, pathJoin(path, key))
+		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
 	}
 
 	field, ok := fields[key]

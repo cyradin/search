@@ -2,6 +2,7 @@ package query
 
 import (
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/entity"
 )
 
 type queryType string
@@ -16,15 +17,56 @@ const (
 	queryBoolFilter queryType = "filter"
 )
 
+func queryTypes() []queryType {
+	return []queryType{
+		queryTerm,
+		queryTerms,
+		queryBool,
+	}
+}
+
+func queryTypesString() []string {
+	types := queryTypes()
+	result := make([]string, len(types))
+	for i, qt := range types {
+		result[i] = string(qt)
+	}
+	return result
+}
+
 type fieldValue interface {
 	GetValue(value interface{}) (*roaring.Bitmap, bool)
 	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 }
 
-// var ErrEmptyQuery = fmt.Errorf("\"query\" field must not be empty")
-// var ErrQuerySingleField = fmt.Errorf("\"query\" must have exactly one child field")
+func exec(q entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+	if len(q) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
+	}
+	if len(q) > 0 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	}
 
-// // var ErrQuerySingleField = fmt.Errorf("\"query\" must have exactly one child field")
+	key, value := firstVal(q)
+
+	val, ok := value.(entity.Query)
+	if !ok {
+		return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
+	}
+
+	qType := queryType(key)
+	qPath := pathJoin(path, key)
+	switch qType {
+	case queryTerm:
+		return execTerm(val, fields, qPath)
+	case queryTerms:
+		return execTerms(val, fields, qPath)
+	case queryBool:
+		return execBool(val, fields, qPath)
+	}
+
+	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), path)
+}
 
 // func Exec(q entity.Query, fields map[string]field.Field) ([]entity.SearchHit, error) {
 // 	if len(q) == 0 {
