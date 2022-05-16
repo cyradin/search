@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/stretchr/testify/require"
 )
@@ -15,20 +16,20 @@ func Test_term(t *testing.T) {
 
 	data := []struct {
 		name      string
-		data      map[string]interface{}
+		data      entity.Query
 		fieldName string
 		erroneous bool
 		expected  *roaring.Bitmap
 	}{
 		{
 			name:      "empty",
-			data:      map[string]interface{}{},
+			data:      entity.Query{},
 			fieldName: "f1",
 			erroneous: true,
 		},
 		{
 			name: "multiple_fields",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": "1", "f2": "2",
 			},
 			fieldName: "f1",
@@ -36,7 +37,7 @@ func Test_term(t *testing.T) {
 		},
 		{
 			name: "field_not_found",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f2": "1",
 			},
 			fieldName: "f1",
@@ -45,7 +46,7 @@ func Test_term(t *testing.T) {
 		},
 		{
 			name: "value_not_found",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": "2",
 			},
 			fieldName: "f1",
@@ -54,7 +55,7 @@ func Test_term(t *testing.T) {
 		},
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": "1",
 			},
 			fieldName: "f1",
@@ -96,7 +97,7 @@ func Test_execTerms(t *testing.T) {
 
 	data := []struct {
 		name        string
-		data        map[string]interface{}
+		data        entity.Query
 		fieldName   string
 		fieldValues map[string][]uint32
 		erroneous   bool
@@ -104,7 +105,7 @@ func Test_execTerms(t *testing.T) {
 	}{
 		{
 			name:      "empty",
-			data:      map[string]interface{}{},
+			data:      entity.Query{},
 			fieldName: "f1",
 			fieldValues: map[string][]uint32{
 				"1": {1, 2},
@@ -114,7 +115,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "multiple_fields",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": []string{"1"}, "f2": []string{"2"},
 			},
 			fieldName: "f1",
@@ -126,7 +127,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "values_not_an_array",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"val1": "1",
 			},
 			fieldName: "f1",
@@ -139,7 +140,7 @@ func Test_execTerms(t *testing.T) {
 
 		{
 			name: "field_not_found",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f2": []string{"1"},
 			},
 			fieldName: "f1",
@@ -152,7 +153,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "values_not_found",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": []string{"3", "4"},
 			},
 			fieldName: "f1",
@@ -165,7 +166,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			data: entity.Query{
 				"f1": []string{"1", "2"},
 			},
 			fieldName: "f1",
