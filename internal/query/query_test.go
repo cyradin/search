@@ -24,6 +24,19 @@ func decodeQuery(query string) (map[string]interface{}, error) {
 	return result, nil
 }
 
+func decodeQuerySlice(query string) ([]map[string]interface{}, error) {
+	var result []map[string]interface{}
+
+	dec := jsoniter.NewDecoder(strings.NewReader(query))
+	dec.UseNumber()
+	err := dec.Decode(&result)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func Test_Exec(t *testing.T) {
 	data := []struct {
 		name      string
