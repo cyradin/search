@@ -21,6 +21,7 @@ var (
 type Type string
 
 const (
+	TypeAll  Type = "all"
 	TypeBool Type = "bool"
 
 	// String types

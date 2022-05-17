@@ -4,11 +4,18 @@ import (
 	"strconv"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/field"
 )
 
 func execBool(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
-		return roaring.New(), nil // @todo return ALL documents
+		if ff, ok := fields[field.AllField]; ok {
+			if all, ok := ff.GetValue(true); ok {
+				return all, nil
+			}
+		}
+
+		return roaring.New(), nil
 	}
 
 	var result *roaring.Bitmap

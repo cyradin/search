@@ -16,9 +16,10 @@ func Test_execBool(t *testing.T) {
 		expected  []uint32
 	}{
 		{
-			name:      "error_empty_query",
+			name:      "empty_query_return_all",
 			query:     `{}`,
-			erroneous: true,
+			erroneous: false,
+			expected:  []uint32{1, 2},
 		},
 		{
 			name: "error_array_required",
@@ -122,11 +123,18 @@ func Test_execBool(t *testing.T) {
 			err = f1.AddValueSync(2, false)
 			require.Nil(t, err)
 
+			f2, err := field.NewAll(context.Background(), "")
+			require.Nil(t, err)
+			err = f2.AddValueSync(1, true)
+			require.Nil(t, err)
+			err = f2.AddValueSync(2, false)
+			require.Nil(t, err)
+
 			query, err := decodeQuery(d.query)
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := execBool(query, map[string]fieldValue{"field": f1}, "")
+			result, err := execBool(query, map[string]fieldValue{"field": f1, field.AllField: f2}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)
