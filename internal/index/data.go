@@ -20,6 +20,7 @@ type (
 		All() (<-chan entity.DocSource, <-chan error)
 	}
 )
+
 type Data struct {
 	index entity.Index
 
@@ -44,7 +45,16 @@ func NewData(ctx context.Context, i entity.Index, sourceStorage Storage[entity.D
 		sourceStorage: sourceStorage,
 	}
 
-	for _, f := range i.Schema.Fields {
+	// add "allField" which contains all documents
+	fields := make([]schema.Field, len(i.Schema.Fields))
+	copy(fields, i.Schema.Fields)
+	fields = append(fields, schema.Field{
+		Name:     field.AllField,
+		Required: false,
+		Type:     field.TypeAll,
+	})
+
+	for _, f := range fields {
 		err := result.addField(ctx, f, fieldPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add field: %w", err)
@@ -55,8 +65,8 @@ func NewData(ctx context.Context, i entity.Index, sourceStorage Storage[entity.D
 }
 
 func (d *Data) addField(ctx context.Context, schemaField schema.Field, src string) error {
-	d.fieldsMtx.RLock()
-	defer d.fieldsMtx.RUnlock()
+	d.fieldsMtx.Lock()
+	defer d.fieldsMtx.Unlock()
 
 	src = path.Join(src, schemaField.Name+".gob")
 	var (
@@ -65,6 +75,8 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 	)
 
 	switch schemaField.Type {
+	case field.TypeAll:
+		f, err = field.NewAll(ctx, src)
 	case field.TypeBool:
 		f, err = field.NewBool(ctx, src)
 	case field.TypeKeyword:
@@ -116,9 +128,13 @@ func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 
 	id := d.idSet(guid)
 
-	for name, field := range d.fields {
-		if v, ok := source[name]; ok {
-			err := field.AddValue(id, v)
+	for key, value := range source {
+		if f, ok := d.fields[key]; ok {
+			err := f.AddValue(id, value)
+			if err != nil {
+				return guid, fmt.Errorf("field value insert err: %w", err)
+			}
+			err = d.fields[field.AllField].AddValue(id, value)
 			if err != nil {
 				return guid, fmt.Errorf("field value insert err: %w", err)
 			}
