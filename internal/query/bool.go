@@ -1,11 +1,12 @@
 package query
 
 import (
+	"strconv"
+
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/entity"
 )
 
-func execBool(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBool(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil // @todo return ALL documents
 	}
@@ -13,23 +14,23 @@ func execBool(data entity.Query, fields map[string]fieldValue, path string) (*ro
 	var result *roaring.Bitmap
 	for key, value := range data {
 		path := pathJoin(path, key)
-		v, ok := value.(entity.Query)
-		if !ok {
-			return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
+
+		values, err := interfaceToSlice[map[string]interface{}](value)
+		if err != nil {
+			return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
 		}
 
 		var (
-			bm  *roaring.Bitmap
-			err error
+			bm *roaring.Bitmap
 		)
 
 		switch key {
 		case string(queryBoolShould):
-			bm, err = execBoolShould(v, fields, path)
+			bm, err = execBoolShould(values, fields, path)
 		case string(queryBoolMust):
-			bm, err = execBoolMust(v, fields, path)
+			bm, err = execBoolMust(values, fields, path)
 		case string(queryBoolFilter):
-			bm, err = execBoolFilter(v, fields, path)
+			bm, err = execBoolFilter(values, fields, path)
 		default:
 			return nil, NewErrSyntax(
 				errMsgOneOf([]string{string(queryBoolShould), string(queryBoolMust), string(queryBoolFilter)}, key),
@@ -51,20 +52,15 @@ func execBool(data entity.Query, fields map[string]fieldValue, path string) (*ro
 	return result, nil
 }
 
-func execBoolShould(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolShould(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}
 
 	var result *roaring.Bitmap
-	for key, value := range data {
-		path := pathJoin(path, key)
-		v, ok := value.(entity.Query)
-		if !ok {
-			return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
-		}
-
-		bm, err := exec(v, fields, path)
+	for i, value := range data {
+		path := pathJoin(path, strconv.Itoa(i))
+		bm, err := exec(value, fields, path)
 		if err != nil {
 			return nil, err
 		}
@@ -83,20 +79,15 @@ func execBoolShould(data entity.Query, fields map[string]fieldValue, path string
 	return result, nil
 }
 
-func execBoolMust(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolMust(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}
 
 	var result *roaring.Bitmap
-	for key, value := range data {
-		path := pathJoin(path, key)
-		v, ok := value.(entity.Query)
-		if !ok {
-			return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
-		}
-
-		bm, err := exec(v, fields, path)
+	for i, value := range data {
+		path := pathJoin(path, strconv.Itoa(i))
+		bm, err := exec(value, fields, path)
 		if err != nil {
 			return nil, err
 		}
@@ -115,20 +106,15 @@ func execBoolMust(data entity.Query, fields map[string]fieldValue, path string) 
 	return result, nil
 }
 
-func execBoolFilter(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolFilter(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}
 
 	var result *roaring.Bitmap
-	for key, value := range data {
-		path := pathJoin(path, key)
-		v, ok := value.(entity.Query)
-		if !ok {
-			return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
-		}
-
-		bm, err := exec(v, fields, path)
+	for i, value := range data {
+		path := pathJoin(path, strconv.Itoa(i))
+		bm, err := exec(value, fields, path)
 		if err != nil {
 			return nil, err
 		}

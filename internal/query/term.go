@@ -1,13 +1,10 @@
 package query
 
 import (
-	"reflect"
-
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/entity"
 )
 
-func execTerm(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerm(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
@@ -30,7 +27,7 @@ func execTerm(data entity.Query, fields map[string]fieldValue, path string) (*ro
 	return bm, nil
 }
 
-func execTerms(data entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerms(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
@@ -40,14 +37,8 @@ func execTerms(data entity.Query, fields map[string]fieldValue, path string) (*r
 
 	key, val := firstVal(data)
 
-	var values []interface{}
-	if reflect.TypeOf(val).Kind() == reflect.Slice {
-		s := reflect.ValueOf(val)
-		values = make([]interface{}, s.Len())
-		for i := 0; i < s.Len(); i++ {
-			values[i] = s.Index(i)
-		}
-	} else {
+	values, err := interfaceToSlice[interface{}](val)
+	if err != nil {
 		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
 	}
 

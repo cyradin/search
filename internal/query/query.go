@@ -1,8 +1,16 @@
 package query
 
 import (
+	"fmt"
+	"reflect"
+
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/entity"
+	jsoniter "github.com/json-iterator/go"
+)
+
+var (
+	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type queryType string
@@ -39,17 +47,34 @@ type fieldValue interface {
 	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 }
 
-func exec(q entity.Query, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func Exec(q map[string]interface{}, fields map[string]fieldValue) ([]entity.SearchHit, error) {
+	bm, err := exec(q, fields, "query")
+	if err != nil {
+		return nil, err
+	}
+
+	hits := make([]entity.SearchHit, 0, bm.GetCardinality())
+	bm.Iterate(func(x uint32) bool {
+		hits = append(hits, entity.SearchHit{
+			ID: x,
+		})
+		return true
+	})
+
+	return hits, nil
+}
+
+func exec(q map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
 	if len(q) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
-	if len(q) > 0 {
+	if len(q) > 1 {
 		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
 	}
 
 	key, value := firstVal(q)
 
-	val, ok := value.(entity.Query)
+	val, ok := value.(map[string]interface{})
 	if !ok {
 		return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
 	}
@@ -68,31 +93,6 @@ func exec(q entity.Query, fields map[string]fieldValue, path string) (*roaring.B
 	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), path)
 }
 
-// func Exec(q entity.Query, fields map[string]field.Field) ([]entity.SearchHit, error) {
-// 	if len(q) == 0 {
-// 		return nil, ErrEmptyQuery
-// 	}
-
-// 	if len(q) > 1 {
-// 		return nil, ErrEmptyQuery
-// 	}
-
-// 	var bm *roaring.Bitmap
-// 	var err error
-// 	for k, v := range q {
-// 		switch q[k] {
-// 		case "term":
-// 			bm, err = term(v, fields)
-// 			if err != nil {
-// 				return nil, err
-// 			}
-// 		default:
-
-// 		}
-// 	}
-
-// }
-
 func firstVal(m map[string]interface{}) (string, interface{}) {
 	for k, v := range m {
 		return k, v
@@ -103,4 +103,25 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 
 func pathJoin(path string, value string) string {
 	return path + "." + value
+}
+
+func interfaceToSlice[T any](value interface{}) ([]T, error) {
+	if reflect.TypeOf(value).Kind() != reflect.Slice {
+		return nil, fmt.Errorf("value is not a slice")
+	}
+
+	s := reflect.ValueOf(value)
+	result := make([]T, s.Len())
+	for i := 0; i < s.Len(); i++ {
+		val := s.Index(i).Interface()
+		vv, ok := val.(T)
+		if !ok {
+			tt := new(T)
+			return nil, fmt.Errorf("invalid #%d element value: required %#v, got %#v", i, tt, val)
+		}
+
+		result[i] = vv
+	}
+
+	return result, nil
 }
