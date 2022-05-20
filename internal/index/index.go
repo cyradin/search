@@ -23,7 +23,7 @@ type Repository struct {
 	guidGenerate func() string
 
 	dataDir string
-	data    map[string]*Data
+	data    map[string]*Documents
 }
 
 func NewRepository(ctx context.Context, dataDir string) (*Repository, error) {
@@ -35,7 +35,7 @@ func NewRepository(ctx context.Context, dataDir string) (*Repository, error) {
 	r := &Repository{
 		storage: storage,
 		dataDir: dataDir,
-		data:    make(map[string]*Data),
+		data:    make(map[string]*Documents),
 	}
 
 	indexes, err := r.All()
@@ -118,7 +118,7 @@ func (r *Repository) Delete(name string) error {
 	return nil
 }
 
-func (r *Repository) Data(index string) (*Data, error) {
+func (r *Repository) Documents(index string) (*Documents, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -141,7 +141,7 @@ func (r *Repository) initData(ctx context.Context, index entity.Index) error {
 		return fmt.Errorf("source storage init err: %w", err)
 	}
 
-	data, err := NewData(ctx, index, sourceStorage, fieldPath)
+	data, err := NewDocuments(ctx, index, sourceStorage, fieldPath)
 	if err != nil {
 		return fmt.Errorf("index data constructor err: %w", err)
 	}

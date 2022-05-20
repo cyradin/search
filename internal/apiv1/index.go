@@ -149,6 +149,12 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 	}
 }
 
+func (c *IndexController) SearchAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		// @todo
+	}
+}
+
 func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Document
@@ -158,7 +164,7 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 			return
 		}
 
-		data, err := c.repo.Data(chi.URLParam(r, indexParam))
+		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -170,7 +176,7 @@ func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.
 			return
 		}
 
-		id, err := data.Add(req.ID, req.Source)
+		id, err := docs.Add(req.ID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
@@ -190,7 +196,7 @@ func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		id := chi.URLParam(r, documentParam)
 
-		data, err := c.repo.Data(chi.URLParam(r, indexParam))
+		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -202,7 +208,7 @@ func (c *IndexController) DocumentGetAction() http.HandlerFunc {
 			return
 		}
 
-		doc, err := data.Get(id)
+		doc, err := docs.Get(id)
 		if err != nil {
 			handleErr(w, r, err)
 			return
