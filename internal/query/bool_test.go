@@ -134,7 +134,7 @@ func Test_execBool(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := execBool(query, map[string]fieldValue{"field": f1, field.AllField: f2}, "")
+			result, err := execBool(query, map[string]field.Field{"field": f1, field.AllField: f2}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)
@@ -238,7 +238,7 @@ func Test_execBoolShould(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := execBoolShould(query, map[string]fieldValue{"field": f1}, "")
+			result, err := execBoolShould(query, map[string]field.Field{"field": f1}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)
@@ -342,7 +342,7 @@ func Test_execBoolMust(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := execBoolMust(query, map[string]fieldValue{"field": f1}, "")
+			result, err := execBoolMust(query, map[string]field.Field{"field": f1}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)
@@ -446,7 +446,7 @@ func Test_execBoolFilter(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := execBoolFilter(query, map[string]fieldValue{"field": f1}, "")
+			result, err := execBoolFilter(query, map[string]field.Field{"field": f1}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)

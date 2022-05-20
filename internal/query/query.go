@@ -6,6 +6,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/entity"
+	"github.com/cyradin/search/internal/index/field"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -42,12 +43,7 @@ func queryTypesString() []string {
 	return result
 }
 
-type fieldValue interface {
-	GetValue(value interface{}) (*roaring.Bitmap, bool)
-	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
-}
-
-func Exec(q map[string]interface{}, fields map[string]fieldValue) ([]entity.SearchHit, error) {
+func Exec(q map[string]interface{}, fields map[string]field.Field) ([]entity.SearchHit, error) {
 	bm, err := exec(q, fields, "query")
 	if err != nil {
 		return nil, err
@@ -64,7 +60,7 @@ func Exec(q map[string]interface{}, fields map[string]fieldValue) ([]entity.Sear
 	return hits, nil
 }
 
-func exec(q map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func exec(q map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(q) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}

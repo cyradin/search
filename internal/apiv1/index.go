@@ -149,9 +149,28 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) SearchAction() http.HandlerFunc {
+func (c *IndexController) SearchAction(validator *validator.Validate) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// @todo
+		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
+		if err != nil {
+			handleErr(w, r, err)
+		}
+
+		query := entity.Search{}
+		if err := decodeAndValidate(validator, r, query); err != nil {
+			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
+			render.Status(r, status)
+			render.Respond(w, r, resp)
+			return
+		}
+
+		result, err := docs.Search(query)
+		if err != nil {
+			handleErr(w, r, err)
+		}
+
+		render.Status(r, http.StatusCreated)
+		render.Respond(w, r, result)
 	}
 }
 

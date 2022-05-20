@@ -40,7 +40,7 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 			r.Route("/{"+indexParam+"}", func(r chi.Router) {
 				r.Get("/", ic.GetAction())
 				r.Delete("/", ic.DeleteAction())
-				r.Post("/search", ic.SearchAction())
+				r.Post("/search", ic.SearchAction(v))
 				r.Route("/documents", func(r chi.Router) {
 					r.Post("/", ic.DocumentAddAction(v))
 					r.Get("/{"+documentParam+"}", ic.DocumentGetAction())
