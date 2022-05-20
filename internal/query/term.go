@@ -2,9 +2,10 @@ package query
 
 import (
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/field"
 )
 
-func execTerm(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerm(data map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
@@ -27,7 +28,7 @@ func execTerm(data map[string]interface{}, fields map[string]fieldValue, path st
 	return bm, nil
 }
 
-func execTerms(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execTerms(data map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}

@@ -71,7 +71,7 @@ func Test_term(t *testing.T) {
 			err = f.AddValueSync(1, "1")
 			require.Nil(t, err)
 
-			fields := map[string]fieldValue{
+			fields := map[string]field.Field{
 				d.fieldName: f,
 			}
 
@@ -189,7 +189,7 @@ func Test_execTerms(t *testing.T) {
 					require.Nil(t, err)
 				}
 			}
-			fields := map[string]fieldValue{d.fieldName: f}
+			fields := map[string]field.Field{d.fieldName: f}
 
 			bm, err := execTerms(d.data, fields, "")
 			if d.erroneous {

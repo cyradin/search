@@ -69,7 +69,7 @@ func Test_Exec(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := Exec(query, map[string]fieldValue{"field": f})
+			result, err := Exec(query, map[string]field.Field{"field": f})
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)
@@ -157,7 +157,7 @@ func Test_exec(t *testing.T) {
 			require.Nil(t, err)
 			require.Nil(t, err)
 
-			result, err := exec(query, map[string]fieldValue{"field": f1}, "")
+			result, err := exec(query, map[string]field.Field{"field": f1}, "")
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, result)

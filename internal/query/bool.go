@@ -7,7 +7,7 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 )
 
-func execBool(data map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBool(data map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		if ff, ok := fields[field.AllField]; ok {
 			if all, ok := ff.GetValue(true); ok {
@@ -59,7 +59,7 @@ func execBool(data map[string]interface{}, fields map[string]fieldValue, path st
 	return result, nil
 }
 
-func execBoolShould(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolShould(data []map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}
@@ -86,7 +86,7 @@ func execBoolShould(data []map[string]interface{}, fields map[string]fieldValue,
 	return result, nil
 }
 
-func execBoolMust(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolMust(data []map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}
@@ -113,7 +113,7 @@ func execBoolMust(data []map[string]interface{}, fields map[string]fieldValue, p
 	return result, nil
 }
 
-func execBoolFilter(data []map[string]interface{}, fields map[string]fieldValue, path string) (*roaring.Bitmap, error) {
+func execBoolFilter(data []map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
 	if len(data) == 0 {
 		return roaring.New(), nil
 	}

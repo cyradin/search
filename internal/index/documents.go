@@ -9,6 +9,7 @@ import (
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/cyradin/search/internal/query"
 )
 
 type (
@@ -151,4 +152,15 @@ func (d *Documents) Get(guid string) (entity.DocSource, error) {
 	}
 
 	return doc.Source, err
+}
+
+func (d *Documents) Search(q entity.Search) (entity.SearchResult, error) {
+	hits, err := query.Exec(q.Query, d.fields)
+	if err != nil {
+		return entity.SearchResult{}, err
+	}
+
+	fmt.Println(hits) // @todo make search result
+
+	return entity.SearchResult{}, nil
 }
