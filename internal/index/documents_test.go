@@ -41,7 +41,7 @@ func (s *testDocStorage) Delete(id string) error {
 	return s.delete(id)
 }
 
-func Test_Index_Add(t *testing.T) {
+func Test_Documents_Add(t *testing.T) {
 	data := []struct {
 		name         string
 		guid         string
@@ -112,7 +112,7 @@ func Test_Index_Add(t *testing.T) {
 			f, err := field.NewBool(ctx, "")
 			require.Nil(t, err)
 
-			index := &Data{
+			docs := &Documents{
 				idSet: func(uid string) uint32 { return 1 },
 				fields: map[string]field.Field{
 					"v": f,
@@ -121,7 +121,7 @@ func Test_Index_Add(t *testing.T) {
 					insert: d.sourceInsert,
 				},
 			}
-			guid, err := index.Add(d.guid, d.source)
+			guid, err := docs.Add(d.guid, d.source)
 			if d.erroneous {
 				require.NotNil(t, err)
 			} else {

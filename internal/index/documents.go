@@ -21,7 +21,7 @@ type (
 	}
 )
 
-type Data struct {
+type Documents struct {
 	index entity.Index
 
 	fieldsMtx sync.RWMutex
@@ -33,9 +33,9 @@ type Data struct {
 	sourceStorage Storage[entity.DocSource]
 }
 
-func NewData(ctx context.Context, i entity.Index, sourceStorage Storage[entity.DocSource], fieldPath string) (*Data, error) {
+func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[entity.DocSource], fieldPath string) (*Documents, error) {
 	ids := NewIDs(0, nil)
-	result := &Data{
+	result := &Documents{
 		index:  i,
 		fields: make(map[string]field.Field),
 
@@ -64,7 +64,7 @@ func NewData(ctx context.Context, i entity.Index, sourceStorage Storage[entity.D
 	return result, nil
 }
 
-func (d *Data) addField(ctx context.Context, schemaField schema.Field, src string) error {
+func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src string) error {
 	d.fieldsMtx.Lock()
 	defer d.fieldsMtx.Unlock()
 
@@ -116,7 +116,7 @@ func (d *Data) addField(ctx context.Context, schemaField schema.Field, src strin
 	return nil
 }
 
-func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
+func (d *Documents) Add(guid string, source entity.DocSource) (string, error) {
 	if err := validateDoc(d.index.Schema, source); err != nil {
 		return guid, fmt.Errorf("source validation err: %w", err)
 	}
@@ -144,7 +144,7 @@ func (d *Data) Add(guid string, source entity.DocSource) (string, error) {
 	return guid, nil
 }
 
-func (d *Data) Get(guid string) (entity.DocSource, error) {
+func (d *Documents) Get(guid string) (entity.DocSource, error) {
 	doc, err := d.sourceStorage.One(guid)
 	if err != nil {
 		return nil, fmt.Errorf("source get err: %w", err)
