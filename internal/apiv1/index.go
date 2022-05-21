@@ -157,7 +157,7 @@ func (c *IndexController) SearchAction(validator *validator.Validate) http.Handl
 		}
 
 		query := entity.Search{}
-		if err := decodeAndValidate(validator, r, query); err != nil {
+		if err := decodeAndValidate(validator, r, &query); err != nil {
 			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 			render.Status(r, status)
 			render.Respond(w, r, resp)
@@ -167,9 +167,10 @@ func (c *IndexController) SearchAction(validator *validator.Validate) http.Handl
 		result, err := docs.Search(query)
 		if err != nil {
 			handleErr(w, r, err)
+			return
 		}
 
-		render.Status(r, http.StatusCreated)
+		render.Status(r, http.StatusOK)
 		render.Respond(w, r, result)
 	}
 }
