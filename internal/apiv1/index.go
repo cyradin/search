@@ -46,11 +46,6 @@ type Index struct {
 	Schema    Schema    `json:"schema"`
 }
 
-type Document struct {
-	ID     string                 `json:"id"`
-	Source map[string]interface{} `json:"source"`
-}
-
 func (i *Index) FromIndex(item entity.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
@@ -146,101 +141,6 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 		}
 
 		render.Status(r, http.StatusOK)
-	}
-}
-
-func (c *IndexController) SearchAction(validator *validator.Validate) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
-		if err != nil {
-			handleErr(w, r, err)
-		}
-
-		query := entity.Search{}
-		if err := decodeAndValidate(validator, r, &query); err != nil {
-			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
-			render.Status(r, status)
-			render.Respond(w, r, resp)
-			return
-		}
-
-		result, err := docs.Search(query)
-		if err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		render.Status(r, http.StatusOK)
-		render.Respond(w, r, result)
-	}
-}
-
-func (c *IndexController) DocumentAddAction(validator *validator.Validate) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		var req Document
-
-		if err := decodeAndValidate(validator, r, &req); err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
-		if err != nil {
-			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
-				render.Status(r, status)
-				render.Respond(w, r, resp)
-				return
-			}
-			handleErr(w, r, err)
-			return
-		}
-
-		id, err := docs.Add(req.ID, req.Source)
-		if err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		resp := struct {
-			ID string `json:"id"`
-		}{
-			ID: id,
-		}
-		render.Status(r, http.StatusCreated)
-		render.Respond(w, r, resp)
-	}
-}
-
-func (c *IndexController) DocumentGetAction() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, documentParam)
-
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
-		if err != nil {
-			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
-				render.Status(r, status)
-				render.Respond(w, r, resp)
-				return
-			}
-			handleErr(w, r, err)
-			return
-		}
-
-		doc, err := docs.Get(id)
-		if err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		resp := Document{
-			ID:     id,
-			Source: doc,
-		}
-
-		render.Status(r, http.StatusOK)
-		render.Respond(w, r, resp)
 	}
 }
 
