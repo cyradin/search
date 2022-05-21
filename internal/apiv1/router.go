@@ -34,6 +34,7 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 
 		r.Route("/indexes", func(r chi.Router) {
 			ic := NewIndexController(indexRepository)
+			dc := NewDocumentController(indexRepository)
 			r.Get("/", ic.ListAction())
 			r.Post("/", ic.AddAction(v))
 
@@ -42,8 +43,8 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 				r.Delete("/", ic.DeleteAction())
 				r.Post("/search", ic.SearchAction(v))
 				r.Route("/documents", func(r chi.Router) {
-					r.Post("/", ic.DocumentAddAction(v))
-					r.Get("/{"+documentParam+"}", ic.DocumentGetAction())
+					r.Post("/", dc.AddAction(v))
+					r.Get("/{"+documentParam+"}", dc.GetAction())
 				})
 			})
 
