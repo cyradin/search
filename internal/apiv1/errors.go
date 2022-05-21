@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cyradin/search/internal/query"
 	"github.com/go-chi/render"
 	"github.com/go-playground/validator/v10"
 )
@@ -102,9 +103,13 @@ type APIError interface {
 func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	fmt.Println(err)
 	var validationErr validator.ValidationErrors
+	var syntaxErr *query.ErrSyntax
 
 	switch true {
 	case errors.Is(err, errJsonUnmarshal):
+		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
+		SendErrResponse(rw, r, status, resp)
+	case errors.As(err, &syntaxErr):
 		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 		SendErrResponse(rw, r, status, resp)
 	case errors.As(err, &validationErr):
