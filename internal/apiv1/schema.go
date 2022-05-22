@@ -12,7 +12,7 @@ type Schema struct {
 type SchemaField struct {
 	Type     string                 `json:"type"`
 	Required bool                   `json:"required"`
-	Fields   map[string]SchemaField `json:"fields"`
+	Fields   map[string]SchemaField `json:"fields,omitempty"`
 }
 
 func (s *Schema) ToSchema() schema.Schema {
