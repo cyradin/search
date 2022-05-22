@@ -68,6 +68,10 @@ var validateValue = func(f schema.Field, value interface{}) error {
 		return fmt.Errorf("field %q required but not defined", f.Name)
 	}
 
+	if value == nil {
+		return nil
+	}
+
 	switch f.Type {
 	case field.TypeBool:
 		if _, ok := value.(bool); !ok {
