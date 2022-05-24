@@ -7,7 +7,7 @@ import (
 
 	"github.com/cyradin/search/internal/query"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 var (
@@ -22,8 +22,7 @@ type Error struct {
 
 type ErrorDetail struct {
 	Field string `json:"field"`
-	Rule  string `json:"rule"`
-	Value string `json:"value"`
+	Msg   string `json:"msg"`
 }
 
 type ErrResponseOpt func(e *Error)
@@ -102,7 +101,7 @@ type APIError interface {
 
 func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	fmt.Println(err)
-	var validationErr validator.ValidationErrors
+	var validationErr validation.Errors
 	var syntaxErr *query.ErrSyntax
 
 	switch true {
@@ -113,14 +112,12 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 		SendErrResponse(rw, r, status, resp)
 	case errors.As(err, &validationErr):
-		errDetails := make([]ErrorDetail, len(validationErr))
-		for i, v := range validationErr {
-			errDetails[i] = ErrorDetail{
-
-				Field: v.StructNamespace(),
-				Rule:  v.Tag(),
-				Value: v.Param(),
-			}
+		errDetails := make([]ErrorDetail, 0, len(validationErr))
+		for k, v := range validationErr {
+			errDetails = append(errDetails, ErrorDetail{
+				Field: k,
+				Msg:   v.Error(),
+			})
 		}
 
 		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))

@@ -9,10 +9,6 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 )
 
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
-)
-
 type Field struct {
 	Name     string     `json:"name"`
 	Type     field.Type `json:"type"`
@@ -33,7 +29,7 @@ func New(fields []Field) *Schema {
 
 func NewFromJSON(data []byte) (*Schema, error) {
 	result := new(Schema)
-	err := json.Unmarshal(data, result)
+	err := jsoniter.Unmarshal(data, result)
 	if err != nil {
 		return nil, err
 	}

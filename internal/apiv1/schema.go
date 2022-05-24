@@ -3,10 +3,11 @@ package apiv1
 import (
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type Schema struct {
-	Fields map[string]SchemaField `json:"fields" validate:"required"`
+	Fields map[string]SchemaField `json:"fields"`
 }
 
 type SchemaField struct {
@@ -26,6 +27,12 @@ func (s *Schema) ToSchema() schema.Schema {
 	}
 
 	return res
+}
+
+func (s Schema) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Fields, validation.Required),
+	)
 }
 
 func (s *Schema) toSchemaField(name string, f SchemaField) schema.Field {

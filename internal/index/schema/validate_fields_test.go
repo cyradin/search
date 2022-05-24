@@ -1,361 +1,342 @@
 package schema
 
 import (
+	"encoding/json"
+	"fmt"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
+	"github.com/cyradin/search/internal/index/field"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_validateString(t *testing.T) {
+func Test_ValidateDoc(t *testing.T) {
 	data := []struct {
-		name  string
-		tag   string
-		value interface{}
-		ok    bool
+		name   string
+		field  Field
+		values map[string]interface{}
+		ok     bool
 	}{
-		// string
 		{
-			name:  "invalid_type",
-			tag:   "string",
-			value: true,
-			ok:    false,
+			name:   "required_fail",
+			field:  Field{Type: field.TypeBool, Required: true, Name: "value"},
+			values: map[string]interface{}{"value2": true},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "string",
-			value: "qwerty",
-			ok:    true,
+			name:   "required_ok",
+			field:  Field{Type: field.TypeBool, Required: true, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     true,
 		},
-	}
+		{
+			name:   "extra_fields_fail",
+			field:  Field{Type: field.TypeBool, Required: true, Name: "value"},
+			values: map[string]interface{}{"value": true, "value2": true},
+			ok:     false,
+		},
 
-	for _, d := range data {
-		t.Run(d.name+"_"+d.tag, func(t *testing.T) {
-			v := initValidator()
-			errors := v.Var(d.value, d.tag)
-			if d.ok {
-				require.Nil(t, errors)
-				return
-			}
-			require.NotNil(t, errors)
-		})
-	}
-}
-
-func Test_validateBool(t *testing.T) {
-	data := []struct {
-		name  string
-		tag   string
-		value interface{}
-		ok    bool
-	}{
 		// bool
 		{
-			name:  "invalid_type",
-			tag:   "bool",
-			value: "qwerty",
-			ok:    false,
+			name:   "bool_invalid_type",
+			field:  Field{Type: field.TypeBool, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": "true"},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "bool",
-			value: true,
-			ok:    true,
+			name:   "bool_allow_nil_value",
+			field:  Field{Type: field.TypeBool, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
-	}
 
-	for _, d := range data {
-		t.Run(d.name+"_"+d.tag, func(t *testing.T) {
-			v := initValidator()
-			errors := v.Var(d.value, d.tag)
-			if d.ok {
-				require.Nil(t, errors)
-				return
-			}
-			require.NotNil(t, errors)
-		})
-	}
-}
+		{
+			name:   "bool_ok",
+			field:  Field{Type: field.TypeBool, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     true,
+		},
 
-func Test_validateInt(t *testing.T) {
-	data := []struct {
-		name  string
-		tag   string
-		value interface{}
-		ok    bool
-	}{
+		// keyword
+		{
+			name:   "keyword_invalid_type",
+			field:  Field{Type: field.TypeKeyword, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
+		},
+		{
+			name:   "keyword_allow_nil_value",
+			field:  Field{Type: field.TypeKeyword, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
+		},
+
+		{
+			name:   "keyword_ok",
+			field:  Field{Type: field.TypeKeyword, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": "value"},
+			ok:     true,
+		},
+
+		// text
+		{
+			name:   "text_invalid_type",
+			field:  Field{Type: field.TypeText, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
+		},
+		{
+			name:   "text_allow_nil_value",
+			field:  Field{Type: field.TypeText, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
+		},
+
+		{
+			name:   "text_ok",
+			field:  Field{Type: field.TypeText, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": "value"},
+			ok:     true,
+		},
+
 		// byte
 		{
-			name:  "invalid_type",
-			tag:   "byte",
-			value: "qwerty",
-			ok:    false,
+			name:   "byte_invalid_type",
+			field:  Field{Type: field.TypeByte, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "byte",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "byte_allow_nil_value",
+			field:  Field{Type: field.TypeByte, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "byte",
-			value: jsoniter.Number("-1000"),
-			ok:    false,
+			name:   "byte_less_than_min",
+			field:  Field{Type: field.TypeByte, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-1000")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "byte",
-			value: jsoniter.Number("1000"),
-			ok:    false,
+			name:   "byte_more_than_max",
+			field:  Field{Type: field.TypeByte, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("1000")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "byte",
-			value: jsoniter.Number("100"),
-			ok:    true,
+			name:   "byte_ok",
+			field:  Field{Type: field.TypeByte, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("100")},
+			ok:     true,
 		},
+
 		// short
 		{
-			name:  "invalid_type",
-			tag:   "short",
-			value: "qwerty",
-			ok:    false,
+			name:   "short_invalid_type",
+			field:  Field{Type: field.TypeShort, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "short",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "short_allow_nil_value",
+			field:  Field{Type: field.TypeShort, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "short",
-			value: jsoniter.Number("-100000"),
-			ok:    false,
+			name:   "short_less_than_min",
+			field:  Field{Type: field.TypeShort, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-100000")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "short",
-			value: jsoniter.Number("100000"),
-			ok:    false,
+			name:   "short_more_than_max",
+			field:  Field{Type: field.TypeShort, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("100000")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "short",
-			value: jsoniter.Number("100"),
-			ok:    true,
+			name:   "short_ok",
+			field:  Field{Type: field.TypeShort, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("1000")},
+			ok:     true,
 		},
+
 		// integer
 		{
-			name:  "invalid_type",
-			tag:   "integer",
-			value: "qwerty",
-			ok:    false,
+			name:   "integer_invalid_type",
+			field:  Field{Type: field.TypeInteger, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "integer",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "integer_allow_nil_value",
+			field:  Field{Type: field.TypeInteger, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "integer",
-			value: jsoniter.Number("-3000000000"),
-			ok:    false,
+			name:   "integer_less_than_min",
+			field:  Field{Type: field.TypeInteger, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-3000000000")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "integer",
-			value: jsoniter.Number("3000000000"),
-			ok:    false,
+			name:   "integer_more_than_max",
+			field:  Field{Type: field.TypeInteger, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("3000000000")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "integer",
-			value: jsoniter.Number("100"),
-			ok:    true,
+			name:   "integer_ok",
+			field:  Field{Type: field.TypeInteger, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("100000")},
+			ok:     true,
 		},
+
 		// long
 		{
-			name:  "invalid_type",
-			tag:   "long",
-			value: "qwerty",
-			ok:    false,
+			name:   "long_invalid_type",
+			field:  Field{Type: field.TypeLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "long",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "long_allow_nil_value",
+			field:  Field{Type: field.TypeLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "long",
-			value: jsoniter.Number("-10000000000000000000"),
-			ok:    false,
+			name:   "long_less_than_min",
+			field:  Field{Type: field.TypeLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-10000000000000000000")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "long",
-			value: jsoniter.Number("10000000000000000000"),
-			ok:    false,
+			name:   "long_more_than_max",
+			field:  Field{Type: field.TypeLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("10000000000000000000")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "long",
-			value: jsoniter.Number("100"),
-			ok:    true,
+			name:   "long_ok",
+			field:  Field{Type: field.TypeLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("3000000000")},
+			ok:     true,
 		},
-	}
 
-	for _, d := range data {
-		t.Run(d.name+"_"+d.tag, func(t *testing.T) {
-			v := initValidator()
-			errors := v.Var(d.value, d.tag)
-			if d.ok {
-				require.Nil(t, errors)
-				return
-			}
-			require.NotNil(t, errors)
-		})
-	}
-}
-
-func Test_validateUint(t *testing.T) {
-	data := []struct {
-		name  string
-		tag   string
-		value interface{}
-		ok    bool
-	}{
 		// unsigned_long
 		{
-			name:  "invalid_type",
-			tag:   "unsigned_long",
-			value: "qwerty",
-			ok:    false,
+			name:   "unsigned_long_invalid_type",
+			field:  Field{Type: field.TypeUnsignedLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "unsigned_long",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "unsigned_long_allow_nil_value",
+			field:  Field{Type: field.TypeUnsignedLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "unsigned_long",
-			value: jsoniter.Number("-1"),
-			ok:    false,
+			name:   "unsigned_long_less_than_min",
+			field:  Field{Type: field.TypeUnsignedLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-1")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "unsigned_long",
-			value: jsoniter.Number("20000000000000000000"),
-			ok:    false,
+			name:   "unsigned_long_more_than_max",
+			field:  Field{Type: field.TypeUnsignedLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("20000000000000000000")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "unsigned_long",
-			value: jsoniter.Number("1000000"),
-			ok:    true,
+			name:   "unsigned_long_ok",
+			field:  Field{Type: field.TypeUnsignedLong, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("10000000000000000000")},
+			ok:     true,
 		},
-	}
 
-	for _, d := range data {
-		t.Run(d.name+"_"+d.tag, func(t *testing.T) {
-			v := initValidator()
-			errors := v.Var(d.value, d.tag)
-			if d.ok {
-				require.Nil(t, errors)
-				return
-			}
-			require.NotNil(t, errors)
-		})
-	}
-}
-
-func Test_validateFloat(t *testing.T) {
-	data := []struct {
-		name  string
-		tag   string
-		value interface{}
-		ok    bool
-	}{
 		// float
 		{
-			name:  "invalid_type",
-			tag:   "float",
-			value: 123,
-			ok:    false,
+			name:   "float_invalid_type",
+			field:  Field{Type: field.TypeFloat, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "float",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "float_allow_nil_value",
+			field:  Field{Type: field.TypeFloat, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "float",
-			value: jsoniter.Number("-3.4028235E+39"),
-			ok:    false,
+			name:   "float_less_than_min",
+			field:  Field{Type: field.TypeFloat, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-3.4028235E+39")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "float",
-			value: jsoniter.Number("3.4028235E+39"),
-			ok:    false,
+			name:   "float_more_than_max",
+			field:  Field{Type: field.TypeFloat, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("3.4028235E+39")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "float",
-			value: jsoniter.Number("1000000"),
-			ok:    true,
+			name:   "float_ok",
+			field:  Field{Type: field.TypeFloat, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("3000000000")},
+			ok:     true,
 		},
+
 		// double
 		{
-			name:  "invalid_type",
-			tag:   "double",
-			value: 123,
-			ok:    false,
+			name:   "double_invalid_type",
+			field:  Field{Type: field.TypeDouble, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": true},
+			ok:     false,
 		},
 		{
-			name:  "parse_error",
-			tag:   "double",
-			value: jsoniter.Number("qwerty"),
-			ok:    false,
+			name:   "double_allow_nil_value",
+			field:  Field{Type: field.TypeDouble, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": nil},
+			ok:     true,
 		},
 		{
-			name:  "less_than_min",
-			tag:   "double",
-			value: jsoniter.Number("-1.7976931348623157e+309"),
-			ok:    false,
+			name:   "double_less_than_min",
+			field:  Field{Type: field.TypeDouble, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("-1.7976931348623157e+309")},
+			ok:     false,
 		},
 		{
-			name:  "more_than_max",
-			tag:   "double",
-			value: jsoniter.Number("1.7976931348623157e+309"),
-			ok:    false,
+			name:   "double_more_than_max",
+			field:  Field{Type: field.TypeDouble, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("1.7976931348623157e+309")},
+			ok:     false,
 		},
 		{
-			name:  "ok",
-			tag:   "double",
-			value: jsoniter.Number("1000000"),
-			ok:    true,
+			name:   "double_ok",
+			field:  Field{Type: field.TypeDouble, Required: false, Name: "value"},
+			values: map[string]interface{}{"value": json.Number("3000000000")},
+			ok:     true,
 		},
 	}
 
 	for _, d := range data {
-		t.Run(d.name+"_"+d.tag, func(t *testing.T) {
-			v := initValidator()
-			errors := v.Var(d.value, d.tag)
+		t.Run(d.name, func(t *testing.T) {
+			s := New([]Field{d.field})
+			err := ValidateDoc(*s, d.values)
+
+			if err != nil {
+				fmt.Println(err.Error())
+			}
+
 			if d.ok {
-				require.Nil(t, errors)
+				require.Nil(t, err)
 				return
 			}
-			require.NotNil(t, errors)
+			require.NotNil(t, err)
 		})
 	}
 }

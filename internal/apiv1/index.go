@@ -9,7 +9,7 @@ import (
 	"github.com/cyradin/search/internal/index"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 const (
@@ -57,6 +57,13 @@ type IndexAddRequest struct {
 	Schema Schema `json:"schema"`
 }
 
+func (r IndexAddRequest) Validate() error {
+	return validation.ValidateStruct(&r,
+		validation.Field(&r.Name, validation.Required, validation.Length(1, 255)),
+		validation.Field(&r.Schema, validation.Required),
+	)
+}
+
 type IndexController struct {
 	repo *index.Repository
 }
@@ -82,13 +89,13 @@ func (c *IndexController) ListAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) AddAction(validator *validator.Validate) http.HandlerFunc {
+func (c *IndexController) AddAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
 		var req IndexAddRequest
 
-		if err := decodeAndValidate(validator, r, &req); err != nil {
+		if err := decodeAndValidate(r, &req); err != nil {
 			handleErr(w, r, err)
 			return
 		}
