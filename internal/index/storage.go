@@ -10,6 +10,8 @@ import (
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/pkg/finisher"
 	"github.com/google/uuid"
+
+	jsoniter "github.com/json-iterator/go"
 )
 
 const dirPermissions = 0755
@@ -32,7 +34,7 @@ func newDocument[T any](id string, source T) Document[T] {
 
 func newDocumenFromJSON[T any](data []byte) (Document[T], error) {
 	var result Document[T]
-	err := json.Unmarshal(data, &result)
+	err := jsoniter.Unmarshal(data, &result)
 	if err != nil {
 		return result, err
 	}
@@ -42,7 +44,7 @@ func newDocumenFromJSON[T any](data []byte) (Document[T], error) {
 
 func newDocumentFromJSONMulti[T any](data []byte) ([]Document[T], error) {
 	var result []Document[T]
-	err := json.Unmarshal(data, &result)
+	err := jsoniter.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err
 	}
@@ -213,7 +215,7 @@ func (s *FileStorage[T]) Stop(ctx context.Context) error {
 		docs = append(docs, doc)
 	}
 
-	data, err := json.Marshal(docs)
+	data, err := jsoniter.Marshal(docs)
 	if err != nil {
 		return err
 	}

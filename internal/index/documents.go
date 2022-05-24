@@ -118,7 +118,7 @@ func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src 
 }
 
 func (d *Documents) Add(guid string, source entity.DocSource) (string, error) {
-	if err := validateDoc(d.index.Schema, source); err != nil {
+	if err := schema.ValidateDoc(d.index.Schema, source); err != nil {
 		return guid, fmt.Errorf("source validation err: %w", err)
 	}
 

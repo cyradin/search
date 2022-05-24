@@ -9,9 +9,8 @@ import (
 	"github.com/cyradin/search/pkg/ctxt"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jsoniter "github.com/json-iterator/go"
-
-	"github.com/go-playground/validator/v10"
 )
 
 var (
@@ -20,8 +19,6 @@ var (
 
 func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi.Router) {
 	return func(r chi.Router) {
-		v := validator.New()
-
 		r.Use(
 			middleware.StripSlashes,
 			middleware.RequestID,
@@ -36,14 +33,14 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 			ic := NewIndexController(indexRepository)
 			dc := NewDocumentController(indexRepository)
 			r.Get("/", ic.ListAction())
-			r.Post("/", ic.AddAction(v))
+			r.Post("/", ic.AddAction())
 
 			r.Route("/{"+indexParam+"}", func(r chi.Router) {
 				r.Get("/", ic.GetAction())
 				r.Delete("/", ic.DeleteAction())
-				r.Post("/search", ic.SearchAction(v))
+				r.Post("/search", ic.SearchAction())
 				r.Route("/documents", func(r chi.Router) {
-					r.Post("/", dc.AddAction(v))
+					r.Post("/", dc.AddAction())
 					r.Get("/{"+documentParam+"}", dc.GetAction())
 				})
 			})
@@ -81,13 +78,15 @@ func bindContext(appCtx context.Context) func(next http.Handler) http.Handler {
 	}
 }
 
-func decodeAndValidate(validator *validator.Validate, r *http.Request, data interface{}) error {
-	err := json.NewDecoder(r.Body).Decode(data)
+func decodeAndValidate(r *http.Request, data interface{}) error {
+	dec := jsoniter.NewDecoder(r.Body)
+	dec.UseNumber()
+	err := dec.Decode(data)
 	if err != nil {
 		return fmt.Errorf("%w: %s", errJsonUnmarshal, err.Error())
 	}
 
-	err = validator.Struct(data)
+	err = validation.Validate(data)
 	if err != nil {
 		return err
 	}

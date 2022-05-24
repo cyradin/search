@@ -8,7 +8,6 @@ import (
 	"github.com/cyradin/search/internal/index"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
-	"github.com/go-playground/validator/v10"
 )
 
 type Document struct {
@@ -26,11 +25,11 @@ func NewDocumentController(repo *index.Repository) *DocumentController {
 	}
 }
 
-func (c *DocumentController) AddAction(validator *validator.Validate) http.HandlerFunc {
+func (c *DocumentController) AddAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var req Document
 
-		if err := decodeAndValidate(validator, r, &req); err != nil {
+		if err := decodeAndValidate(r, &req); err != nil {
 			handleErr(w, r, err)
 			return
 		}
@@ -95,7 +94,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) SearchAction(validator *validator.Validate) http.HandlerFunc {
+func (c *IndexController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
 		if err != nil {
@@ -103,7 +102,7 @@ func (c *IndexController) SearchAction(validator *validator.Validate) http.Handl
 		}
 
 		query := entity.Search{}
-		if err := decodeAndValidate(validator, r, &query); err != nil {
+		if err := decodeAndValidate(r, &query); err != nil {
 			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 			render.Status(r, status)
 			render.Respond(w, r, resp)
