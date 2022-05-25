@@ -23,6 +23,12 @@ func Test_ValidateDoc(t *testing.T) {
 			ok:     false,
 		},
 		{
+			name:   "allow_missing_fields",
+			field:  Field{Type: field.TypeBool, Required: false, Name: "value"},
+			values: map[string]interface{}{},
+			ok:     true,
+		},
+		{
 			name:   "required_ok",
 			field:  Field{Type: field.TypeBool, Required: true, Name: "value"},
 			values: map[string]interface{}{"value": true},

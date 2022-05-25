@@ -11,18 +11,20 @@ import (
 )
 
 func ValidateDoc(s Schema, source map[string]interface{}) error {
-	rules := buildRules(s)
+	rules := buildRules(s, source)
 
 	return rules.Validate(source)
 }
 
-func buildRules(s Schema) validation.MapRule {
+func buildRules(s Schema, source map[string]interface{}) validation.MapRule {
 	var rules []*validation.KeyRules
 
 	for _, f := range s.Fields {
 		var keyRules []validation.Rule
 		if f.Required {
 			keyRules = append(keyRules, validation.Required)
+		} else if _, ok := source[f.Name]; !ok {
+			continue
 		}
 
 		switch f.Type {
