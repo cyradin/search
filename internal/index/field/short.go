@@ -14,7 +14,7 @@ type Short struct {
 }
 
 func NewShort(ctx context.Context, src string) (*Short, error) {
-	gf, err := newGenericField[int16](ctx, src)
+	gf, err := newGenericField[int16](ctx, src, cast.ToInt16E)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Short) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Short) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToInt16E)
+	return f.inner.getValue(value)
 }
 
 func (f *Short) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToInt16E)
+	return f.inner.getValuesOr(values)
 }

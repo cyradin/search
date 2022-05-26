@@ -78,7 +78,7 @@ func Test_Long_AddValueSync(t *testing.T) {
 		{
 			name: "invalid_value_type",
 			values: []testFieldValue{
-				{id: 1, value: 123},
+				{id: 1, value: "qwe"},
 			},
 			erroneous: true,
 		},

@@ -16,13 +16,6 @@ func Test_Keyword_AddValue(t *testing.T) {
 		erroneous           bool
 	}{
 		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: 123},
-			},
-			erroneous: true,
-		},
-		{
 			name: "one",
 			values: []testFieldValue{
 				{id: 1, value: "value"},
@@ -71,13 +64,6 @@ func Test_Keyword_AddValueSync(t *testing.T) {
 		expectedCardinality map[string]uint64
 		erroneous           bool
 	}{
-		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: 123},
-			},
-			erroneous: true,
-		},
 		{
 			name: "one",
 			values: []testFieldValue{

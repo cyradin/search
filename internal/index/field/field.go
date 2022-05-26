@@ -4,9 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"fmt"
 	"os"
-	"reflect"
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
@@ -76,13 +74,15 @@ type Field interface {
 type field[T comparable] struct {
 	src string
 
-	mtx  sync.Mutex
-	data map[T]*roaring.Bitmap
+	mtx       sync.Mutex
+	data      map[T]*roaring.Bitmap
+	transform func(interface{}) (T, error)
 }
 
-func newGenericField[T comparable](ctx context.Context, src string) (*field[T], error) {
+func newGenericField[T comparable](ctx context.Context, src string, transformer func(interface{}) (T, error)) (*field[T], error) {
 	result := &field[T]{
-		src: src,
+		src:       src,
+		transform: transformer,
 	}
 	if err := result.load(); err != nil {
 		return nil, err
@@ -93,21 +93,18 @@ func newGenericField[T comparable](ctx context.Context, src string) (*field[T], 
 }
 
 func (f *field[T]) AddValue(id uint32, value interface{}) error {
-	v, ok := value.(T)
-
-	if !ok {
-		var val T
-		return fmt.Errorf("required %s, got %s", reflect.TypeOf(val), reflect.TypeOf(value))
+	v, err := f.transform(value)
+	if err != nil {
+		return err
 	}
 	go f.addValue(id, v)
 	return nil
 }
 
 func (f *field[T]) AddValueSync(id uint32, value interface{}) error {
-	v, ok := value.(T)
-	if !ok {
-		var val T
-		return fmt.Errorf("required %s, got %s", reflect.TypeOf(val), reflect.TypeOf(value))
+	v, err := f.transform(value)
+	if err != nil {
+		return err
 	}
 	f.addValue(id, v)
 	return nil
@@ -161,11 +158,11 @@ func (f *field[T]) dump() error {
 	return os.WriteFile(f.src, buf.Bytes(), 0644)
 }
 
-func (f *field[T]) getValue(v interface{}, comparator func(v interface{}) (T, error)) (*roaring.Bitmap, bool) {
+func (f *field[T]) getValue(v interface{}) (*roaring.Bitmap, bool) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	val, err := comparator(v)
+	val, err := f.transform(v)
 	if err != nil {
 		return nil, false
 	}
@@ -178,13 +175,13 @@ func (f *field[T]) getValue(v interface{}, comparator func(v interface{}) (T, er
 	return vv.Clone(), true
 }
 
-func (f *field[T]) getValuesOr(values []interface{}, comparator func(v interface{}) (T, error)) (*roaring.Bitmap, bool) {
+func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	var result *roaring.Bitmap
 	for _, v := range values {
-		val, err := comparator(v)
+		val, err := f.transform(v)
 		if err != nil {
 			continue
 		}

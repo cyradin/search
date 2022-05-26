@@ -14,7 +14,7 @@ type Bool struct {
 }
 
 func NewBool(ctx context.Context, src string) (*Bool, error) {
-	gf, err := newGenericField[bool](ctx, src)
+	gf, err := newGenericField[bool](ctx, src, cast.ToBoolE)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Bool) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Bool) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToBoolE)
+	return f.inner.getValue(value)
 }
 
 func (f *Bool) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToBoolE)
+	return f.inner.getValuesOr(values)
 }

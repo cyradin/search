@@ -14,7 +14,7 @@ type Double struct {
 }
 
 func NewDouble(ctx context.Context, src string) (*Double, error) {
-	gf, err := newGenericField[float64](ctx, src)
+	gf, err := newGenericField[float64](ctx, src, cast.ToFloat64E)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Double) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Double) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToFloat64E)
+	return f.inner.getValue(value)
 }
 
 func (f *Double) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToFloat64E)
+	return f.inner.getValuesOr(values)
 }

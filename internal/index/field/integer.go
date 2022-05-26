@@ -14,7 +14,7 @@ type Integer struct {
 }
 
 func NewInteger(ctx context.Context, src string) (*Integer, error) {
-	gf, err := newGenericField[int32](ctx, src)
+	gf, err := newGenericField[int32](ctx, src, cast.ToInt32E)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Integer) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Integer) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToInt32E)
+	return f.inner.getValue(value)
 }
 
 func (f *Integer) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToInt32E)
+	return f.inner.getValuesOr(values)
 }
