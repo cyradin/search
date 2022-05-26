@@ -14,7 +14,7 @@ type UnsignedLong struct {
 }
 
 func NewUnsignedLong(ctx context.Context, src string) (*UnsignedLong, error) {
-	gf, err := newGenericField[uint64](ctx, src)
+	gf, err := newGenericField[uint64](ctx, src, cast.ToUint64E)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *UnsignedLong) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *UnsignedLong) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToUint64E)
+	return f.inner.getValue(value)
 }
 
 func (f *UnsignedLong) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToUint64E)
+	return f.inner.getValuesOr(values)
 }

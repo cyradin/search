@@ -14,7 +14,7 @@ type Keyword struct {
 }
 
 func NewKeyword(ctx context.Context, src string) (*Keyword, error) {
-	gf, err := newGenericField[string](ctx, src)
+	gf, err := newGenericField[string](ctx, src, cast.ToStringE)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Keyword) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Keyword) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToStringE)
+	return f.inner.getValue(value)
 }
 
 func (f *Keyword) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToStringE)
+	return f.inner.getValuesOr(values)
 }

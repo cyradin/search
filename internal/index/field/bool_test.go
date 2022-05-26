@@ -18,7 +18,7 @@ func Test_Bool_AddValue(t *testing.T) {
 		{
 			name: "invalid_value_type",
 			values: []testFieldValue{
-				{id: 1, value: "true"},
+				{id: 1, value: "qwe"},
 			},
 			erroneous: true,
 		},
@@ -74,7 +74,7 @@ func Test_Bool_AddValueSync(t *testing.T) {
 		{
 			name: "invalid_value_type",
 			values: []testFieldValue{
-				{id: 1, value: "true"},
+				{id: 1, value: "qwe"},
 			},
 			erroneous: true,
 		},

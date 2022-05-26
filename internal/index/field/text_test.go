@@ -48,13 +48,6 @@ func Test_Text_AddValue(t *testing.T) {
 		erroneous           bool
 	}{
 		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: 123},
-			},
-			erroneous: true,
-		},
-		{
 			name: "one_value",
 			values: []testFieldValue{
 				{id: 1, value: "value"},
@@ -68,7 +61,7 @@ func Test_Text_AddValue(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewText(ctx, "")
+			field, err := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
 			require.Nil(t, err)
 
 			for _, v := range d.values {
@@ -99,13 +92,6 @@ func Test_Text_AddValueSync(t *testing.T) {
 		erroneous           bool
 	}{
 		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: 123},
-			},
-			erroneous: true,
-		},
-		{
 			name: "one_value",
 			values: []testFieldValue{
 				{id: 1, value: "value"},
@@ -119,7 +105,7 @@ func Test_Text_AddValueSync(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewText(ctx, "")
+			field, err := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
 			require.Nil(t, err)
 
 			for _, v := range d.values {

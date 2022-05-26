@@ -22,7 +22,7 @@ type (
 var _ Field = (*Text)(nil)
 
 func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Text, error) {
-	gf, err := newGenericField[string](ctx, src)
+	gf, err := newGenericField[string](ctx, src, cast.ToStringE)
 	if err != nil {
 		return nil, err
 	}
@@ -77,9 +77,9 @@ func (f *Text) Stop(ctx context.Context) error {
 }
 
 func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToStringE)
+	return f.inner.getValue(value)
 }
 
 func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToStringE)
+	return f.inner.getValuesOr(values)
 }

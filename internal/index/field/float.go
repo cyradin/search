@@ -14,7 +14,7 @@ type Float struct {
 }
 
 func NewFloat(ctx context.Context, src string) (*Float, error) {
-	gf, err := newGenericField[float32](ctx, src)
+	gf, err := newGenericField[float32](ctx, src, cast.ToFloat32E)
 	if err != nil {
 		return nil, err
 	}
@@ -37,9 +37,9 @@ func (f *Float) AddValueSync(id uint32, value interface{}) error {
 }
 
 func (f *Float) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value, cast.ToFloat32E)
+	return f.inner.getValue(value)
 }
 
 func (f *Float) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values, cast.ToFloat32E)
+	return f.inner.getValuesOr(values)
 }
