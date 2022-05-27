@@ -13,10 +13,6 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
-)
-
 func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(

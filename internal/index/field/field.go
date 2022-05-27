@@ -9,11 +9,6 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/pkg/finisher"
-	jsoniter "github.com/json-iterator/go"
-)
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type Type string

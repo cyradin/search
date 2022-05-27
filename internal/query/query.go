@@ -7,11 +7,6 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
-	jsoniter "github.com/json-iterator/go"
-)
-
-var (
-	json = jsoniter.ConfigCompatibleWithStandardLibrary
 )
 
 type queryType string
