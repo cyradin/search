@@ -13,16 +13,15 @@ type UnsignedLong struct {
 	inner *field[uint64]
 }
 
-func NewUnsignedLong(ctx context.Context, src string) (*UnsignedLong, error) {
+func NewUnsignedLong(ctx context.Context, src string) *UnsignedLong {
 	gf := newField[uint64](ctx, src, cast.ToUint64E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &UnsignedLong{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *UnsignedLong) Init() error {
+	return f.inner.init()
 }
 
 func (f *UnsignedLong) Type() Type {

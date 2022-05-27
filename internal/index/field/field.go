@@ -54,6 +54,8 @@ func (t Type) Valid() bool {
 type Field interface {
 	// Type returns field type
 	Type() Type
+	// Init initialize field
+	Init() error
 	// AddValue add document field value
 	AddValue(id uint32, value interface{}) error
 	// AddValueSync add document field value synchronously

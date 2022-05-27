@@ -19,16 +19,15 @@ type All struct {
 	inner *field[bool]
 }
 
-func NewAll(ctx context.Context, src string) (*All, error) {
+func NewAll(ctx context.Context, src string) *All {
 	gf := newField[bool](ctx, src, cast.ToBoolE)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &All{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *All) Init() error {
+	return f.inner.init()
 }
 
 func (f *All) Type() Type {

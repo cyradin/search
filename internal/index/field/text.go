@@ -21,12 +21,8 @@ type (
 
 var _ Field = (*Text)(nil)
 
-func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Text, error) {
+func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) *Text {
 	gf := newField[string](ctx, src, cast.ToStringE)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
 
 	analyzer := func(s []string) []string { return s }
 	for i := len(analyzers) - 1; i >= 0; i-- {
@@ -36,7 +32,11 @@ func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Te
 	return &Text{
 		inner:    gf,
 		analyzer: analyzer,
-	}, nil
+	}
+}
+
+func (f *Text) Init() error {
+	return f.inner.init()
 }
 
 func (f *Text) Type() Type {

@@ -70,20 +70,17 @@ func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src 
 	defer d.fieldsMtx.Unlock()
 
 	src = path.Join(src, schemaField.Name+".gob")
-	var (
-		f   field.Field
-		err error
-	)
+	var f field.Field
 
 	switch schemaField.Type {
 	case field.TypeAll:
-		f, err = field.NewAll(ctx, src)
+		f = field.NewAll(ctx, src)
 	case field.TypeBool:
-		f, err = field.NewBool(ctx, src)
+		f = field.NewBool(ctx, src)
 	case field.TypeKeyword:
-		f, err = field.NewKeyword(ctx, src)
+		f = field.NewKeyword(ctx, src)
 	case field.TypeText:
-		f, err = field.NewText(ctx, src) // @todo pass analyzers from schema
+		f = field.NewText(ctx, src) // @todo pass analyzers from schema
 	// @todo implement slice type
 	// case field.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice(ctx, src)
@@ -91,23 +88,24 @@ func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src 
 	// case field.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap(ctx, src)
 	case field.TypeUnsignedLong:
-		f, err = field.NewUnsignedLong(ctx, src)
+		f = field.NewUnsignedLong(ctx, src)
 	case field.TypeLong:
-		f, err = field.NewLong(ctx, src)
+		f = field.NewLong(ctx, src)
 	case field.TypeInteger:
-		f, err = field.NewInteger(ctx, src)
+		f = field.NewInteger(ctx, src)
 	case field.TypeShort:
-		f, err = field.NewShort(ctx, src)
+		f = field.NewShort(ctx, src)
 	case field.TypeByte:
-		f, err = field.NewByte(ctx, src)
+		f = field.NewByte(ctx, src)
 	case field.TypeDouble:
-		f, err = field.NewDouble(ctx, src)
+		f = field.NewDouble(ctx, src)
 	case field.TypeFloat:
-		f, err = field.NewFloat(ctx, src)
+		f = field.NewFloat(ctx, src)
 	default:
 		return fmt.Errorf("invalid field type %q", schemaField.Type)
 	}
 
+	err := f.Init()
 	if err != nil {
 		return fmt.Errorf("field init err: %w", err)
 	}

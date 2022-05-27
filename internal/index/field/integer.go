@@ -13,16 +13,15 @@ type Integer struct {
 	inner *field[int32]
 }
 
-func NewInteger(ctx context.Context, src string) (*Integer, error) {
+func NewInteger(ctx context.Context, src string) *Integer {
 	gf := newField[int32](ctx, src, cast.ToInt32E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Integer{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Integer) Init() error {
+	return f.inner.init()
 }
 
 func (f *Integer) Type() Type {

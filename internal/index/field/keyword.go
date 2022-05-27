@@ -13,16 +13,15 @@ type Keyword struct {
 	inner *field[string]
 }
 
-func NewKeyword(ctx context.Context, src string) (*Keyword, error) {
+func NewKeyword(ctx context.Context, src string) *Keyword {
 	gf := newField[string](ctx, src, cast.ToStringE)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Keyword{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Keyword) Init() error {
+	return f.inner.init()
 }
 
 func (f *Keyword) Type() Type {

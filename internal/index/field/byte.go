@@ -13,16 +13,15 @@ type Byte struct {
 	inner *field[int8]
 }
 
-func NewByte(ctx context.Context, src string) (*Byte, error) {
+func NewByte(ctx context.Context, src string) *Byte {
 	gf := newField[int8](ctx, src, cast.ToInt8E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Byte{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Byte) Init() error {
+	return f.inner.init()
 }
 
 func (f *Byte) Type() Type {
