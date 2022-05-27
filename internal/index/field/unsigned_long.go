@@ -14,7 +14,8 @@ type UnsignedLong struct {
 }
 
 func NewUnsignedLong(ctx context.Context, src string) (*UnsignedLong, error) {
-	gf, err := newGenericField[uint64](ctx, src, cast.ToUint64E)
+	gf := newField[uint64](ctx, src, cast.ToUint64E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

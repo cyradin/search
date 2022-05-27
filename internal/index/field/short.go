@@ -14,7 +14,8 @@ type Short struct {
 }
 
 func NewShort(ctx context.Context, src string) (*Short, error) {
-	gf, err := newGenericField[int16](ctx, src, cast.ToInt16E)
+	gf := newField[int16](ctx, src, cast.ToInt16E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

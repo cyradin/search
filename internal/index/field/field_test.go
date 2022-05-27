@@ -82,8 +82,7 @@ func Test_genericField_AddValue(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := newGenericField[bool](ctx, "", cast.ToBoolE)
-			require.Nil(t, err)
+			field := newField[bool](ctx, "", cast.ToBoolE)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -180,8 +179,7 @@ func Test_genericField_AddValueSync(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := newGenericField[bool](ctx, "", cast.ToBoolE)
-			require.Nil(t, err)
+			field := newField[bool](ctx, "", cast.ToBoolE)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)
@@ -208,7 +206,7 @@ func Test_genericField_AddValueSync(t *testing.T) {
 	}
 }
 
-func Test_genericField_load(t *testing.T) {
+func Test_load(t *testing.T) {
 	bm := roaring.New()
 	bm.Add(1)
 
@@ -236,7 +234,8 @@ func Test_genericField_load(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := newGenericField[string](context.Background(), d.src, cast.ToStringE)
+			f := newField[string](context.Background(), d.src, cast.ToStringE)
+			err := f.init()
 			if d.erroneous {
 				require.NotNil(t, err)
 				return
@@ -260,22 +259,24 @@ func Test_genericField_load(t *testing.T) {
 	}
 }
 
-func Test_genericField_dump(t *testing.T) {
+func Test_genericField_Stop(t *testing.T) {
 	dir, err := os.MkdirTemp("", "testdir")
 	require.Nil(t, err)
 	defer os.RemoveAll(dir)
 
 	src := filepath.Join(dir, "data.gob")
 
-	f1, err := newGenericField[string](context.Background(), src, cast.ToStringE)
+	f1 := newField[string](context.Background(), src, cast.ToStringE)
+	err = f1.init()
 	require.Nil(t, err)
 
 	f1.AddValueSync(1, "value")
 
-	err = f1.dump()
+	err = f1.Stop(context.Background())
 	require.Nil(t, err)
 
-	f2, err := newGenericField[string](context.Background(), src, cast.ToStringE)
+	f2 := newField[string](context.Background(), src, cast.ToStringE)
+	err = f2.init()
 	require.Nil(t, err)
 
 	var expectedKeys []string
@@ -328,8 +329,7 @@ func Test_genericField_getValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := newGenericField[bool](context.Background(), "", cast.ToBoolE)
-			require.Nil(t, err)
+			f := newField[bool](context.Background(), "", cast.ToBoolE)
 
 			f.data = d.data
 			f.data[true].Add(1)
@@ -408,8 +408,7 @@ func Test_genericField_getValuesOr(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := newGenericField[int](context.Background(), "", cast.ToIntE)
-			require.Nil(t, err)
+			f := newField[int](context.Background(), "", cast.ToIntE)
 
 			f.data = d.data
 

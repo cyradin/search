@@ -14,7 +14,8 @@ type Keyword struct {
 }
 
 func NewKeyword(ctx context.Context, src string) (*Keyword, error) {
-	gf, err := newGenericField[string](ctx, src, cast.ToStringE)
+	gf := newField[string](ctx, src, cast.ToStringE)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

@@ -20,7 +20,8 @@ type All struct {
 }
 
 func NewAll(ctx context.Context, src string) (*All, error) {
-	gf, err := newGenericField[bool](ctx, src, cast.ToBoolE)
+	gf := newField[bool](ctx, src, cast.ToBoolE)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}
