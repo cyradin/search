@@ -13,16 +13,15 @@ type Short struct {
 	inner *field[int16]
 }
 
-func NewShort(ctx context.Context, src string) (*Short, error) {
+func NewShort(ctx context.Context, src string) *Short {
 	gf := newField[int16](ctx, src, cast.ToInt16E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Short{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Short) Init() error {
+	return f.inner.init()
 }
 
 func (f *Short) Type() Type {

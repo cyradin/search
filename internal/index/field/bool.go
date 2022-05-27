@@ -13,16 +13,15 @@ type Bool struct {
 	inner *field[bool]
 }
 
-func NewBool(ctx context.Context, src string) (*Bool, error) {
+func NewBool(ctx context.Context, src string) *Bool {
 	gf := newField[bool](ctx, src, cast.ToBoolE)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Bool{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Bool) Init() error {
+	return f.inner.init()
 }
 
 func (f *Bool) Type() Type {

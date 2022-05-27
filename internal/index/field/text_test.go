@@ -61,8 +61,7 @@ func Test_Text_AddValue(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
-			require.Nil(t, err)
+			field := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -105,8 +104,7 @@ func Test_Text_AddValueSync(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
-			require.Nil(t, err)
+			field := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

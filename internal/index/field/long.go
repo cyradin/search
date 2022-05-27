@@ -13,16 +13,15 @@ type Long struct {
 	inner *field[int64]
 }
 
-func NewLong(ctx context.Context, src string) (*Long, error) {
+func NewLong(ctx context.Context, src string) *Long {
 	gf := newField[int64](ctx, src, cast.ToInt64E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Long{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Long) Init() error {
+	return f.inner.init()
 }
 
 func (f *Long) Type() Type {

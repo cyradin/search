@@ -13,16 +13,15 @@ type Float struct {
 	inner *field[float32]
 }
 
-func NewFloat(ctx context.Context, src string) (*Float, error) {
+func NewFloat(ctx context.Context, src string) *Float {
 	gf := newField[float32](ctx, src, cast.ToFloat32E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Float{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Float) Init() error {
+	return f.inner.init()
 }
 
 func (f *Float) Type() Type {

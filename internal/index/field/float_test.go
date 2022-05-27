@@ -38,8 +38,7 @@ func Test_Float_AddValue(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewFloat(ctx, "")
-			require.Nil(t, err)
+			field := NewFloat(ctx, "")
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -96,8 +95,7 @@ func Test_Float_AddValueSync(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewFloat(ctx, "")
-			require.Nil(t, err)
+			field := NewFloat(ctx, "")
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

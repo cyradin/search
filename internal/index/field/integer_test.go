@@ -43,8 +43,7 @@ func Test_Integer_AddValue(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewInteger(ctx, "")
-			require.Nil(t, err)
+			field := NewInteger(ctx, "")
 
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
@@ -101,8 +100,7 @@ func Test_Integer_AddValueSync(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-			field, err := NewInteger(ctx, "")
-			require.Nil(t, err)
+			field := NewInteger(ctx, "")
 
 			for _, v := range d.values {
 				err := field.AddValueSync(v.id, v.value)

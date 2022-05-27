@@ -109,8 +109,7 @@ func Test_Documents_Add(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
 
-			f, err := field.NewBool(ctx, "")
-			require.Nil(t, err)
+			f := field.NewBool(ctx, "")
 
 			docs := &Documents{
 				idSet: func(uid string) uint32 { return 1 },

@@ -13,16 +13,15 @@ type Double struct {
 	inner *field[float64]
 }
 
-func NewDouble(ctx context.Context, src string) (*Double, error) {
+func NewDouble(ctx context.Context, src string) *Double {
 	gf := newField[float64](ctx, src, cast.ToFloat64E)
-	err := gf.init()
-	if err != nil {
-		return nil, err
-	}
-
 	return &Double{
 		inner: gf,
-	}, nil
+	}
+}
+
+func (f *Double) Init() error {
+	return f.inner.init()
 }
 
 func (f *Double) Type() Type {
