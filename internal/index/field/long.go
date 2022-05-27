@@ -14,7 +14,8 @@ type Long struct {
 }
 
 func NewLong(ctx context.Context, src string) (*Long, error) {
-	gf, err := newGenericField[int64](ctx, src, cast.ToInt64E)
+	gf := newField[int64](ctx, src, cast.ToInt64E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

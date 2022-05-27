@@ -14,7 +14,8 @@ type Byte struct {
 }
 
 func NewByte(ctx context.Context, src string) (*Byte, error) {
-	gf, err := newGenericField[int8](ctx, src, cast.ToInt8E)
+	gf := newField[int8](ctx, src, cast.ToInt8E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

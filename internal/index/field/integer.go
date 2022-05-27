@@ -14,7 +14,8 @@ type Integer struct {
 }
 
 func NewInteger(ctx context.Context, src string) (*Integer, error) {
-	gf, err := newGenericField[int32](ctx, src, cast.ToInt32E)
+	gf := newField[int32](ctx, src, cast.ToInt32E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

@@ -14,7 +14,8 @@ type Bool struct {
 }
 
 func NewBool(ctx context.Context, src string) (*Bool, error) {
-	gf, err := newGenericField[bool](ctx, src, cast.ToBoolE)
+	gf := newField[bool](ctx, src, cast.ToBoolE)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

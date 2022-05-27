@@ -14,7 +14,8 @@ type Double struct {
 }
 
 func NewDouble(ctx context.Context, src string) (*Double, error) {
-	gf, err := newGenericField[float64](ctx, src, cast.ToFloat64E)
+	gf := newField[float64](ctx, src, cast.ToFloat64E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

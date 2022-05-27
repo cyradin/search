@@ -14,7 +14,8 @@ type Float struct {
 }
 
 func NewFloat(ctx context.Context, src string) (*Float, error) {
-	gf, err := newGenericField[float32](ctx, src, cast.ToFloat32E)
+	gf := newField[float32](ctx, src, cast.ToFloat32E)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}

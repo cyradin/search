@@ -74,17 +74,24 @@ type field[T comparable] struct {
 	transform func(interface{}) (T, error)
 }
 
-func newGenericField[T comparable](ctx context.Context, src string, transformer func(interface{}) (T, error)) (*field[T], error) {
+func newField[T comparable](ctx context.Context, src string, transformer func(interface{}) (T, error)) *field[T] {
 	result := &field[T]{
 		src:       src,
+		data:      make(map[T]*roaring.Bitmap),
 		transform: transformer,
 	}
-	if err := result.load(); err != nil {
-		return nil, err
-	}
-	finisher.Add(result)
 
-	return result, nil
+	return result
+}
+
+func (f *field[T]) init() error {
+	err := load(f.src, &f.data)
+	if err != nil {
+		return err
+	}
+	finisher.Add(f)
+
+	return nil
 }
 
 func (f *field[T]) AddValue(id uint32, value interface{}) error {
@@ -123,13 +130,11 @@ func (f *field[T]) Stop(ctx context.Context) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	return f.dump()
+	return dump(f.data, f.src)
 }
 
-func (f *field[T]) load() error {
-	f.data = make(map[T]*roaring.Bitmap)
-
-	data, err := os.ReadFile(f.src)
+func load(src string, dest interface{}) error {
+	contents, err := os.ReadFile(src)
 	if err != nil {
 		if os.IsNotExist(err) {
 			return nil
@@ -137,20 +142,20 @@ func (f *field[T]) load() error {
 		return err
 	}
 
-	if err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&f.data); err != nil {
+	if err := gob.NewDecoder(bytes.NewBuffer(contents)).Decode(dest); err != nil {
 		return err
 	}
 
 	return nil
 }
 
-func (f *field[T]) dump() error {
+func dump(src interface{}, dest string) error {
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(f.data); err != nil {
+	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
 		return err
 	}
 
-	return os.WriteFile(f.src, buf.Bytes(), 0644)
+	return os.WriteFile(dest, buf.Bytes(), 0644)
 }
 
 func (f *field[T]) getValue(v interface{}) (*roaring.Bitmap, bool) {

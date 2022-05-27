@@ -22,7 +22,8 @@ type (
 var _ Field = (*Text)(nil)
 
 func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) (*Text, error) {
-	gf, err := newGenericField[string](ctx, src, cast.ToStringE)
+	gf := newField[string](ctx, src, cast.ToStringE)
+	err := gf.init()
 	if err != nil {
 		return nil, err
 	}
