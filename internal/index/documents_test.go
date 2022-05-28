@@ -7,6 +7,7 @@ import (
 
 	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -108,18 +109,21 @@ func Test_Documents_Add(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			ctx := context.Background()
-
-			f := field.NewBool(ctx, "")
-
-			docs := &Documents{
-				idSet: func(uid string) uint32 { return 1 },
-				fields: map[string]field.Field{
-					"v": f,
-				},
-				sourceStorage: &testDocStorage{
+			docs, err := NewDocuments(
+				ctx,
+				entity.NewIndex(
+					"name",
+					schema.New(
+						[]schema.Field{schema.NewField("v", field.TypeBool, true)},
+					),
+				),
+				&testDocStorage{
 					insert: d.sourceInsert,
 				},
-			}
+				"",
+			)
+			require.Nil(t, err)
+
 			guid, err := docs.Add(d.guid, d.source)
 			if d.erroneous {
 				require.NotNil(t, err)

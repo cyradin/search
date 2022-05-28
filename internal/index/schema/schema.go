@@ -17,12 +17,21 @@ type Field struct {
 	Children []Field `json:"children"`
 }
 
+func NewField(name string, fieldType field.Type, required bool, children ...Field) Field {
+	return Field{
+		Name:     name,
+		Type:     fieldType,
+		Required: required,
+		Children: children,
+	}
+}
+
 type Schema struct {
 	Fields []Field `json:"fields"`
 }
 
-func New(fields []Field) *Schema {
-	return &Schema{
+func New(fields []Field) Schema {
+	return Schema{
 		Fields: fields,
 	}
 }

@@ -82,7 +82,7 @@ func Test_Validate(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			s := New(d.fields)
-			err := Validate(*s)
+			err := Validate(s)
 			if d.valid {
 				require.Nil(t, err)
 				return
