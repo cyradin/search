@@ -59,10 +59,8 @@ func Test_Exec(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := field.NewBool(context.Background(), "")
-			require.Nil(t, err)
-
-			err = f.AddValueSync(1, true)
+			f := field.NewBool(context.Background(), "")
+			err := f.AddValueSync(1, true)
 			require.Nil(t, err)
 
 			query, err := decodeQuery(d.query)
@@ -146,9 +144,8 @@ func Test_exec(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1, err := field.NewBool(context.Background(), "")
-			require.Nil(t, err)
-			err = f1.AddValueSync(1, true)
+			f1 := field.NewBool(context.Background(), "")
+			err := f1.AddValueSync(1, true)
 			require.Nil(t, err)
 			err = f1.AddValueSync(2, false)
 			require.Nil(t, err)

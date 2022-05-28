@@ -332,7 +332,7 @@ func Test_ValidateDoc(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			s := New([]Field{d.field})
-			err := ValidateDoc(*s, d.values)
+			err := ValidateDoc(s, d.values)
 
 			if err != nil {
 				fmt.Println(err.Error())

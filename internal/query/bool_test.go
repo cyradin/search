@@ -116,14 +116,13 @@ func Test_execBool(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1, err := field.NewBool(context.Background(), "")
-			require.Nil(t, err)
-			err = f1.AddValueSync(1, true)
+			f1 := field.NewBool(context.Background(), "")
+			err := f1.AddValueSync(1, true)
 			require.Nil(t, err)
 			err = f1.AddValueSync(2, false)
 			require.Nil(t, err)
 
-			f2, err := field.NewAll(context.Background(), "")
+			f2 := field.NewAll(context.Background(), "")
 			require.Nil(t, err)
 			err = f2.AddValueSync(1, true)
 			require.Nil(t, err)
@@ -227,9 +226,8 @@ func Test_execBoolShould(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1, err := field.NewKeyword(context.Background(), "")
-			require.Nil(t, err)
-			err = f1.AddValueSync(1, "1")
+			f1 := field.NewKeyword(context.Background(), "")
+			err := f1.AddValueSync(1, "1")
 			require.Nil(t, err)
 			err = f1.AddValueSync(2, "2")
 			require.Nil(t, err)
@@ -331,9 +329,8 @@ func Test_execBoolMust(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1, err := field.NewKeyword(context.Background(), "")
-			require.Nil(t, err)
-			err = f1.AddValueSync(1, "1")
+			f1 := field.NewKeyword(context.Background(), "")
+			err := f1.AddValueSync(1, "1")
 			require.Nil(t, err)
 			err = f1.AddValueSync(2, "2")
 			require.Nil(t, err)
@@ -435,9 +432,8 @@ func Test_execBoolFilter(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1, err := field.NewKeyword(context.Background(), "")
-			require.Nil(t, err)
-			err = f1.AddValueSync(1, "1")
+			f1 := field.NewKeyword(context.Background(), "")
+			err := f1.AddValueSync(1, "1")
 			require.Nil(t, err)
 			err = f1.AddValueSync(2, "2")
 			require.Nil(t, err)

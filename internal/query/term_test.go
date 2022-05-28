@@ -65,10 +65,9 @@ func Test_term(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := field.NewKeyword(context.Background(), "")
-			require.Nil(t, err)
+			f := field.NewKeyword(context.Background(), "")
 
-			err = f.AddValueSync(1, "1")
+			err := f.AddValueSync(1, "1")
 			require.Nil(t, err)
 
 			fields := map[string]field.Field{
@@ -180,8 +179,7 @@ func Test_execTerms(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f, err := field.NewKeyword(context.Background(), "")
-			require.Nil(t, err)
+			f := field.NewKeyword(context.Background(), "")
 
 			for v, ids := range d.fieldValues {
 				for _, id := range ids {
