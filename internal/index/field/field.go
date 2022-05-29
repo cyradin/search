@@ -66,7 +66,16 @@ type Field interface {
 	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 	// GetValuesAnd compute the intersection between bitmaps of the passed values
 	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
+	// Scores calculate doc scores
+	Scores(value interface{}, bm *roaring.Bitmap) Scores
 }
+
+type Score struct {
+	ID    uint32
+	Value float64
+}
+
+type Scores []Score
 
 type field[T comparable] struct {
 	src string
@@ -202,4 +211,8 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	}
 
 	return result, result != nil
+}
+
+func (f *field[T]) Scores(value interface{}, bm *roaring.Bitmap) Scores {
+	return nil
 }

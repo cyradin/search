@@ -43,3 +43,7 @@ func (f *UnsignedLong) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 func (f *UnsignedLong) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValuesOr(values)
 }
+
+func (f *UnsignedLong) Scores(value interface{}, bm *roaring.Bitmap) Scores {
+	return f.inner.Scores(value, bm)
+}
