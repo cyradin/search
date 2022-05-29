@@ -84,3 +84,7 @@ func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValuesOr(values)
 }
+
+func (f *Text) Scores(value interface{}, bm *roaring.Bitmap) Scores {
+	return f.inner.Scores(value, bm)
+}

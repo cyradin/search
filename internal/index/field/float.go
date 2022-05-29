@@ -43,3 +43,7 @@ func (f *Float) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 func (f *Float) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValuesOr(values)
 }
+
+func (f *Float) Scores(value interface{}, bm *roaring.Bitmap) Scores {
+	return f.inner.Scores(value, bm)
+}
