@@ -84,10 +84,10 @@ func Test_Validate(t *testing.T) {
 			s := New(d.fields)
 			err := Validate(s)
 			if d.valid {
-				require.Nil(t, err)
+				require.NoError(t, err)
 				return
 			}
-			require.NotNil(t, err)
+			require.Error(t, err)
 		})
 	}
 }

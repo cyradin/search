@@ -62,10 +62,10 @@ func Test_File_All(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFileStorage[testDoc](d.file)
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			docs, errors := p.All()
 
@@ -82,7 +82,7 @@ func Test_File_All(t *testing.T) {
 			}
 			a()
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.ElementsMatch(t, d.expected, result)
 		})
 	}
@@ -122,15 +122,15 @@ func Test_File_One(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFileStorage[testDoc](d.file)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			doc, err := p.One(d.id)
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, d.expected, doc)
 		})
 	}
@@ -178,15 +178,15 @@ func Test_File_Multi(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFileStorage[testDoc](d.file)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			docs, err := p.Multi(d.ids...)
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.ElementsMatch(t, d.expected, docs)
 		})
 	}
@@ -224,17 +224,17 @@ func Test_File_Insert(t *testing.T) {
 			p.idGenerator = func() string {
 				return d.id
 			}
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			p.docs = d.docs
 
 			id, err := p.Insert(d.id, testDoc{})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, d.id, id)
 		})
 	}
@@ -274,16 +274,16 @@ func Test_File_Update(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFileStorage[testDoc]("")
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			p.docs = d.docs
 			err = p.Update(d.id, testDoc{})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 		})
 	}
 }
@@ -334,16 +334,16 @@ func Test_File_Delete(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			p, err := NewFileStorage[testDoc]("")
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			p.docs = d.docs
 			err = p.Delete(d.id)
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.EqualValues(t, d.docs, d.expectedDocs)
 		})
 	}
@@ -395,13 +395,13 @@ func Test_File_Stop(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			dir, err := os.MkdirTemp("", "testdir")
-			require.Nil(t, err)
+			require.NoError(t, err)
 			defer os.RemoveAll(dir)
 
 			file := filepath.Join(dir, "storage.json")
 
 			p, err := NewFileStorage[testDoc](file)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			p.docs = d.docs
 
@@ -409,7 +409,7 @@ func Test_File_Stop(t *testing.T) {
 			p.Stop(ctx)
 
 			result, err := os.ReadFile(file)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			require.JSONEq(t, d.expected, string(result))
 		})

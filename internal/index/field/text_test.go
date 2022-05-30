@@ -66,10 +66,10 @@ func Test_Text_AddValue(t *testing.T) {
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
 				if d.erroneous {
-					require.NotNil(t, err)
+					require.Error(t, err)
 					continue
 				} else {
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 				time.Sleep(time.Millisecond)
 			}
@@ -110,10 +110,10 @@ func Test_Text_AddValueSync(t *testing.T) {
 				err := field.AddValueSync(v.id, v.value)
 
 				if d.erroneous {
-					require.NotNil(t, err)
+					require.Error(t, err)
 					continue
 				} else {
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			}
 

@@ -41,12 +41,12 @@ func Test_newTermQuery(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			tq, err := newTermQuery(queryParams{data: d.data})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, tq)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, tq)
 		})
 	}
@@ -97,7 +97,7 @@ func Test_termQuery_exec(t *testing.T) {
 			f := field.NewKeyword(context.Background(), "")
 
 			err := f.AddValueSync(1, "1")
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			fields := map[string]field.Field{
 				d.fieldName: f,
@@ -107,16 +107,16 @@ func Test_termQuery_exec(t *testing.T) {
 				data:   d.data,
 				fields: fields,
 			})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			bm, err := tq.exec()
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, bm)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, d.expected, bm)
 		})
 	}
@@ -153,12 +153,12 @@ func Test_newTermsQuery(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			tq, err := newTermsQuery(queryParams{data: d.data})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, tq)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.NotNil(t, tq)
 		})
 	}
@@ -239,22 +239,22 @@ func Test_execTerms(t *testing.T) {
 			for v, ids := range d.fieldValues {
 				for _, id := range ids {
 					err := f.AddValueSync(id, v)
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 			}
 			fields := map[string]field.Field{d.fieldName: f}
 
 			tq, err := newTermsQuery(queryParams{data: d.data, fields: fields})
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			bm, err := tq.exec()
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, bm)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.Equal(t, d.expected.GetCardinality(), bm.GetCardinality())
 		})
 	}

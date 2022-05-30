@@ -47,7 +47,7 @@ func Test_NewFromFile(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			result, err := NewFromFile(d.src)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.EqualValues(t, d.expected, result)
 		})
 	}
