@@ -87,10 +87,10 @@ func Test_genericField_AddValue(t *testing.T) {
 			for _, v := range d.values {
 				err := field.AddValue(v.id, v.value)
 				if d.erroneous {
-					require.NotNil(t, err)
+					require.Error(t, err)
 					continue
 				} else {
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 				time.Sleep(time.Millisecond)
 
@@ -185,10 +185,10 @@ func Test_genericField_AddValueSync(t *testing.T) {
 				err := field.AddValueSync(v.id, v.value)
 
 				if d.erroneous {
-					require.NotNil(t, err)
+					require.Error(t, err)
 					continue
 				} else {
-					require.Nil(t, err)
+					require.NoError(t, err)
 				}
 
 				vv := v.value.(bool)
@@ -237,10 +237,10 @@ func Test_load(t *testing.T) {
 			f := newField[string](context.Background(), d.src, cast.ToStringE)
 			err := f.init()
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				return
 			}
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			var expectedKeys []string
 			for k := range d.expected {
@@ -261,23 +261,23 @@ func Test_load(t *testing.T) {
 
 func Test_genericField_Stop(t *testing.T) {
 	dir, err := os.MkdirTemp("", "testdir")
-	require.Nil(t, err)
+	require.NoError(t, err)
 	defer os.RemoveAll(dir)
 
 	src := filepath.Join(dir, "data.gob")
 
 	f1 := newField[string](context.Background(), src, cast.ToStringE)
 	err = f1.init()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	f1.AddValueSync(1, "value")
 
 	err = f1.Stop(context.Background())
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	f2 := newField[string](context.Background(), src, cast.ToStringE)
 	err = f2.init()
-	require.Nil(t, err)
+	require.NoError(t, err)
 
 	var expectedKeys []string
 	for k := range f1.data {

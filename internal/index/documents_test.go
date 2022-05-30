@@ -122,13 +122,13 @@ func Test_Documents_Add(t *testing.T) {
 				},
 				"",
 			)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			guid, err := docs.Add(d.guid, d.source)
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 			} else {
-				require.Nil(t, err)
+				require.NoError(t, err)
 				require.Equal(t, d.expected, guid)
 			}
 		})

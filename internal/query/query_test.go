@@ -154,7 +154,7 @@ func Test_build(t *testing.T) {
 						}
 					}
 					`,
-			erroneous: false,
+			erroneous: true,
 		},
 	}
 
