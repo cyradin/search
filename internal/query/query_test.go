@@ -61,31 +61,30 @@ func Test_Exec(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			f := field.NewBool(context.Background(), "")
 			err := f.AddValueSync(1, true)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			query, err := decodeQuery(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
+			require.NoError(t, err)
+			require.NoError(t, err)
 
 			result, err := Exec(query, map[string]field.Field{"field": f})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, result)
 				return
 			}
 
-			require.Nil(t, err)
+			require.NoError(t, err)
 			require.EqualValues(t, d.expected, result)
 		})
 	}
 }
 
-func Test_exec(t *testing.T) {
+func Test_build(t *testing.T) {
 	data := []struct {
 		name      string
 		query     string
 		erroneous bool
-		expected  []uint32
 	}{
 		{
 			name:      "error_empty_query",
@@ -111,64 +110,74 @@ func Test_exec(t *testing.T) {
 			name:      "ok_term",
 			query:     `{"term":{ "field": true }}`,
 			erroneous: false,
-			expected:  []uint32{1},
 		},
 		{
 			name:      "ok_terms",
 			query:     `{"terms":{ "field": [true,false] }}`,
 			erroneous: false,
-			expected:  []uint32{1, 2},
 		},
 		{
 			name: "ok_bool",
 			query: `
-			{
-				"bool": {
-					"should": [
-						{
-							"terms": {
-								"field": [
-									true,
-									false
-								]
-							}
+					{
+						"bool": {
+							"should": [
+								{
+									"terms": {
+										"field": [
+											true,
+											false
+										]
+									}
+								}
+							]
 						}
-					]
-				}
-			}
-			`,
+					}
+					`,
 			erroneous: false,
-			expected:  []uint32{1, 2},
+		},
+		{
+			name: "err_bool_subquery",
+			query: `
+					{
+						"bool": {
+							"should": [
+								{
+									"invalid": {
+										"field": [
+											true,
+											false
+										]
+									}
+								}
+							]
+						}
+					}
+					`,
+			erroneous: false,
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewBool(context.Background(), "")
-			err := f1.AddValueSync(1, true)
-			require.Nil(t, err)
-			err = f1.AddValueSync(2, false)
-			require.Nil(t, err)
+			f1 := field.NewBool(context.Background(), "query")
 
 			query, err := decodeQuery(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
-			result, err := exec(query, map[string]field.Field{"field": f1}, "")
+			result, err := build(queryParams{
+				data:   query,
+				fields: map[string]field.Field{"field": f1},
+				path:   "query",
+			})
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, result)
 				return
 			}
 
-			require.Nil(t, err)
-
-			var vals []uint32
-			result.Iterate(func(x uint32) bool {
-				vals = append(vals, x)
-				return true
-			})
-			require.EqualValues(t, d.expected, vals)
+			require.NoError(t, err)
+			require.NotNil(t, result)
 		})
 	}
 }

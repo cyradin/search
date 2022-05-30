@@ -2,20 +2,32 @@ package query
 
 import (
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/index/field"
 )
 
-func execTerm(data map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
-	if len(data) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
+var _ query = (*termQuery)(nil)
+var _ query = (*termsQuery)(nil)
+
+type termQuery struct {
+	params queryParams
+}
+
+func newTermQuery(params queryParams) (*termQuery, error) {
+	if len(params.data) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
 	}
-	if len(data) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	if len(params.data) > 1 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
 	}
 
-	key, val := firstVal(data)
+	return &termQuery{
+		params: params,
+	}, nil
+}
 
-	field, ok := fields[key]
+func (q *termQuery) exec() (*roaring.Bitmap, error) {
+	key, val := firstVal(q.params.data)
+
+	field, ok := q.params.fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}
@@ -28,22 +40,32 @@ func execTerm(data map[string]interface{}, fields map[string]field.Field, path s
 	return bm, nil
 }
 
-func execTerms(data map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
-	if len(data) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
+type termsQuery struct {
+	params queryParams
+}
+
+func newTermsQuery(params queryParams) (*termsQuery, error) {
+	if len(params.data) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
 	}
-	if len(data) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	if len(params.data) > 1 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
 	}
 
-	key, val := firstVal(data)
+	return &termsQuery{
+		params: params,
+	}, nil
+}
+
+func (q *termsQuery) exec() (*roaring.Bitmap, error) {
+	key, val := firstVal(q.params.data)
 
 	values, err := interfaceToSlice[interface{}](val)
 	if err != nil {
-		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
+		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(q.params.path, key))
 	}
 
-	field, ok := fields[key]
+	field, ok := q.params.fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}

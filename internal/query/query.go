@@ -38,8 +38,27 @@ func queryTypesString() []string {
 	return result
 }
 
-func Exec(q map[string]interface{}, fields map[string]field.Field) ([]entity.SearchHit, error) {
-	bm, err := exec(q, fields, "query")
+type query interface {
+	exec() (*roaring.Bitmap, error)
+}
+
+type queryParams struct {
+	data   map[string]interface{}
+	fields map[string]field.Field
+	path   string
+}
+
+func Exec(data map[string]interface{}, fields map[string]field.Field) ([]entity.SearchHit, error) {
+	q, err := build(queryParams{
+		data:   data,
+		fields: fields,
+		path:   "query",
+	})
+	if err != nil {
+		return nil, err
+	}
+
+	bm, err := q.exec()
 	if err != nil {
 		return nil, err
 	}
@@ -55,33 +74,35 @@ func Exec(q map[string]interface{}, fields map[string]field.Field) ([]entity.Sea
 	return hits, nil
 }
 
-func exec(q map[string]interface{}, fields map[string]field.Field, path string) (*roaring.Bitmap, error) {
-	if len(q) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
+func build(params queryParams) (query, error) {
+	if len(params.data) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
 	}
-	if len(q) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	if len(params.data) > 1 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
 	}
 
-	key, value := firstVal(q)
+	key, value := firstVal(params.data)
 
 	val, ok := value.(map[string]interface{})
 	if !ok {
-		return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
+		return nil, NewErrSyntax(errMsgObjectValueRequired(), params.path)
 	}
+
+	params.data = val
+	params.path = pathJoin(params.path, key)
 
 	qType := queryType(key)
-	qPath := pathJoin(path, key)
 	switch qType {
 	case queryTerm:
-		return execTerm(val, fields, qPath)
+		return newTermQuery(params)
 	case queryTerms:
-		return execTerms(val, fields, qPath)
+		return newTermsQuery(params)
 	case queryBool:
-		return execBool(val, fields, qPath)
+		return newBoolQuery(params)
 	}
 
-	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), path)
+	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), params.path)
 }
 
 func firstVal(m map[string]interface{}) (string, interface{}) {
