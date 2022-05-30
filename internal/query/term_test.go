@@ -9,7 +9,50 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_term(t *testing.T) {
+func Test_newTermQuery(t *testing.T) {
+	data := []struct {
+		name      string
+		data      map[string]interface{}
+		erroneous bool
+	}{
+		{
+			name:      "empty",
+			data:      map[string]interface{}{},
+			erroneous: true,
+		},
+		{
+			name: "multiple_fields",
+			data: map[string]interface{}{
+				"f1": "1", "f2": "2",
+			},
+			erroneous: true,
+		},
+
+		{
+			name: "ok",
+			data: map[string]interface{}{
+				"f1": "1",
+			},
+			erroneous: false,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			tq, err := newTermQuery(queryParams{data: d.data})
+			if d.erroneous {
+				require.NotNil(t, err)
+				require.Nil(t, tq)
+				return
+			}
+
+			require.Nil(t, err)
+			require.NotNil(t, tq)
+		})
+	}
+}
+
+func Test_termQuery_exec(t *testing.T) {
 	bm := roaring.New()
 	bm.Add(1)
 
@@ -20,20 +63,6 @@ func Test_term(t *testing.T) {
 		erroneous bool
 		expected  *roaring.Bitmap
 	}{
-		{
-			name:      "empty",
-			data:      map[string]interface{}{},
-			fieldName: "f1",
-			erroneous: true,
-		},
-		{
-			name: "multiple_fields",
-			data: map[string]interface{}{
-				"f1": "1", "f2": "2",
-			},
-			fieldName: "f1",
-			erroneous: true,
-		},
 		{
 			name: "field_not_found",
 			data: map[string]interface{}{
@@ -74,7 +103,13 @@ func Test_term(t *testing.T) {
 				d.fieldName: f,
 			}
 
-			bm, err := execTerm(d.data, fields, "")
+			tq, err := newTermQuery(queryParams{
+				data:   d.data,
+				fields: fields,
+			})
+			require.Nil(t, err)
+
+			bm, err := tq.exec()
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, bm)
@@ -83,6 +118,48 @@ func Test_term(t *testing.T) {
 
 			require.Nil(t, err)
 			require.Equal(t, d.expected, bm)
+		})
+	}
+}
+
+func Test_newTermsQuery(t *testing.T) {
+	data := []struct {
+		name      string
+		data      map[string]interface{}
+		erroneous bool
+	}{
+		{
+			name:      "empty",
+			data:      map[string]interface{}{},
+			erroneous: true,
+		},
+		{
+			name: "multiple_fields",
+			data: map[string]interface{}{
+				"f1": []string{"1"}, "f2": []string{"2"},
+			},
+			erroneous: true,
+		},
+		{
+			name: "ok",
+			data: map[string]interface{}{
+				"f1": []string{"1"},
+			},
+			erroneous: false,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			tq, err := newTermsQuery(queryParams{data: d.data})
+			if d.erroneous {
+				require.NotNil(t, err)
+				require.Nil(t, tq)
+				return
+			}
+
+			require.Nil(t, err)
+			require.NotNil(t, tq)
 		})
 	}
 }
@@ -101,28 +178,6 @@ func Test_execTerms(t *testing.T) {
 		erroneous   bool
 		expected    *roaring.Bitmap
 	}{
-		{
-			name:      "empty",
-			data:      map[string]interface{}{},
-			fieldName: "f1",
-			fieldValues: map[string][]uint32{
-				"1": {1, 2},
-				"2": {1, 2, 3},
-			},
-			erroneous: true,
-		},
-		{
-			name: "multiple_fields",
-			data: map[string]interface{}{
-				"f1": []string{"1"}, "f2": []string{"2"},
-			},
-			fieldName: "f1",
-			fieldValues: map[string][]uint32{
-				"1": {1, 2},
-				"2": {1, 2, 3},
-			},
-			erroneous: true,
-		},
 		{
 			name: "values_not_an_array",
 			data: map[string]interface{}{
@@ -189,7 +244,10 @@ func Test_execTerms(t *testing.T) {
 			}
 			fields := map[string]field.Field{d.fieldName: f}
 
-			bm, err := execTerms(d.data, fields, "")
+			tq, err := newTermsQuery(queryParams{data: d.data, fields: fields})
+			require.Nil(t, err)
+
+			bm, err := tq.exec()
 			if d.erroneous {
 				require.NotNil(t, err)
 				require.Nil(t, bm)

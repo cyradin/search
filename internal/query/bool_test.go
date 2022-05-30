@@ -8,18 +8,19 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_execBool(t *testing.T) {
+func Test_newBoolQuery(t *testing.T) {
 	data := []struct {
 		name      string
 		query     string
 		erroneous bool
-		expected  []uint32
+		shouldCnt int
+		mustCnt   int
+		filterCnt int
 	}{
 		{
 			name:      "empty_query_return_all",
 			query:     `{}`,
 			erroneous: false,
-			expected:  []uint32{1, 2},
 		},
 		{
 			name: "error_array_required",
@@ -48,6 +49,80 @@ func Test_execBool(t *testing.T) {
 			}
 			`,
 			erroneous: true,
+		},
+		{
+			name: "ok",
+			query: `
+			{
+				"should": [
+					{
+						"term": {
+							"field": true
+						}
+					},
+					{
+						"term": {
+							"field": false
+						}
+					}
+				],
+				"must": [
+					{
+						"term": {
+							"field": true
+						}
+					}
+				],
+				"filter": [
+					{
+						"term": {
+							"field": true
+						}
+					}
+				]
+			}
+			`,
+			erroneous: false,
+			shouldCnt: 2,
+			mustCnt:   1,
+			filterCnt: 1,
+		},
+	}
+
+	for _, d := range data {
+		t.Run(d.name, func(t *testing.T) {
+			query, err := decodeQuery(d.query)
+			require.NoError(t, err)
+
+			bq, err := newBoolQuery(queryParams{
+				data: query,
+			})
+			if d.erroneous {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+
+			require.Len(t, bq.should, d.shouldCnt)
+			require.Len(t, bq.filter, d.filterCnt)
+			require.Len(t, bq.must, d.mustCnt)
+		})
+	}
+}
+
+func Test_boolQuery_exec(t *testing.T) {
+	data := []struct {
+		name      string
+		query     string
+		erroneous bool
+		expected  []uint32
+	}{
+		{
+			name:      "empty_query_return_all",
+			query:     `{}`,
+			erroneous: false,
+			expected:  []uint32{1, 2},
 		},
 		{
 			name: "ok_bool_should",
@@ -118,338 +193,35 @@ func Test_execBool(t *testing.T) {
 		t.Run(d.name, func(t *testing.T) {
 			f1 := field.NewBool(context.Background(), "")
 			err := f1.AddValueSync(1, true)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			err = f1.AddValueSync(2, false)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			f2 := field.NewAll(context.Background(), "")
-			require.Nil(t, err)
+			require.NoError(t, err)
 			err = f2.AddValueSync(1, true)
-			require.Nil(t, err)
+			require.NoError(t, err)
 			err = f2.AddValueSync(2, false)
-			require.Nil(t, err)
+			require.NoError(t, err)
 
-			query, err := decodeQuery(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
+			data, err := decodeQuery(d.query)
+			require.NoError(t, err)
+			require.NoError(t, err)
 
-			result, err := execBool(query, map[string]field.Field{"field": f1, field.AllField: f2}, "")
-			if d.erroneous {
-				require.NotNil(t, err)
-				require.Nil(t, result)
-				return
-			}
-
-			require.Nil(t, err)
-
-			vals := make([]uint32, 0)
-			result.Iterate(func(x uint32) bool {
-				vals = append(vals, x)
-				return true
+			bq, err := newBoolQuery(queryParams{
+				data:   data,
+				fields: map[string]field.Field{"field": f1, field.AllField: f2},
 			})
-			require.EqualValues(t, d.expected, vals)
-		})
-	}
-}
+			require.NoError(t, err)
 
-func Test_execBoolShould(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-		expected  []uint32
-	}{
-		{
-			name:      "empty_query",
-			query:     `[]`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-		{
-			name: "ok_same_values",
-			query: `
-			[
-				{
-					"term": {
-						"field": "1"
-					}
-				},
-				{
-					"term": {
-						"field": "1"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-		{
-			name: "ok_union",
-			query: `
-			[
-				{
-					"term": {
-						"field": "1"
-					}
-				},
-				{
-					"term": {
-						"field": "2"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1, 2},
-		},
-		{
-			name: "ok_nothing_found",
-			query: `
-			[
-				{
-					"term": {
-						"field": "3"
-					}
-				},
-				{
-					"term": {
-						"field": "4"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewKeyword(context.Background(), "")
-			err := f1.AddValueSync(1, "1")
-			require.Nil(t, err)
-			err = f1.AddValueSync(2, "2")
-			require.Nil(t, err)
-
-			query, err := decodeQuerySlice(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
-
-			result, err := execBoolShould(query, map[string]field.Field{"field": f1}, "")
+			result, err := bq.exec()
 			if d.erroneous {
-				require.NotNil(t, err)
+				require.Error(t, err)
 				require.Nil(t, result)
 				return
 			}
 
-			require.Nil(t, err)
-
-			vals := make([]uint32, 0)
-			result.Iterate(func(x uint32) bool {
-				vals = append(vals, x)
-				return true
-			})
-			require.EqualValues(t, d.expected, vals)
-		})
-	}
-}
-
-func Test_execBoolMust(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-		expected  []uint32
-	}{
-		{
-			name:      "empty_query",
-			query:     `[]`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-		{
-			name: "ok_same_values",
-			query: `
-			[
-				{
-					"term": {
-						"field": "1"
-					}
-				},
-				{
-					"term": {
-						"field": "1"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-		{
-			name: "ok_intersection",
-			query: `
-			[
-				{
-					"terms": {
-						"field": ["1", "2"]
-					}
-				},
-				{
-					"term": {
-						"field": "1"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-		{
-			name: "ok_nothing_found",
-			query: `
-			[
-				{
-					"term": {
-						"field": "3"
-					}
-				},
-				{
-					"term": {
-						"field": "4"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewKeyword(context.Background(), "")
-			err := f1.AddValueSync(1, "1")
-			require.Nil(t, err)
-			err = f1.AddValueSync(2, "2")
-			require.Nil(t, err)
-
-			query, err := decodeQuerySlice(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
-
-			result, err := execBoolMust(query, map[string]field.Field{"field": f1}, "")
-			if d.erroneous {
-				require.NotNil(t, err)
-				require.Nil(t, result)
-				return
-			}
-
-			require.Nil(t, err)
-
-			vals := make([]uint32, 0)
-			result.Iterate(func(x uint32) bool {
-				vals = append(vals, x)
-				return true
-			})
-			require.EqualValues(t, d.expected, vals)
-		})
-	}
-}
-
-func Test_execBoolFilter(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-		expected  []uint32
-	}{
-		{
-			name:      "empty_query",
-			query:     `[]`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-		{
-			name: "ok_same_values",
-			query: `
-			[
-				{
-					"term": {
-						"field": "1"
-					}
-				},
-				{
-					"term": {
-						"field": "1"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-		{
-			name: "ok_intersection",
-			query: `
-			[
-				{
-					"terms": {
-						"field": ["1", "2"]
-					}
-				},
-				{
-					"term": {
-						"field": "1"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-		{
-			name: "ok_nothing_found",
-			query: `
-			[
-				{
-					"term": {
-						"field": "3"
-					}
-				},
-				{
-					"term": {
-						"field": "4"
-					}
-				}
-			]
-			`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewKeyword(context.Background(), "")
-			err := f1.AddValueSync(1, "1")
-			require.Nil(t, err)
-			err = f1.AddValueSync(2, "2")
-			require.Nil(t, err)
-
-			query, err := decodeQuerySlice(d.query)
-			require.Nil(t, err)
-			require.Nil(t, err)
-
-			result, err := execBoolFilter(query, map[string]field.Field{"field": f1}, "")
-			if d.erroneous {
-				require.NotNil(t, err)
-				require.Nil(t, result)
-				return
-			}
-
-			require.Nil(t, err)
+			require.NoError(t, err)
 
 			vals := make([]uint32, 0)
 			result.Iterate(func(x uint32) bool {
