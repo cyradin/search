@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cyradin/search/internal/query"
+	"github.com/cyradin/search/internal/index/query"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
