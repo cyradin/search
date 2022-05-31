@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index"
+	"github.com/cyradin/search/internal/index/entity"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"

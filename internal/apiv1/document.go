@@ -4,8 +4,8 @@ import (
 	"errors"
 	"net/http"
 
-	"github.com/cyradin/search/internal/entity"
 	"github.com/cyradin/search/internal/index"
+	"github.com/cyradin/search/internal/index/entity"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )

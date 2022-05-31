@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	"github.com/cyradin/search/internal/entity"
+	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"

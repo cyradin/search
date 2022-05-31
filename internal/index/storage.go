@@ -7,7 +7,7 @@ import (
 	"path"
 	"sync"
 
-	"github.com/cyradin/search/internal/entity"
+	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/pkg/finisher"
 	"github.com/google/uuid"
 
