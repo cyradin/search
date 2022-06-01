@@ -11,9 +11,10 @@ func Test_Storage_Add(t *testing.T) {
 		name string
 		data []testStorageData
 
-		indexCnt map[string]int
-		docCnt   map[uint32]map[string]int
-		docLen   map[uint32]int
+		indexCnt  map[string]int
+		docCnt    map[uint32]map[string]int
+		docLen    map[uint32]int
+		avgDocLen float64
 	}{
 		{
 			name:     "empty_data",
@@ -36,6 +37,7 @@ func Test_Storage_Add(t *testing.T) {
 			docLen: map[uint32]int{
 				1: 3,
 			},
+			avgDocLen: 3,
 		},
 		{
 			name: "two",
@@ -55,6 +57,7 @@ func Test_Storage_Add(t *testing.T) {
 			docLen: map[uint32]int{
 				1: 3, 2: 4,
 			},
+			avgDocLen: 3.5,
 		},
 		{
 			name: "replace",
@@ -72,6 +75,7 @@ func Test_Storage_Add(t *testing.T) {
 			docLen: map[uint32]int{
 				1: 4,
 			},
+			avgDocLen: 4,
 		},
 	}
 
@@ -85,6 +89,7 @@ func Test_Storage_Add(t *testing.T) {
 			require.EqualValues(t, d.indexCnt, storage.wordCounts)
 			require.EqualValues(t, d.docCnt, storage.docCounts)
 			require.EqualValues(t, d.docLen, storage.docLengths)
+			require.Equal(t, d.avgDocLen, storage.AvgDocLen())
 		})
 	}
 }
@@ -95,9 +100,10 @@ func Test_Storage_Delete(t *testing.T) {
 		data   []testStorageData
 		delete []uint32
 
-		indexCnt map[string]int
-		docCnt   map[uint32]map[string]int
-		docLen   map[uint32]int
+		indexCnt  map[string]int
+		docCnt    map[uint32]map[string]int
+		docLen    map[uint32]int
+		avgDocLen float64
 	}{
 		{
 			name:     "empty_data",
@@ -122,35 +128,41 @@ func Test_Storage_Delete(t *testing.T) {
 			docLen: map[uint32]int{
 				1: 3,
 			},
+			avgDocLen: 3,
 		},
 		{
 			name: "one_delete",
 			data: []testStorageData{
 				{id: 1, words: []string{"foo", "bar", "bar"}},
 			},
-			delete:   []uint32{1},
-			indexCnt: map[string]int{},
-			docCnt:   map[uint32]map[string]int{},
-			docLen:   map[uint32]int{},
+			delete:    []uint32{1},
+			indexCnt:  map[string]int{},
+			docCnt:    map[uint32]map[string]int{},
+			docLen:    map[uint32]int{},
+			avgDocLen: 0,
 		},
 		{
-			name: "two_delete_one",
+			name: "three_delete_one",
 			data: []testStorageData{
 				{id: 1, words: []string{"foo", "bar", "bar"}},
 				{id: 2, words: []string{"foo", "bar", "baz", "baz"}},
+				{id: 3, words: []string{"foo"}},
 			},
 			delete: []uint32{1},
 			indexCnt: map[string]int{
-				"foo": 1,
+				"foo": 2,
 				"bar": 1,
 				"baz": 1,
 			},
 			docCnt: map[uint32]map[string]int{
 				2: {"foo": 1, "bar": 1, "baz": 2},
+				3: {"foo": 1},
 			},
 			docLen: map[uint32]int{
 				2: 4,
+				3: 1,
 			},
+			avgDocLen: 2.5,
 		},
 	}
 
@@ -168,6 +180,7 @@ func Test_Storage_Delete(t *testing.T) {
 			require.EqualValues(t, d.indexCnt, storage.wordCounts)
 			require.EqualValues(t, d.docCnt, storage.docCounts)
 			require.EqualValues(t, d.docLen, storage.docLengths)
+			require.Equal(t, d.avgDocLen, storage.AvgDocLen())
 		})
 	}
 }

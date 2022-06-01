@@ -79,6 +79,13 @@ func (s *Storage) DocLen(docID uint32) int {
 	return s.docLengths[docID]
 }
 
+func (s *Storage) AvgDocLen() float64 {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	return s.avgDocLen
+}
+
 func (s *Storage) add(docID uint32, terms []string) {
 	if _, ok := s.docCounts[docID]; ok {
 		s.Delete(docID)
@@ -106,6 +113,7 @@ func (s *Storage) add(docID uint32, terms []string) {
 		s.totalWordCnt += cnt
 	}
 
+	s.calcAvgDocLength()
 }
 
 func (s *Storage) delete(docID uint32) {
@@ -123,4 +131,14 @@ func (s *Storage) delete(docID uint32) {
 	}
 	delete(s.docCounts, docID)
 	delete(s.docLengths, docID)
+	s.calcAvgDocLength()
+}
+
+func (s *Storage) calcAvgDocLength() {
+	docCnt := float64(len(s.docCounts))
+	if docCnt == 0 {
+		s.avgDocLen = 0
+	} else {
+		s.avgDocLen = float64(s.totalWordCnt) / docCnt
+	}
 }
