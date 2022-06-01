@@ -2,87 +2,42 @@ package relevance
 
 import (
 	"math"
-	"sync"
 )
 
+var _ Calculator = (*TFIDF)(nil)
+
 type TFIDF struct {
-	mtx         sync.Mutex
-	indexCounts map[string]int            // count of docs containing a word
-	docCounts   map[uint32]map[string]int // number of times a word occurs in a document
-	docLen      map[uint32]int            // lengths of docs
+	storage *Storage
 }
 
-func NewTFIDF() *TFIDF {
+func NewTFIDF(s *Storage) *TFIDF {
 	return &TFIDF{
-		indexCounts: make(map[string]int),
-		docCounts:   make(map[uint32]map[string]int),
-		docLen:      make(map[uint32]int),
+		storage: s,
 	}
 }
 
-func (t *TFIDF) Add(docID uint32, terms []string) {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
+func (t *TFIDF) TF(docID uint32, word string) float64 {
+	docCnt := t.storage.DocWordCount(docID, word)
+	docLen := t.storage.DocLen(docID)
 
-	counts := make(map[string]int)
-	for _, term := range terms {
-		counts[term]++
+	if docCnt == 0 || docLen == 0 {
+		return 0
 	}
 
-	oldDocFreqs := t.docCounts[docID]
-	for term := range oldDocFreqs {
-		t.indexCounts[term]--
-		if t.indexCounts[term] <= 0 {
-			delete(t.indexCounts, term)
-		}
-	}
-
-	t.docCounts[docID] = make(map[string]int)
-	t.docLen[docID] = len(terms)
-	for term, freq := range counts {
-		t.docCounts[docID][term] = freq
-		t.indexCounts[term]++
-	}
+	return float64(docCnt) / float64(docLen)
 }
 
-func (t *TFIDF) Delete(docID uint32) {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
+func (t *TFIDF) IDF(docID uint32, word string) float64 {
+	wordCnt := float64(t.storage.IndexWordCount(word))
+	totalCnt := float64(t.storage.IndexDocCount())
 
-	m, ok := t.docCounts[docID]
-	if !ok {
-		return
+	if wordCnt == 0 || totalCnt == 0 {
+		return 0
 	}
-	for term := range m {
-		t.indexCounts[term]--
-		if t.indexCounts[term] <= 0 {
-			delete(t.indexCounts, term)
-		}
-	}
-	delete(t.docCounts, docID)
-	delete(t.docLen, docID)
+
+	return math.Log(totalCnt/wordCnt) + 1
 }
 
 func (t *TFIDF) Calculate(docID uint32, word string) float64 {
-	t.mtx.Lock()
-	defer t.mtx.Unlock()
-
-	m, ok := t.docCounts[docID]
-	if !ok {
-		return 0
-	}
-
-	docCnt := float64(m[word])
-	docLen := float64(t.docLen[docID])
-	indexCnt := float64(t.indexCounts[word])
-	indexDocCnt := float64(len(t.docLen)) // total doc count
-
-	if docLen == 0 || docCnt == 0 || indexCnt == 0 || indexDocCnt == 0 {
-		return 0
-	}
-
-	tf := docCnt / docLen
-	idf := math.Log(indexDocCnt/indexCnt) + 1
-
-	return tf * idf
+	return t.TF(docID, word) * t.IDF(docID, word)
 }
