@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/pkg/finisher"
+	"github.com/cyradin/search/internal/events"
 )
 
 type Type string
@@ -100,7 +100,9 @@ func (f *field[T]) init() error {
 	if err != nil {
 		return err
 	}
-	finisher.Add(f)
+	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+		f.Stop(ctx)
+	})
 
 	return nil
 }

@@ -7,8 +7,8 @@ import (
 	"path"
 	"sync"
 
+	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/entity"
-	"github.com/cyradin/search/pkg/finisher"
 	"github.com/google/uuid"
 
 	jsoniter "github.com/json-iterator/go"
@@ -233,7 +233,9 @@ func NewIndexStorage(src string) (*FileStorage[entity.Index], error) {
 	if err != nil {
 		return nil, err
 	}
-	finisher.Add(storage)
+	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+		storage.Stop(ctx)
+	})
 
 	return storage, nil
 }
@@ -248,6 +250,9 @@ func NewIndexSourceStorage(src string, name string) (*FileStorage[entity.DocSour
 	if err != nil {
 		return nil, err
 	}
-	finisher.Add(storage)
+	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+		storage.Stop(ctx)
+	})
+
 	return storage, nil
 }
