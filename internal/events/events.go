@@ -37,15 +37,13 @@ func NewEventDispatcher() *EventDispatcher {
 }
 
 func (d *EventDispatcher) Dispatch(ctx context.Context, e Event) {
-	go func(ctx context.Context) {
-		d.handlersMtx.RLock()
-		defer d.handlersMtx.RUnlock()
-		if handlers, ok := d.handlersStore[e.Code()]; ok {
-			for _, handler := range handlers {
-				handler(ctx, e)
-			}
+	d.handlersMtx.RLock()
+	defer d.handlersMtx.RUnlock()
+	if handlers, ok := d.handlersStore[e.Code()]; ok {
+		for _, handler := range handlers {
+			handler(ctx, e)
 		}
-	}(ctx)
+	}
 }
 
 func (d *EventDispatcher) Subscribe(e Event, h Handler) {

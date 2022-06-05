@@ -2,7 +2,6 @@ package events
 
 import (
 	"context"
-	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -18,23 +17,18 @@ func Test_EventDispatcher_Dispatch(t *testing.T) {
 	e := testEvent{}
 	d := NewEventDispatcher()
 
-	wg := sync.WaitGroup{}
-	wg.Add(2)
 	executed := 0
 
 	d.handlersStore[e.Code()] = []Handler{
 		func(ctx context.Context, e Event) {
-			wg.Done()
 			executed++
 		},
 		func(ctx context.Context, e Event) {
-			wg.Done()
 			executed++
 		},
 	}
 
 	d.Dispatch(context.Background(), e)
-	wg.Wait()
 
 	require.Equal(t, 2, executed)
 }
@@ -43,12 +37,9 @@ func Test_EventDispatcher_Subscribe(t *testing.T) {
 	e := testEvent{}
 	d := NewEventDispatcher()
 
-	wg := sync.WaitGroup{}
-	wg.Add(3)
 	executed := 0
 
 	f := func(ctx context.Context, e Event) {
-		wg.Done()
 		executed++
 	}
 
@@ -57,7 +48,6 @@ func Test_EventDispatcher_Subscribe(t *testing.T) {
 	d.Subscribe(e, f)
 
 	d.Dispatch(context.Background(), e)
-	wg.Wait()
 
 	require.Equal(t, 3, executed)
 }
