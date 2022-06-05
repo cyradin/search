@@ -14,18 +14,15 @@ func (e testEvent) Code() string {
 	return "test"
 }
 
-func Test_Dispatch(t *testing.T) {
-	t.Cleanup(func() {
-		handlersStore = map[string][]Handler{}
-	})
-
+func Test_EventDispatcher_Dispatch(t *testing.T) {
 	e := testEvent{}
+	d := NewEventDispatcher()
 
 	wg := sync.WaitGroup{}
 	wg.Add(2)
 	executed := 0
 
-	handlersStore[e.Code()] = []Handler{
+	d.handlersStore[e.Code()] = []Handler{
 		func(ctx context.Context, e Event) {
 			wg.Done()
 			executed++
@@ -36,18 +33,15 @@ func Test_Dispatch(t *testing.T) {
 		},
 	}
 
-	Dispatch(context.Background(), e)
+	d.Dispatch(context.Background(), e)
 	wg.Wait()
 
 	require.Equal(t, 2, executed)
 }
 
-func Test_Subscribe(t *testing.T) {
-	t.Cleanup(func() {
-		handlersStore = map[string][]Handler{}
-	})
-
+func Test_EventDispatcher_Subscribe(t *testing.T) {
 	e := testEvent{}
+	d := NewEventDispatcher()
 
 	wg := sync.WaitGroup{}
 	wg.Add(3)
@@ -58,26 +52,23 @@ func Test_Subscribe(t *testing.T) {
 		executed++
 	}
 
-	Subscribe(e, f)
-	Subscribe(e, f)
-	Subscribe(e, f)
+	d.Subscribe(e, f)
+	d.Subscribe(e, f)
+	d.Subscribe(e, f)
 
-	Dispatch(context.Background(), e)
+	d.Dispatch(context.Background(), e)
 	wg.Wait()
 
 	require.Equal(t, 3, executed)
 }
 
-func Test_Unsubscribe(t *testing.T) {
-	t.Cleanup(func() {
-		handlersStore = map[string][]Handler{}
-	})
-
+func Test_EventDispatcher_Unsubscribe(t *testing.T) {
 	e := testEvent{}
+	d := NewEventDispatcher()
 
 	f := func(ctx context.Context, e Event) {}
-	Subscribe(e, f)
-	require.Len(t, handlersStore, 1)
-	Unsubscribe(e)
-	require.Len(t, handlersStore, 0)
+	d.Subscribe(e, f)
+	require.Len(t, d.handlersStore, 1)
+	d.Unsubscribe(e)
+	require.Len(t, d.handlersStore, 0)
 }
