@@ -15,8 +15,8 @@ type testDoc struct {
 	Properties map[string][]string `json:"properties"`
 }
 
-var testDoc1 = Document[testDoc]{
-	ID: "1",
+var testDoc1 = Document[uint32, testDoc]{
+	ID: 1,
 	Source: testDoc{
 		ID:   "1",
 		Name: "foo",
@@ -25,8 +25,8 @@ var testDoc1 = Document[testDoc]{
 		},
 	},
 }
-var testDoc2 = Document[testDoc]{
-	ID: "2",
+var testDoc2 = Document[uint32, testDoc]{
+	ID: 2,
 	Source: testDoc{
 		ID:   "2",
 		Name: "bar",
@@ -36,15 +36,15 @@ var testDoc2 = Document[testDoc]{
 	},
 }
 
-func Test_File_All(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_All(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name      string
 		file      string
-		expected  []Document[T]
+		expected  []Document[K, T]
 		erroneous bool
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
@@ -54,13 +54,13 @@ func Test_File_All(t *testing.T) {
 			name:      "ok",
 			file:      "../../test/testdata/document/storage_file.json",
 			erroneous: false,
-			expected:  []Document[testDoc]{testDoc1, testDoc2},
+			expected:  []Document[uint32, testDoc]{testDoc1, testDoc2},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc](d.file)
+			p, err := NewFileStorage[uint32, testDoc](d.file)
 			if d.erroneous {
 				require.Error(t, err)
 				return
@@ -69,7 +69,7 @@ func Test_File_All(t *testing.T) {
 
 			docs, errors := p.All()
 
-			var result []Document[testDoc]
+			var result []Document[uint32, testDoc]
 			a := func() {
 				for {
 					select {
@@ -88,40 +88,40 @@ func Test_File_All(t *testing.T) {
 	}
 }
 
-func Test_File_One(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_One(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name      string
 		file      string
-		id        string
-		expected  Document[T]
+		id        uint32
+		expected  Document[K, T]
 		erroneous bool
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
-			id:        "",
+			id:        0,
 			erroneous: true,
 		},
 		{
 			name:      "ok",
 			file:      "../../test/testdata/document/storage_file.json",
-			id:        "1",
+			id:        1,
 			erroneous: false,
 			expected:  testDoc1,
 		},
 		{
 			name:      "not_found",
 			file:      "../../test/testdata/document/storage_file.json",
-			id:        "3",
+			id:        3,
 			erroneous: true,
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc](d.file)
+			p, err := NewFileStorage[uint32, testDoc](d.file)
 			require.NoError(t, err)
 
 			doc, err := p.One(d.id)
@@ -136,48 +136,48 @@ func Test_File_One(t *testing.T) {
 	}
 }
 
-func Test_File_Multi(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_Multi(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name      string
 		file      string
-		ids       []string
-		expected  []Document[T]
+		ids       []uint32
+		expected  []Document[K, T]
 		erroneous bool
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "invalid_file",
 			file:      "invalid",
 			erroneous: false,
-			expected:  []Document[testDoc]{},
+			expected:  []Document[uint32, testDoc]{},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []string{"1"},
+			ids:       []uint32{1},
 			erroneous: false,
-			expected:  []Document[testDoc]{testDoc1},
+			expected:  []Document[uint32, testDoc]{testDoc1},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []string{"1", "2"},
+			ids:       []uint32{1, 2},
 			erroneous: false,
-			expected:  []Document[testDoc]{testDoc1, testDoc2},
+			expected:  []Document[uint32, testDoc]{testDoc1, testDoc2},
 		},
 		{
 			name:      "not_found",
 			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []string{"3"},
+			ids:       []uint32{3},
 			erroneous: false,
-			expected:  []Document[testDoc]{},
+			expected:  []Document[uint32, testDoc]{},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc](d.file)
+			p, err := NewFileStorage[uint32, testDoc](d.file)
 			require.NoError(t, err)
 
 			docs, err := p.Multi(d.ids...)
@@ -192,88 +192,83 @@ func Test_File_Multi(t *testing.T) {
 	}
 }
 
-func Test_File_Insert(t *testing.T) {
-	type testData[T any] struct {
-		name       string
-		id         string
-		docs       map[string]Document[T]
-		erroneous  bool
-		expectedId string
+func Test_FileStorage_Insert(t *testing.T) {
+	type testData[K StorageID, T any] struct {
+		name      string
+		docs      map[uint32]Document[uint32, T]
+		erroneous bool
+		expected  uint32
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "ok",
 			erroneous: false,
-			id:        "id",
-			docs:      make(map[string]Document[testDoc]),
+			docs:      make(map[uint32]Document[uint32, testDoc]),
+			expected:  1,
 		},
 		{
 			name:      "already_exists",
 			erroneous: true,
-			docs: map[string]Document[testDoc]{
-				"id": {},
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
-			id: "id",
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc]("")
-			p.idGenerator = func() string {
-				return d.id
-			}
+			p, err := NewFileStorage[uint32, testDoc]("")
 			require.NoError(t, err)
 
 			p.docs = d.docs
 
-			id, err := p.Insert(d.id, testDoc{})
+			id, err := p.Insert(0, testDoc{})
 			if d.erroneous {
 				require.Error(t, err)
 				return
 			}
 
 			require.NoError(t, err)
-			require.Equal(t, d.id, id)
+			require.Equal(t, d.expected, id)
 		})
 	}
 }
 
-func Test_File_Update(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_Update(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name      string
-		id        string
-		docs      map[string]Document[T]
+		id        uint32
+		docs      map[uint32]Document[uint32, T]
 		erroneous bool
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "empty_id",
 			erroneous: true,
-			id:        "",
-			docs:      make(map[string]Document[testDoc]),
+			id:        0,
+			docs:      make(map[uint32]Document[uint32, testDoc]),
 		},
 		{
 			name:      "not_exists",
 			erroneous: true,
-			id:        "id",
-			docs:      make(map[string]Document[testDoc]),
+			id:        1,
+			docs:      make(map[uint32]Document[uint32, testDoc]),
 		},
 		{
 			name:      "ok",
 			erroneous: false,
-			id:        "id",
-			docs: map[string]Document[testDoc]{
-				"id": {},
+			id:        1,
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc]("")
+			p, err := NewFileStorage[uint32, testDoc]("")
 			require.NoError(t, err)
 
 			p.docs = d.docs
@@ -288,52 +283,52 @@ func Test_File_Update(t *testing.T) {
 	}
 }
 
-func Test_File_Delete(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_Delete(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name         string
-		id           string
-		docs         map[string]Document[T]
+		id           uint32
+		docs         map[uint32]Document[uint32, T]
 		erroneous    bool
-		expectedDocs map[string]Document[T]
+		expectedDocs map[uint32]Document[uint32, T]
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:      "empty_id",
 			erroneous: true,
-			id:        "",
-			docs: map[string]Document[testDoc]{
-				"id": {},
+			id:        0,
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
-			expectedDocs: map[string]Document[testDoc]{
-				"id": {},
+			expectedDocs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
 		},
 		{
 			name:      "not_exists",
 			erroneous: true,
-			id:        "id2",
-			docs: map[string]Document[testDoc]{
-				"id": {},
+			id:        2,
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
-			expectedDocs: map[string]Document[testDoc]{
-				"id": {},
+			expectedDocs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
 		},
 		{
 			name:      "ok",
 			erroneous: false,
-			id:        "id",
-			docs: map[string]Document[testDoc]{
-				"id": {},
+			id:        1,
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {},
 			},
-			expectedDocs: map[string]Document[testDoc]{},
+			expectedDocs: map[uint32]Document[uint32, testDoc]{},
 		},
 	}
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[testDoc]("")
+			p, err := NewFileStorage[uint32, testDoc]("")
 			require.NoError(t, err)
 
 			p.docs = d.docs
@@ -349,24 +344,24 @@ func Test_File_Delete(t *testing.T) {
 	}
 }
 
-func Test_File_Stop(t *testing.T) {
-	type testData[T any] struct {
+func Test_FileStorage_Stop(t *testing.T) {
+	type testData[K StorageID, T any] struct {
 		name     string
-		docs     map[string]Document[T]
+		docs     map[uint32]Document[uint32, T]
 		expected string
 	}
 
-	data := []testData[testDoc]{
+	data := []testData[uint32, testDoc]{
 		{
 			name:     "empty",
-			docs:     make(map[string]Document[testDoc]),
+			docs:     make(map[uint32]Document[uint32, testDoc]),
 			expected: "[]",
 		},
 		{
 			name: "not empty",
-			docs: map[string]Document[testDoc]{
-				"id": {
-					ID: "id",
+			docs: map[uint32]Document[uint32, testDoc]{
+				1: {
+					ID: 1,
 					Source: testDoc{
 						ID:   "id",
 						Name: "name",
@@ -379,8 +374,8 @@ func Test_File_Stop(t *testing.T) {
 			expected: `
 				[
 					{
-						"_id": "id",
-						"_source": {
+						"id": 1,
+						"source": {
 							"id": "id",
 							"name": "name",
 							"properties": {
@@ -400,7 +395,7 @@ func Test_File_Stop(t *testing.T) {
 
 			file := filepath.Join(dir, "storage.json")
 
-			p, err := NewFileStorage[testDoc](file)
+			p, err := NewFileStorage[uint32, testDoc](file)
 			require.NoError(t, err)
 
 			p.docs = d.docs
