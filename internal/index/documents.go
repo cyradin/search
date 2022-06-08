@@ -28,20 +28,13 @@ type Documents struct {
 	fieldsMtx sync.RWMutex
 	fields    map[string]field.Field
 
-	idGet idGetter
-	idSet idSetter
-
-	sourceStorage Storage[entity.DocSource]
+	sourceStorage Storage[uint32, entity.DocSource]
 }
 
-func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[entity.DocSource], fieldPath string) (*Documents, error) {
-	ids := NewIDs(0, nil)
+func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[uint32, entity.DocSource], fieldPath string) (*Documents, error) {
 	result := &Documents{
 		index:  i,
 		fields: make(map[string]field.Field),
-
-		idGet: ids.Get,
-		idSet: ids.Set,
 
 		sourceStorage: sourceStorage,
 	}
@@ -115,36 +108,34 @@ func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src 
 	return nil
 }
 
-func (d *Documents) Add(guid string, source entity.DocSource) (string, error) {
+func (d *Documents) Add(id uint32, source entity.DocSource) (uint32, error) {
 	if err := schema.ValidateDoc(d.index.Schema, source); err != nil {
-		return guid, fmt.Errorf("source validation err: %w", err)
+		return 0, fmt.Errorf("source validation err: %w", err)
 	}
 
-	guid, err := d.sourceStorage.Insert(guid, source)
+	id, err := d.sourceStorage.Insert(id, source)
 	if err != nil {
-		return guid, fmt.Errorf("source insert err: %w", err)
+		return id, fmt.Errorf("source insert err: %w", err)
 	}
-
-	id := d.idSet(guid)
 
 	for key, value := range source {
 		if f, ok := d.fields[key]; ok {
 			err := f.AddValue(id, value)
 			if err != nil {
-				return guid, fmt.Errorf("field value insert err: %w", err)
+				return id, fmt.Errorf("field value insert err: %w", err)
 			}
 			err = d.fields[field.AllField].AddValue(id, value)
 			if err != nil {
-				return guid, fmt.Errorf("field value insert err: %w", err)
+				return id, fmt.Errorf("field value insert err: %w", err)
 			}
 		}
 	}
 
-	return guid, nil
+	return id, nil
 }
 
-func (d *Documents) Get(guid string) (entity.DocSource, error) {
-	doc, err := d.sourceStorage.One(guid)
+func (d *Documents) Get(id uint32) (entity.DocSource, error) {
+	doc, err := d.sourceStorage.One(id)
 	if err != nil {
 		return nil, fmt.Errorf("source get err: %w", err)
 	}

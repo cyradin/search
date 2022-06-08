@@ -3,6 +3,7 @@ package apiv1
 import (
 	"errors"
 	"net/http"
+	"strconv"
 
 	"github.com/cyradin/search/internal/index"
 	"github.com/cyradin/search/internal/index/entity"
@@ -11,7 +12,7 @@ import (
 )
 
 type Document struct {
-	ID     string                 `json:"id"`
+	ID     uint32                 `json:"id"`
 	Source map[string]interface{} `json:"source"`
 }
 
@@ -53,7 +54,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 		}
 
 		resp := struct {
-			ID string `json:"id"`
+			ID uint32 `json:"id"`
 		}{
 			ID: id,
 		}
@@ -64,7 +65,9 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 
 func (c *DocumentController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		id := chi.URLParam(r, documentParam)
+		idStr := chi.URLParam(r, documentParam)
+		id64, err := strconv.ParseUint(idStr, 10, 32)
+		id := uint32(id64)
 
 		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
 		if err != nil {
@@ -84,13 +87,8 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		resp := Document{
-			ID:     id,
-			Source: doc,
-		}
-
 		render.Status(r, http.StatusOK)
-		render.Respond(w, r, resp)
+		render.Respond(w, r, Document{ID: id, Source: doc})
 	}
 }
 

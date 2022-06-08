@@ -14,6 +14,10 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
+type StorageID interface {
+	~uint32 | ~string
+}
+
 const dirPermissions = 0755
 const filePermissions = 0644
 
@@ -23,17 +27,17 @@ var (
 	ErrEmptyDocId       = fmt.Errorf("doc id must be defined")
 )
 
-type Document[T any] struct {
-	ID     string `json:"_id"`
-	Source T      `json:"_source"`
+type Document[K StorageID, T any] struct {
+	ID     K `json:"id"`
+	Source T `json:"source"`
 }
 
-func newDocument[T any](id string, source T) Document[T] {
-	return Document[T]{ID: id, Source: source}
+func newDocument[K StorageID, T any](id K, source T) Document[K, T] {
+	return Document[K, T]{ID: id, Source: source}
 }
 
-func newDocumenFromJSON[T any](data []byte) (Document[T], error) {
-	var result Document[T]
+func newDocumenFromJSON[K StorageID, T any](data []byte) (Document[K, T], error) {
+	var result Document[K, T]
 	err := jsoniter.Unmarshal(data, &result)
 	if err != nil {
 		return result, err
@@ -42,8 +46,8 @@ func newDocumenFromJSON[T any](data []byte) (Document[T], error) {
 	return result, nil
 }
 
-func newDocumentFromJSONMulti[T any](data []byte) ([]Document[T], error) {
-	var result []Document[T]
+func newDocumentFromJSONMulti[K StorageID, T any](data []byte) ([]Document[K, T], error) {
+	var result []Document[K, T]
 	err := jsoniter.Unmarshal(data, &result)
 	if err != nil {
 		return nil, err
@@ -52,37 +56,35 @@ func newDocumentFromJSONMulti[T any](data []byte) ([]Document[T], error) {
 	return result, nil
 }
 
-type Storage[T any] interface {
-	One(id string) (Document[T], error)
-	Multi(ids ...string) ([]Document[T], error)
-	All() (<-chan Document[T], <-chan error)
+type Storage[K StorageID, T any] interface {
+	One(id K) (Document[K, T], error)
+	Multi(ids ...K) ([]Document[K, T], error)
+	All() (<-chan Document[K, T], <-chan error)
 
-	Insert(id string, doc T) (string, error)
-	Update(id string, doc T) error
-	Delete(id string) error
+	Insert(id K, doc T) (K, error)
+	Update(id K, doc T) error
+	Delete(id K) error
 }
 
-var _ Storage[bool] = (*FileStorage[bool])(nil)
+var _ Storage[uint32, bool] = (*FileStorage[uint32, bool])(nil)
 
-type FileStorage[T any] struct {
-	src         string
-	idGenerator func() string
+type FileStorage[K StorageID, T any] struct {
+	src string
 
 	docsMtx sync.RWMutex
-	docs    map[string]Document[T]
+	docs    map[K]Document[K, T]
 }
 
-func NewFileStorage[T any](src string) (*FileStorage[T], error) {
+func NewFileStorage[K StorageID, T any](src string) (*FileStorage[K, T], error) {
 	dir := path.Dir(src)
 	err := os.MkdirAll(dir, dirPermissions)
 	if err != nil {
 		return nil, err
 	}
 
-	s := &FileStorage[T]{
-		src:         src,
-		idGenerator: uuid.NewString,
-		docs:        make(map[string]Document[T]),
+	s := &FileStorage[K, T]{
+		src:  src,
+		docs: make(map[K]Document[K, T]),
 	}
 
 	if err := s.read(); err != nil {
@@ -92,8 +94,8 @@ func NewFileStorage[T any](src string) (*FileStorage[T], error) {
 	return s, nil
 }
 
-func (s *FileStorage[T]) All() (<-chan Document[T], <-chan error) {
-	ch := make(chan Document[T])
+func (s *FileStorage[K, T]) All() (<-chan Document[K, T], <-chan error) {
+	ch := make(chan Document[K, T])
 	errors := make(chan error)
 
 	go func() {
@@ -110,7 +112,7 @@ func (s *FileStorage[T]) All() (<-chan Document[T], <-chan error) {
 	return ch, errors
 }
 
-func (s *FileStorage[T]) One(id string) (Document[T], error) {
+func (s *FileStorage[K, T]) One(id K) (Document[K, T], error) {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
@@ -122,11 +124,11 @@ func (s *FileStorage[T]) One(id string) (Document[T], error) {
 	return doc, nil
 }
 
-func (s *FileStorage[T]) Multi(ids ...string) ([]Document[T], error) {
+func (s *FileStorage[K, T]) Multi(ids ...K) ([]Document[K, T], error) {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
-	result := make([]Document[T], 0, len(ids))
+	result := make([]Document[K, T], 0, len(ids))
 
 	for _, id := range ids {
 		if doc, ok := s.docs[id]; ok {
@@ -137,24 +139,26 @@ func (s *FileStorage[T]) Multi(ids ...string) ([]Document[T], error) {
 	return result, nil
 }
 
-func (s *FileStorage[T]) Insert(id string, doc T) (string, error) {
-	if id == "" {
-		id = s.idGenerator()
-	}
-
+func (s *FileStorage[K, T]) Insert(id K, doc T) (K, error) {
 	s.docsMtx.Lock()
 	defer s.docsMtx.Unlock()
 
+	var emptyId K
+	if id == emptyId {
+		id = s.nextID()
+	}
+
 	if _, ok := s.docs[id]; ok {
-		return "", ErrDocAlreadyExists
+		return id, ErrDocAlreadyExists
 	}
 	s.docs[id] = newDocument(id, doc)
 
 	return id, nil
 }
 
-func (s *FileStorage[T]) Update(id string, doc T) error {
-	if id == "" {
+func (s *FileStorage[K, T]) Update(id K, doc T) error {
+	var emptyId K
+	if id == emptyId {
 		return ErrEmptyDocId
 	}
 
@@ -169,8 +173,9 @@ func (s *FileStorage[T]) Update(id string, doc T) error {
 	return nil
 }
 
-func (s *FileStorage[T]) Delete(id string) error {
-	if id == "" {
+func (s *FileStorage[K, T]) Delete(id K) error {
+	var emptyId K
+	if id == emptyId {
 		return ErrEmptyDocId
 	}
 
@@ -185,7 +190,27 @@ func (s *FileStorage[T]) Delete(id string) error {
 	return nil
 }
 
-func (s *FileStorage[T]) read() error {
+func (s *FileStorage[K, T]) nextID() K {
+	var result K
+	switch xx := any(result).(type) {
+	case string:
+		xx = uuid.New().String()
+		return any(xx).(K)
+	case uint32:
+		for _, doc := range s.docs {
+			id := any(doc.ID).(uint32)
+			if id > xx {
+				xx = id
+			}
+		}
+		xx += 1
+		return any(xx).(K)
+	}
+
+	return result
+}
+
+func (s *FileStorage[K, T]) read() error {
 	data, err := os.ReadFile(s.src)
 	if err != nil {
 		if os.IsNotExist(err) {
@@ -194,7 +219,7 @@ func (s *FileStorage[T]) read() error {
 		return err
 	}
 
-	docs, err := newDocumentFromJSONMulti[T](data)
+	docs, err := newDocumentFromJSONMulti[K, T](data)
 	if err != nil {
 		return err
 	}
@@ -206,11 +231,11 @@ func (s *FileStorage[T]) read() error {
 	return nil
 }
 
-func (s *FileStorage[T]) Stop(ctx context.Context) error {
+func (s *FileStorage[K, T]) Stop(ctx context.Context) error {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
-	docs := make([]Document[T], 0, len(s.docs))
+	docs := make([]Document[K, T], 0, len(s.docs))
 	for _, doc := range s.docs {
 		docs = append(docs, doc)
 	}
@@ -223,13 +248,13 @@ func (s *FileStorage[T]) Stop(ctx context.Context) error {
 	return os.WriteFile(s.src, data, filePermissions)
 }
 
-func NewIndexStorage(src string) (*FileStorage[entity.Index], error) {
+func NewIndexStorage(src string) (*FileStorage[string, entity.Index], error) {
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
 		return nil, err
 	}
 
 	path := path.Join(src, "indexes.json")
-	storage, err := NewFileStorage[entity.Index](path)
+	storage, err := NewFileStorage[string, entity.Index](path)
 	if err != nil {
 		return nil, err
 	}
@@ -240,13 +265,13 @@ func NewIndexStorage(src string) (*FileStorage[entity.Index], error) {
 	return storage, nil
 }
 
-func NewIndexSourceStorage(src string, name string) (*FileStorage[entity.DocSource], error) {
+func NewIndexSourceStorage(src string, name string) (*FileStorage[uint32, entity.DocSource], error) {
 	src = path.Join(src, name)
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
 		return nil, err
 	}
 
-	storage, err := NewFileStorage[entity.DocSource](path.Join(src, "source.json"))
+	storage, err := NewFileStorage[uint32, entity.DocSource](path.Join(src, "source.json"))
 	if err != nil {
 		return nil, err
 	}

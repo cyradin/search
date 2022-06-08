@@ -16,9 +16,8 @@ var ErrIndexNotFound = fmt.Errorf("index not found")
 var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
 
 type Repository struct {
-	mtx           sync.Mutex
-	storage       Storage[entity.Index]
-	sourceStorage Storage[entity.DocSource]
+	mtx     sync.Mutex
+	storage Storage[string, entity.Index]
 
 	guidGenerate func() string
 
@@ -100,7 +99,12 @@ func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 		return ErrIndexAlreadyExists
 	}
 
-	return r.initData(ctx, index)
+	err = r.initData(ctx, index)
+	if err != nil {
+		return err
+	}
+
+	return err
 }
 
 func (r *Repository) Delete(name string) error {
