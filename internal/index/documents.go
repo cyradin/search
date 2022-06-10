@@ -120,14 +120,8 @@ func (d *Documents) Add(id uint32, source entity.DocSource) (uint32, error) {
 
 	for key, value := range source {
 		if f, ok := d.fields[key]; ok {
-			err := f.AddValue(id, value)
-			if err != nil {
-				return id, fmt.Errorf("field value insert err: %w", err)
-			}
-			err = d.fields[field.AllField].AddValue(id, value)
-			if err != nil {
-				return id, fmt.Errorf("field value insert err: %w", err)
-			}
+			f.AddValue(id, value)
+			d.fields[field.AllField].AddValue(id, value)
 		}
 	}
 

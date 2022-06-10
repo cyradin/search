@@ -28,12 +28,8 @@ func (f *Keyword) Type() Type {
 	return TypeKeyword
 }
 
-func (f *Keyword) AddValue(id uint32, value interface{}) error {
-	return f.inner.AddValue(id, value)
-}
-
-func (f *Keyword) AddValueSync(id uint32, value interface{}) error {
-	return f.inner.AddValueSync(id, value)
+func (f *Keyword) AddValue(id uint32, value interface{}) {
+	f.inner.AddValue(id, value)
 }
 
 func (f *Keyword) GetValue(value interface{}) (*roaring.Bitmap, bool) {

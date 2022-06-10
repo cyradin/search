@@ -3,102 +3,32 @@ package field
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
 
 func Test_Keyword_AddValue(t *testing.T) {
-	data := []struct {
-		name                string
-		values              []testFieldValue
-		expectedCardinality map[string]uint64
-		erroneous           bool
-	}{
-		{
-			name: "one",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value": 1,
-			},
-		},
-	}
+	t.Run("string", func(t *testing.T) {
+		value := "qwe"
+		ctx := context.Background()
+		field := NewKeyword(ctx, "")
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := NewKeyword(ctx, "")
+		field.AddValue(1, value)
+		bm, ok := field.inner.data[value]
+		require.True(t, ok)
+		require.True(t, bm.Contains(1))
+		require.EqualValues(t, 1, bm.GetCardinality())
+	})
 
-			for _, v := range d.values {
-				err := field.AddValue(v.id, v.value)
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
-				time.Sleep(time.Millisecond)
+	t.Run("bool", func(t *testing.T) {
+		ctx := context.Background()
+		field := NewKeyword(ctx, "")
 
-				vv := v.value.(string)
-				bm, ok := field.inner.data[vv]
-				require.True(t, ok)
-				require.True(t, bm.Contains(v.id))
-			}
+		field.AddValue(1, true)
+		bm, ok := field.inner.data["true"]
 
-			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
-				require.True(t, ok)
-				require.Equal(t, v, bm.GetCardinality())
-			}
-		})
-	}
-}
-
-func Test_Keyword_AddValueSync(t *testing.T) {
-	data := []struct {
-		name                string
-		values              []testFieldValue
-		expectedCardinality map[string]uint64
-		erroneous           bool
-	}{
-		{
-			name: "one",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value": 1,
-			},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := NewKeyword(ctx, "")
-
-			for _, v := range d.values {
-				err := field.AddValueSync(v.id, v.value)
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
-
-				vv := v.value.(string)
-				bm, ok := field.inner.data[vv]
-				require.True(t, ok)
-				require.True(t, bm.Contains(v.id))
-			}
-
-			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
-				require.True(t, ok)
-				require.Equal(t, v, bm.GetCardinality())
-			}
-		})
-	}
+		require.True(t, ok)
+		require.True(t, bm.Contains(1))
+		require.EqualValues(t, 1, bm.GetCardinality())
+	})
 }

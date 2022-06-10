@@ -28,12 +28,8 @@ func (f *Double) Type() Type {
 	return TypeDouble
 }
 
-func (f *Double) AddValue(id uint32, value interface{}) error {
-	return f.inner.AddValue(id, value)
-}
-
-func (f *Double) AddValueSync(id uint32, value interface{}) error {
-	return f.inner.AddValueSync(id, value)
+func (f *Double) AddValue(id uint32, value interface{}) {
+	f.inner.AddValue(id, value)
 }
 
 func (f *Double) GetValue(value interface{}) (*roaring.Bitmap, bool) {
