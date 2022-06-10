@@ -20,13 +20,6 @@ func Test_genericField_AddValue(t *testing.T) {
 		expectedCardinality map[bool]uint64
 	}{
 		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: "qwe"},
-			},
-			erroneous: true,
-		},
-		{
 			name: "one",
 			values: []testFieldValue{
 				{id: 1, value: true},
@@ -85,111 +78,8 @@ func Test_genericField_AddValue(t *testing.T) {
 			field := newField[bool](ctx, "", cast.ToBoolE)
 
 			for _, v := range d.values {
-				err := field.AddValue(v.id, v.value)
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
+				field.AddValue(v.id, v.value)
 				time.Sleep(time.Millisecond)
-
-				vv := v.value.(bool)
-				bm, ok := field.data[vv]
-				require.True(t, ok)
-				require.True(t, bm.Contains(v.id))
-			}
-
-			for k, v := range d.expectedCardinality {
-				bm, ok := field.data[k]
-				require.True(t, ok)
-				require.Equal(t, v, bm.GetCardinality())
-			}
-		})
-	}
-}
-
-func Test_genericField_AddValueSync(t *testing.T) {
-	data := []struct {
-		name                string
-		values              []testFieldValue
-		expectedCardinality map[bool]uint64
-		erroneous           bool
-	}{
-		{
-			name: "invalid_value_type",
-			values: []testFieldValue{
-				{id: 1, value: "qwe"},
-			},
-			erroneous: true,
-		},
-		{
-			name: "one",
-			values: []testFieldValue{
-				{id: 1, value: true},
-			},
-			expectedCardinality: map[bool]uint64{
-				true: 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: true},
-				{id: 2, value: true},
-			},
-			expectedCardinality: map[bool]uint64{
-				true: 2,
-			},
-		},
-		{
-			name: "same_id",
-			values: []testFieldValue{
-				{id: 1, value: true},
-				{id: 1, value: false},
-			},
-			expectedCardinality: map[bool]uint64{
-				true:  1,
-				false: 1,
-			},
-		},
-		{
-			name: "same_value",
-			values: []testFieldValue{
-				{id: 1, value: true},
-				{id: 1, value: true},
-			},
-			expectedCardinality: map[bool]uint64{
-				true: 1,
-			},
-		},
-		{
-			name: "different",
-			values: []testFieldValue{
-				{id: 1, value: true},
-				{id: 2, value: false},
-			},
-			expectedCardinality: map[bool]uint64{
-				true:  1,
-				false: 1,
-			},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := newField[bool](ctx, "", cast.ToBoolE)
-
-			for _, v := range d.values {
-				err := field.AddValueSync(v.id, v.value)
-
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
 
 				vv := v.value.(bool)
 				bm, ok := field.data[vv]
@@ -270,7 +160,7 @@ func Test_genericField_Stop(t *testing.T) {
 	err = f1.init()
 	require.NoError(t, err)
 
-	f1.AddValueSync(1, "value")
+	f1.AddValue(1, "value")
 
 	err = f1.Stop(context.Background())
 	require.NoError(t, err)

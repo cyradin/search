@@ -28,12 +28,8 @@ func (f *Byte) Type() Type {
 	return TypeByte
 }
 
-func (f *Byte) AddValue(id uint32, value interface{}) error {
-	return f.inner.AddValue(id, value)
-}
-
-func (f *Byte) AddValueSync(id uint32, value interface{}) error {
-	return f.inner.AddValueSync(id, value)
+func (f *Byte) AddValue(id uint32, value interface{}) {
+	f.inner.AddValue(id, value)
 }
 
 func (f *Byte) GetValue(value interface{}) (*roaring.Bitmap, bool) {

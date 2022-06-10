@@ -34,12 +34,8 @@ func (f *All) Type() Type {
 	return TypeBool
 }
 
-func (f *All) AddValue(id uint32, value interface{}) error {
-	return f.inner.AddValue(id, true)
-}
-
-func (f *All) AddValueSync(id uint32, value interface{}) error {
-	return f.inner.AddValueSync(id, true)
+func (f *All) AddValue(id uint32, value interface{}) {
+	f.inner.AddValue(id, true)
 }
 
 func (f *All) GetValue(value interface{}) (*roaring.Bitmap, bool) {

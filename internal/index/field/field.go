@@ -57,9 +57,7 @@ type Field interface {
 	// Init initialize field
 	Init() error
 	// AddValue add document field value
-	AddValue(id uint32, value interface{}) error
-	// AddValueSync add document field value synchronously
-	AddValueSync(id uint32, value interface{}) error
+	AddValue(id uint32, value interface{})
 	// GetValue get bitmap clone by value
 	GetValue(value interface{}) (*roaring.Bitmap, bool)
 	// GetValuesOr compute the union between bitmaps of the passed values
@@ -107,31 +105,18 @@ func (f *field[T]) init() error {
 	return nil
 }
 
-func (f *field[T]) AddValue(id uint32, value interface{}) error {
-	v, err := f.transform(value)
-	if err != nil {
-		return err
-	}
-	go f.addValue(id, v)
-	return nil
-}
-
-func (f *field[T]) AddValueSync(id uint32, value interface{}) error {
-	v, err := f.transform(value)
-	if err != nil {
-		return err
-	}
-	f.addValue(id, v)
-	return nil
-}
-
-func (f *field[T]) addValue(id uint32, value T) {
+func (f *field[T]) AddValue(id uint32, value interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	m, ok := f.data[value]
+	val, err := f.transform(value)
+	if err != nil {
+		return
+	}
+
+	m, ok := f.data[val]
 	if !ok {
 		m = roaring.New()
-		f.data[value] = m
+		f.data[val] = m
 	}
 
 	m.Add(id)

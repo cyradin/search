@@ -192,17 +192,12 @@ func Test_boolQuery_exec(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			f1 := field.NewBool(context.Background(), "")
-			err := f1.AddValueSync(1, true)
-			require.NoError(t, err)
-			err = f1.AddValueSync(2, false)
-			require.NoError(t, err)
+			f1.AddValue(1, true)
+			f1.AddValue(2, false)
 
 			f2 := field.NewAll(context.Background(), "")
-			require.NoError(t, err)
-			err = f2.AddValueSync(1, true)
-			require.NoError(t, err)
-			err = f2.AddValueSync(2, false)
-			require.NoError(t, err)
+			f2.AddValue(1, true)
+			f2.AddValue(2, false)
 
 			data, err := decodeQuery(d.query)
 			require.NoError(t, err)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"regexp"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/require"
 )
@@ -41,87 +40,33 @@ var testAnalyzer3 AnalyzerHandler = func(next Analyzer) Analyzer {
 }
 
 func Test_Text_AddValue(t *testing.T) {
-	data := []struct {
-		name                string
-		values              []testFieldValue
-		expectedCardinality map[string]uint64
-		erroneous           bool
-	}{
-		{
-			name: "one_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 1,
-			},
-		},
-	}
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
+	t.Run("string", func(t *testing.T) {
+		value := "value value1"
+		ctx := context.Background()
+		field := NewText(ctx, "", testAnalyzer1, testAnalyzer2, testAnalyzer3)
 
-			for _, v := range d.values {
-				err := field.AddValue(v.id, v.value)
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
-				time.Sleep(time.Millisecond)
-			}
+		field.AddValue(1, value)
+		bm, ok := field.inner.data["value_addition1_addition2"]
+		require.True(t, ok)
+		require.True(t, bm.Contains(1))
+		require.EqualValues(t, 1, bm.GetCardinality())
 
-			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
-				require.True(t, ok)
-				require.Equal(t, v, bm.GetCardinality())
-			}
-		})
-	}
-}
+		bm, ok = field.inner.data["value1_addition1_addition2"]
+		require.True(t, ok)
+		require.True(t, bm.Contains(1))
+		require.EqualValues(t, 1, bm.GetCardinality())
+	})
 
-func Test_Text_AddValueSync(t *testing.T) {
-	data := []struct {
-		name                string
-		values              []testFieldValue
-		expectedCardinality map[string]uint64
-		erroneous           bool
-	}{
-		{
-			name: "one_value",
-			values: []testFieldValue{
-				{id: 1, value: "value"},
-			},
-			expectedCardinality: map[string]uint64{
-				"value_addition1_addition2": 1,
-			},
-		},
-	}
+	t.Run("bool", func(t *testing.T) {
+		ctx := context.Background()
+		field := NewKeyword(ctx, "")
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := NewText(ctx, "", testAnalyzer2, testAnalyzer3)
+		field.AddValue(1, true)
+		bm, ok := field.inner.data["true"]
 
-			for _, v := range d.values {
-				err := field.AddValueSync(v.id, v.value)
-
-				if d.erroneous {
-					require.Error(t, err)
-					continue
-				} else {
-					require.NoError(t, err)
-				}
-			}
-
-			for k, v := range d.expectedCardinality {
-				bm, ok := field.inner.data[k]
-				require.True(t, ok)
-				require.Equal(t, v, bm.GetCardinality())
-			}
-		})
-	}
+		require.True(t, ok)
+		require.True(t, bm.Contains(1))
+		require.EqualValues(t, 1, bm.GetCardinality())
+	})
 }
