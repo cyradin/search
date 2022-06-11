@@ -15,25 +15,30 @@ type testDoc struct {
 	Properties map[string][]string `json:"properties"`
 }
 
-var testDoc1 = Document[uint32, testDoc]{
-	ID: 1,
-	Source: testDoc{
-		ID:   "1",
-		Name: "foo",
-		Properties: map[string][]string{
-			"colors": {"red", "blue"},
+func newTestDoc1() Document[uint32, testDoc] {
+	return Document[uint32, testDoc]{
+		ID: 1,
+		Source: testDoc{
+			ID:   "1",
+			Name: "foo",
+			Properties: map[string][]string{
+				"colors": {"red", "blue"},
+			},
 		},
-	},
+	}
 }
-var testDoc2 = Document[uint32, testDoc]{
-	ID: 2,
-	Source: testDoc{
-		ID:   "2",
-		Name: "bar",
-		Properties: map[string][]string{
-			"colors": {"red", "green"},
+
+func newTestDoc2() Document[uint32, testDoc] {
+	return Document[uint32, testDoc]{
+		ID: 2,
+		Source: testDoc{
+			ID:   "2",
+			Name: "bar",
+			Properties: map[string][]string{
+				"colors": {"red", "green"},
+			},
 		},
-	},
+	}
 }
 
 func Test_FileStorage_All(t *testing.T) {
@@ -47,14 +52,14 @@ func Test_FileStorage_All(t *testing.T) {
 	data := []testData[uint32, testDoc]{
 		{
 			name:      "invalid_file",
-			file:      "invalid",
+			file:      "",
 			erroneous: false,
 		},
 		{
 			name:      "ok",
 			file:      "../../test/testdata/document/storage_file.json",
 			erroneous: false,
-			expected:  []Document[uint32, testDoc]{testDoc1, testDoc2},
+			expected:  []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()},
 		},
 	}
 
@@ -109,7 +114,7 @@ func Test_FileStorage_One(t *testing.T) {
 			file:      "../../test/testdata/document/storage_file.json",
 			id:        1,
 			erroneous: false,
-			expected:  testDoc1,
+			expected:  newTestDoc1(),
 		},
 		{
 			name:      "not_found",
@@ -157,14 +162,14 @@ func Test_FileStorage_Multi(t *testing.T) {
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []uint32{1},
 			erroneous: false,
-			expected:  []Document[uint32, testDoc]{testDoc1},
+			expected:  []Document[uint32, testDoc]{newTestDoc1()},
 		},
 		{
 			name:      "one",
 			file:      "../../test/testdata/document/storage_file.json",
 			ids:       []uint32{1, 2},
 			erroneous: false,
-			expected:  []Document[uint32, testDoc]{testDoc1, testDoc2},
+			expected:  []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()},
 		},
 		{
 			name:      "not_found",
@@ -355,7 +360,7 @@ func Test_FileStorage_Stop(t *testing.T) {
 		{
 			name:     "empty",
 			docs:     make(map[uint32]Document[uint32, testDoc]),
-			expected: "[]",
+			expected: "{}",
 		},
 		{
 			name: "not empty",
@@ -372,8 +377,8 @@ func Test_FileStorage_Stop(t *testing.T) {
 				},
 			},
 			expected: `
-				[
-					{
+				{
+					"1": {
 						"id": 1,
 						"source": {
 							"id": "id",
@@ -383,7 +388,7 @@ func Test_FileStorage_Stop(t *testing.T) {
 							}
 						}
 					}
-				]`,
+				}`,
 		},
 	}
 

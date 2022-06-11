@@ -19,8 +19,6 @@ type Repository struct {
 	mtx     sync.Mutex
 	storage Storage[string, entity.Index]
 
-	guidGenerate func() string
-
 	dataDir string
 	data    map[string]*Documents
 }
