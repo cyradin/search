@@ -36,26 +36,6 @@ func newDocument[K StorageID, T any](id K, source T) Document[K, T] {
 	return Document[K, T]{ID: id, Source: source}
 }
 
-func newDocumenFromJSON[K StorageID, T any](data []byte) (Document[K, T], error) {
-	var result Document[K, T]
-	err := jsoniter.Unmarshal(data, &result)
-	if err != nil {
-		return result, err
-	}
-
-	return result, nil
-}
-
-func newDocumentFromJSONMulti[K StorageID, T any](data []byte) ([]Document[K, T], error) {
-	var result []Document[K, T]
-	err := jsoniter.Unmarshal(data, &result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
 type Storage[K StorageID, T any] interface {
 	One(id K) (Document[K, T], error)
 	Multi(ids ...K) ([]Document[K, T], error)
@@ -219,13 +199,9 @@ func (s *FileStorage[K, T]) read() error {
 		return err
 	}
 
-	docs, err := newDocumentFromJSONMulti[K, T](data)
+	err = jsoniter.Unmarshal(data, &s.docs)
 	if err != nil {
 		return err
-	}
-
-	for _, doc := range docs {
-		s.docs[doc.ID] = doc
 	}
 
 	return nil
@@ -235,12 +211,7 @@ func (s *FileStorage[K, T]) Stop(ctx context.Context) error {
 	s.docsMtx.RLock()
 	defer s.docsMtx.RUnlock()
 
-	docs := make([]Document[K, T], 0, len(s.docs))
-	for _, doc := range s.docs {
-		docs = append(docs, doc)
-	}
-
-	data, err := jsoniter.Marshal(docs)
+	data, err := jsoniter.Marshal(s.docs)
 	if err != nil {
 		return err
 	}
