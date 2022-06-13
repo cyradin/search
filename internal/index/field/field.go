@@ -83,7 +83,7 @@ type field[T comparable] struct {
 	transform func(interface{}) (T, error)
 }
 
-func newField[T comparable](ctx context.Context, src string, transformer func(interface{}) (T, error)) *field[T] {
+func newField[T comparable](src string, transformer func(interface{}) (T, error)) *field[T] {
 	result := &field[T]{
 		src:       src,
 		data:      make(map[T]*roaring.Bitmap),

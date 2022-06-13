@@ -1,7 +1,6 @@
 package query
 
 import (
-	"context"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
@@ -191,11 +190,11 @@ func Test_boolQuery_exec(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewBool(context.Background(), "")
+			f1 := field.NewBool("")
 			f1.AddValue(1, true)
 			f1.AddValue(2, false)
 
-			f2 := field.NewAll(context.Background(), "")
+			f2 := field.NewAll("")
 			f2.AddValue(1, true)
 			f2.AddValue(2, false)
 

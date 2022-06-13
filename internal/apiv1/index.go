@@ -91,8 +91,6 @@ func (c *IndexController) ListAction() http.HandlerFunc {
 
 func (c *IndexController) AddAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-
 		var req IndexAddRequest
 
 		if err := decodeAndValidate(r, &req); err != nil {
@@ -102,7 +100,7 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 
 		newIndex := entity.NewIndex(req.Name, req.Schema.ToSchema())
 
-		err := c.repo.Add(ctx, newIndex)
+		err := c.repo.Add(newIndex)
 		if err != nil {
 			if errors.Is(err, index.ErrIndexAlreadyExists) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))

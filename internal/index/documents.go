@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 	"path"
 	"sync"
@@ -31,7 +30,7 @@ type Documents struct {
 	sourceStorage Storage[uint32, entity.DocSource]
 }
 
-func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[uint32, entity.DocSource], fieldPath string) (*Documents, error) {
+func NewDocuments(i entity.Index, sourceStorage Storage[uint32, entity.DocSource], fieldPath string) (*Documents, error) {
 	result := &Documents{
 		index:  i,
 		fields: make(map[string]field.Field),
@@ -49,7 +48,7 @@ func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[uin
 	})
 
 	for _, f := range fields {
-		err := result.addField(ctx, f, fieldPath)
+		err := result.addField(f, fieldPath)
 		if err != nil {
 			return nil, fmt.Errorf("unable to add field: %w", err)
 		}
@@ -58,7 +57,7 @@ func NewDocuments(ctx context.Context, i entity.Index, sourceStorage Storage[uin
 	return result, nil
 }
 
-func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src string) error {
+func (d *Documents) addField(schemaField schema.Field, src string) error {
 	d.fieldsMtx.Lock()
 	defer d.fieldsMtx.Unlock()
 
@@ -67,33 +66,33 @@ func (d *Documents) addField(ctx context.Context, schemaField schema.Field, src 
 
 	switch schemaField.Type {
 	case field.TypeAll:
-		f = field.NewAll(ctx, src)
+		f = field.NewAll(src)
 	case field.TypeBool:
-		f = field.NewBool(ctx, src)
+		f = field.NewBool(src)
 	case field.TypeKeyword:
-		f = field.NewKeyword(ctx, src)
+		f = field.NewKeyword(src)
 	case field.TypeText:
-		f = field.NewText(ctx, src) // @todo pass analyzers from schema
+		f = field.NewText(src) // @todo pass analyzers from schema
 	// @todo implement slice type
 	// case field.TypeSlice:
-	// 	i.fields[f.Name] = field.NewSlice(ctx, src)
+	// 	i.fields[f.Name] = field.NewSlice(src)
 	// @todo implement map type
 	// case field.TypeNap:
-	// 	i.fields[f.Name] = field.NewMap(ctx, src)
+	// 	i.fields[f.Name] = field.NewMap(src)
 	case field.TypeUnsignedLong:
-		f = field.NewUnsignedLong(ctx, src)
+		f = field.NewUnsignedLong(src)
 	case field.TypeLong:
-		f = field.NewLong(ctx, src)
+		f = field.NewLong(src)
 	case field.TypeInteger:
-		f = field.NewInteger(ctx, src)
+		f = field.NewInteger(src)
 	case field.TypeShort:
-		f = field.NewShort(ctx, src)
+		f = field.NewShort(src)
 	case field.TypeByte:
-		f = field.NewByte(ctx, src)
+		f = field.NewByte(src)
 	case field.TypeDouble:
-		f = field.NewDouble(ctx, src)
+		f = field.NewDouble(src)
 	case field.TypeFloat:
-		f = field.NewFloat(ctx, src)
+		f = field.NewFloat(src)
 	default:
 		return fmt.Errorf("invalid field type %q", schemaField.Type)
 	}

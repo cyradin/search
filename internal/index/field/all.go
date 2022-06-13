@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -19,8 +17,8 @@ type All struct {
 	inner *field[bool]
 }
 
-func NewAll(ctx context.Context, src string) *All {
-	gf := newField[bool](ctx, src, cast.ToBoolE)
+func NewAll(src string) *All {
+	gf := newField[bool](src, cast.ToBoolE)
 	return &All{
 		inner: gf,
 	}

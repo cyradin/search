@@ -74,8 +74,7 @@ func Test_genericField_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
-			field := newField[bool](ctx, "", cast.ToBoolE)
+			field := newField[bool]("", cast.ToBoolE)
 
 			for _, v := range d.values {
 				field.AddValue(v.id, v.value)
@@ -124,7 +123,7 @@ func Test_load(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := newField[string](context.Background(), d.src, cast.ToStringE)
+			f := newField[string](d.src, cast.ToStringE)
 			err := f.init()
 			if d.erroneous {
 				require.Error(t, err)
@@ -156,7 +155,7 @@ func Test_genericField_Stop(t *testing.T) {
 
 	src := filepath.Join(dir, "data.gob")
 
-	f1 := newField[string](context.Background(), src, cast.ToStringE)
+	f1 := newField[string](src, cast.ToStringE)
 	err = f1.init()
 	require.NoError(t, err)
 
@@ -165,7 +164,7 @@ func Test_genericField_Stop(t *testing.T) {
 	err = f1.Stop(context.Background())
 	require.NoError(t, err)
 
-	f2 := newField[string](context.Background(), src, cast.ToStringE)
+	f2 := newField[string](src, cast.ToStringE)
 	err = f2.init()
 	require.NoError(t, err)
 
@@ -219,7 +218,7 @@ func Test_genericField_getValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := newField[bool](context.Background(), "", cast.ToBoolE)
+			f := newField[bool]("", cast.ToBoolE)
 
 			f.data = d.data
 			f.data[true].Add(1)
@@ -298,7 +297,7 @@ func Test_genericField_getValuesOr(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := newField[int](context.Background(), "", cast.ToIntE)
+			f := newField[int]("", cast.ToIntE)
 
 			f.data = d.data
 

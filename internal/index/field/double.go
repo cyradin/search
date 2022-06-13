@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Double struct {
 	inner *field[float64]
 }
 
-func NewDouble(ctx context.Context, src string) *Double {
-	gf := newField[float64](ctx, src, cast.ToFloat64E)
+func NewDouble(src string) *Double {
+	gf := newField[float64](src, cast.ToFloat64E)
 	return &Double{
 		inner: gf,
 	}

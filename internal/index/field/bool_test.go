@@ -1,7 +1,6 @@
 package field
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,8 +8,7 @@ import (
 
 func Test_Bool_AddValue(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
-		ctx := context.Background()
-		field := NewBool(ctx, "")
+		field := NewBool("")
 
 		field.AddValue(1, true)
 		bm, ok := field.inner.data[true]
@@ -20,8 +18,7 @@ func Test_Bool_AddValue(t *testing.T) {
 	})
 
 	t.Run("string", func(t *testing.T) {
-		ctx := context.Background()
-		field := NewBool(ctx, "")
+		field := NewBool("")
 
 		field.AddValue(1, "qwe")
 		_, ok := field.inner.data[false]

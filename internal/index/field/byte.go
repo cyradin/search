@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Byte struct {
 	inner *field[int8]
 }
 
-func NewByte(ctx context.Context, src string) *Byte {
-	gf := newField[int8](ctx, src, cast.ToInt8E)
+func NewByte(src string) *Byte {
+	gf := newField[int8](src, cast.ToInt8E)
 	return &Byte{
 		inner: gf,
 	}

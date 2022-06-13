@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"fmt"
 	"testing"
 
@@ -81,9 +80,7 @@ func Test_Documents_Add(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			ctx := context.Background()
 			docs, err := NewDocuments(
-				ctx,
 				entity.NewIndex(
 					"name",
 					schema.New(
