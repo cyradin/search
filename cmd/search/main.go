@@ -38,10 +38,7 @@ func main() {
 	stopCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
 
-	h, err := initHttpHandler(ctx)
-	panicOnError(err)
-
-	srv := initServer(cfg.Server.Address, h)
+	srv := initServer(ctx, cfg.Server.Address)
 
 	errors := make(chan error, 1)
 	go func(ctx context.Context) {

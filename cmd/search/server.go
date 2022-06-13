@@ -8,20 +8,16 @@ import (
 	"github.com/go-chi/chi/v5"
 )
 
-func initServer(address string, h http.Handler) *http.Server {
-	server := &http.Server{
-		Addr:    address,
-		Handler: h,
-	}
-
-	return server
-}
-
-func initHttpHandler(ctx context.Context) (http.Handler, error) {
+func initServer(ctx context.Context, address string) *http.Server {
 	indexRepository := initIndexes(ctx)
 
 	mux := chi.NewMux()
 	mux.Route("/v1", apiv1.NewHandler(ctx, indexRepository))
 
-	return mux, nil
+	server := &http.Server{
+		Addr:    address,
+		Handler: mux,
+	}
+
+	return server
 }
