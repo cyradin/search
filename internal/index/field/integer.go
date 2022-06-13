@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Integer struct {
 	inner *field[int32]
 }
 
-func NewInteger(ctx context.Context, src string) *Integer {
-	gf := newField[int32](ctx, src, cast.ToInt32E)
+func NewInteger(src string) *Integer {
+	gf := newField[int32](src, cast.ToInt32E)
 	return &Integer{
 		inner: gf,
 	}

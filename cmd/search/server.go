@@ -9,7 +9,7 @@ import (
 )
 
 func initServer(ctx context.Context, address string) *http.Server {
-	indexRepository := initIndexes(ctx)
+	indexRepository := initIndexes()
 
 	mux := chi.NewMux()
 	mux.Route("/v1", apiv1.NewHandler(ctx, indexRepository))

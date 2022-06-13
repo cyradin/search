@@ -1,7 +1,6 @@
 package index
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"os"
@@ -23,7 +22,7 @@ type Repository struct {
 	data    map[string]*Documents
 }
 
-func NewRepository(ctx context.Context, dataDir string) (*Repository, error) {
+func NewRepository(dataDir string) (*Repository, error) {
 	storage, err := NewIndexStorage(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("index storage init err: %w", err)
@@ -41,7 +40,7 @@ func NewRepository(ctx context.Context, dataDir string) (*Repository, error) {
 	}
 
 	for _, index := range indexes {
-		err := r.initData(ctx, index)
+		err := r.initData(index)
 		if err != nil {
 			return nil, fmt.Errorf("index data init err: %w", err)
 		}
@@ -84,7 +83,7 @@ func (r *Repository) All() ([]entity.Index, error) {
 	}
 }
 
-func (r *Repository) Add(ctx context.Context, index entity.Index) error {
+func (r *Repository) Add(index entity.Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -97,7 +96,7 @@ func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 		return ErrIndexAlreadyExists
 	}
 
-	err = r.initData(ctx, index)
+	err = r.initData(index)
 	if err != nil {
 		return err
 	}
@@ -132,7 +131,7 @@ func (r *Repository) Documents(index string) (*Documents, error) {
 	return data, nil
 }
 
-func (r *Repository) initData(ctx context.Context, index entity.Index) error {
+func (r *Repository) initData(index entity.Index) error {
 	fieldPath := r.fieldPath(index.Name)
 	if err := os.MkdirAll(fieldPath, dirPermissions); err != nil {
 		return fmt.Errorf("source storage dir create err: %w", err)
@@ -143,7 +142,7 @@ func (r *Repository) initData(ctx context.Context, index entity.Index) error {
 		return fmt.Errorf("source storage init err: %w", err)
 	}
 
-	data, err := NewDocuments(ctx, index, sourceStorage, fieldPath)
+	data, err := NewDocuments(index, sourceStorage, fieldPath)
 	if err != nil {
 		return fmt.Errorf("index data constructor err: %w", err)
 	}

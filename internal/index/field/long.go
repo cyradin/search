@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Long struct {
 	inner *field[int64]
 }
 
-func NewLong(ctx context.Context, src string) *Long {
-	gf := newField[int64](ctx, src, cast.ToInt64E)
+func NewLong(src string) *Long {
+	gf := newField[int64](src, cast.ToInt64E)
 	return &Long{
 		inner: gf,
 	}

@@ -19,8 +19,8 @@ type (
 
 var _ Field = (*Text)(nil)
 
-func NewText(ctx context.Context, src string, analyzers ...AnalyzerHandler) *Text {
-	gf := newField[string](ctx, src, cast.ToStringE)
+func NewText(src string, analyzers ...AnalyzerHandler) *Text {
+	gf := newField[string](src, cast.ToStringE)
 
 	analyzer := func(s []string) []string { return s }
 	for i := len(analyzers) - 1; i >= 0; i-- {

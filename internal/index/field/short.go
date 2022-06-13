@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Short struct {
 	inner *field[int16]
 }
 
-func NewShort(ctx context.Context, src string) *Short {
-	gf := newField[int16](ctx, src, cast.ToInt16E)
+func NewShort(src string) *Short {
+	gf := newField[int16](src, cast.ToInt16E)
 	return &Short{
 		inner: gf,
 	}

@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Float struct {
 	inner *field[float32]
 }
 
-func NewFloat(ctx context.Context, src string) *Float {
-	gf := newField[float32](ctx, src, cast.ToFloat32E)
+func NewFloat(src string) *Float {
+	gf := newField[float32](src, cast.ToFloat32E)
 	return &Float{
 		inner: gf,
 	}

@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type UnsignedLong struct {
 	inner *field[uint64]
 }
 
-func NewUnsignedLong(ctx context.Context, src string) *UnsignedLong {
-	gf := newField[uint64](ctx, src, cast.ToUint64E)
+func NewUnsignedLong(src string) *UnsignedLong {
+	gf := newField[uint64](src, cast.ToUint64E)
 	return &UnsignedLong{
 		inner: gf,
 	}

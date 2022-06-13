@@ -1,7 +1,6 @@
 package field
 
 import (
-	"context"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -9,8 +8,7 @@ import (
 
 func Test_All_AddValue(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
-		ctx := context.Background()
-		field := NewAll(ctx, "")
+		field := NewAll("")
 		values := []testFieldValue{
 			{id: 1, value: true},
 			{id: 1, value: 1},

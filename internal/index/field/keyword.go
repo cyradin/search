@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/spf13/cast"
 )
@@ -13,8 +11,8 @@ type Keyword struct {
 	inner *field[string]
 }
 
-func NewKeyword(ctx context.Context, src string) *Keyword {
-	gf := newField[string](ctx, src, cast.ToStringE)
+func NewKeyword(src string) *Keyword {
+	gf := newField[string](src, cast.ToStringE)
 	return &Keyword{
 		inner: gf,
 	}
