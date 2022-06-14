@@ -1,12 +1,14 @@
 package index
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"os"
 	"path"
 	"sync"
 
+	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/schema"
 )
@@ -83,7 +85,7 @@ func (r *Repository) All() ([]entity.Index, error) {
 	}
 }
 
-func (r *Repository) Add(index entity.Index) error {
+func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -95,6 +97,7 @@ func (r *Repository) Add(index entity.Index) error {
 	if errors.Is(err, ErrDocAlreadyExists) {
 		return ErrIndexAlreadyExists
 	}
+	events.Dispatch(ctx, events.NewIndexAdd(index.Name, index.Schema))
 
 	err = r.initData(index)
 	if err != nil {
@@ -104,7 +107,7 @@ func (r *Repository) Add(index entity.Index) error {
 	return err
 }
 
-func (r *Repository) Delete(name string) error {
+func (r *Repository) Delete(ctx context.Context, name string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
@@ -115,6 +118,7 @@ func (r *Repository) Delete(name string) error {
 
 		return fmt.Errorf("index delete err: %w", err)
 	}
+	events.Dispatch(ctx, events.NewIndexDelete(name))
 
 	return nil
 }

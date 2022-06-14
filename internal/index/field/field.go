@@ -59,7 +59,7 @@ func (f *field[T]) init() error {
 	if err != nil {
 		return err
 	}
-	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
 		f.Stop(ctx)
 	})
 
