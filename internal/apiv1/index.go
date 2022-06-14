@@ -100,7 +100,7 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 
 		newIndex := entity.NewIndex(req.Name, req.Schema.ToSchema())
 
-		err := c.repo.Add(newIndex)
+		err := c.repo.Add(r.Context(), newIndex)
 		if err != nil {
 			if errors.Is(err, index.ErrIndexAlreadyExists) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -140,7 +140,7 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 
 func (c *IndexController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := c.repo.Delete(chi.URLParam(r, indexParam)); err != nil {
+		if err := c.repo.Delete(r.Context(), chi.URLParam(r, indexParam)); err != nil {
 			handleErr(w, r, err)
 			return
 		}

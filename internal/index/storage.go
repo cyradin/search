@@ -229,7 +229,7 @@ func NewIndexStorage(src string) (*FileStorage[string, entity.Index], error) {
 	if err != nil {
 		return nil, err
 	}
-	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
 		storage.Stop(ctx)
 	})
 
@@ -246,7 +246,7 @@ func NewIndexSourceStorage(src string, name string) (*FileStorage[uint32, entity
 	if err != nil {
 		return nil, err
 	}
-	events.Subscribe(events.AppStop{}, func(ctx context.Context, e events.Event) {
+	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
 		storage.Stop(ctx)
 	})
 
