@@ -3,7 +3,6 @@ package apiv1
 import (
 	"testing"
 
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -28,7 +27,7 @@ func Test_Schema_ToSchema(t *testing.T) {
 			},
 			expected: schema.Schema{
 				Fields: []schema.Field{
-					{Name: "test", Type: field.TypeText},
+					{Name: "test", Type: schema.TypeText},
 				},
 			},
 		},
@@ -42,8 +41,8 @@ func Test_Schema_ToSchema(t *testing.T) {
 			},
 			expected: schema.Schema{
 				Fields: []schema.Field{
-					{Name: "test2", Type: field.TypeByte},
-					{Name: "test", Type: field.TypeText},
+					{Name: "test2", Type: schema.TypeByte},
+					{Name: "test", Type: schema.TypeText},
 				},
 			},
 		},
@@ -63,9 +62,9 @@ func Test_Schema_ToSchema(t *testing.T) {
 				Fields: []schema.Field{
 					{
 						Name: "test",
-						Type: field.TypeSlice,
+						Type: schema.TypeSlice,
 						Children: []schema.Field{
-							{Name: "test2", Type: field.TypeByte},
+							{Name: "test2", Type: schema.TypeByte},
 						},
 					},
 				},
@@ -96,7 +95,7 @@ func Test_Schema_FromSchema(t *testing.T) {
 			name: "one_field",
 			src: schema.Schema{
 				Fields: []schema.Field{
-					{Name: "test", Type: field.TypeText},
+					{Name: "test", Type: schema.TypeText},
 				},
 			},
 			expected: Schema{
@@ -109,8 +108,8 @@ func Test_Schema_FromSchema(t *testing.T) {
 			name: "two_fields",
 			src: schema.Schema{
 				Fields: []schema.Field{
-					{Name: "test2", Type: field.TypeByte},
-					{Name: "test", Type: field.TypeText},
+					{Name: "test2", Type: schema.TypeByte},
+					{Name: "test", Type: schema.TypeText},
 				},
 			},
 			expected: Schema{
@@ -126,9 +125,9 @@ func Test_Schema_FromSchema(t *testing.T) {
 				Fields: []schema.Field{
 					{
 						Name: "test",
-						Type: field.TypeSlice,
+						Type: schema.TypeSlice,
 						Children: []schema.Field{
-							{Name: "test2", Type: field.TypeByte},
+							{Name: "test2", Type: schema.TypeByte},
 						},
 					},
 				},

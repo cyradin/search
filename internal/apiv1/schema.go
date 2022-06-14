@@ -1,7 +1,6 @@
 package apiv1
 
 import (
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -38,7 +37,7 @@ func (s Schema) Validate() error {
 func (s *Schema) toSchemaField(name string, f SchemaField) schema.Field {
 	result := schema.Field{
 		Name:     name,
-		Type:     field.Type(f.Type),
+		Type:     schema.Type(f.Type),
 		Required: f.Required,
 	}
 

@@ -9,51 +9,12 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/events"
+	"github.com/cyradin/search/internal/index/schema"
 )
-
-type Type string
-
-const (
-	TypeAll  Type = "all"
-	TypeBool Type = "bool"
-
-	// String types
-	TypeKeyword Type = "keyword"
-	TypeText    Type = "text"
-
-	TypeSlice Type = "slice"
-	TypeMap   Type = "map"
-
-	// Integer types
-	TypeUnsignedLong Type = "unsigned_long" // unsigned int64
-	TypeLong         Type = "long"          // signed int64
-	TypeInteger      Type = "integer"       // signed int32
-	TypeShort        Type = "short"         // signed int16
-	TypeByte         Type = "byte"          // signed int8
-
-	// Float types
-	TypeDouble Type = "double" // float64
-	TypeFloat  Type = "float"  // float32
-)
-
-func (t Type) Valid() bool {
-	return t == TypeBool ||
-		t == TypeKeyword ||
-		t == TypeText ||
-		t == TypeSlice ||
-		t == TypeMap ||
-		t == TypeUnsignedLong ||
-		t == TypeLong ||
-		t == TypeInteger ||
-		t == TypeShort ||
-		t == TypeByte ||
-		t == TypeDouble ||
-		t == TypeFloat
-}
 
 type Field interface {
 	// Type returns field type
-	Type() Type
+	Type() schema.Type
 	// Init initialize field
 	Init() error
 	// AddValue add document field value

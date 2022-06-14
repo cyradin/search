@@ -5,7 +5,6 @@ import (
 	"testing"
 
 	"github.com/cyradin/search/internal/index/entity"
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -84,7 +83,7 @@ func Test_Documents_Add(t *testing.T) {
 				entity.NewIndex(
 					"name",
 					schema.New(
-						[]schema.Field{schema.NewField("v", field.TypeBool, true)},
+						[]schema.Field{schema.NewField("v", schema.TypeBool, true)},
 					),
 				),
 				&testDocStorage{

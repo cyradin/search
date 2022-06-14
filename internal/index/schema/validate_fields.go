@@ -6,7 +6,6 @@ import (
 	"math"
 	"strconv"
 
-	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -28,25 +27,25 @@ func buildRules(s Schema, source map[string]interface{}) validation.MapRule {
 		}
 
 		switch f.Type {
-		case field.TypeBool:
+		case TypeBool:
 			keyRules = append(keyRules, validation.By(validateBool()))
-		case field.TypeKeyword:
+		case TypeKeyword:
 			keyRules = append(keyRules, validation.By(validateKeyword()))
-		case field.TypeText:
+		case TypeText:
 			keyRules = append(keyRules, validation.By(validateText()))
-		case field.TypeByte:
+		case TypeByte:
 			keyRules = append(keyRules, validation.By(validateInt(math.MinInt8, math.MaxInt8)))
-		case field.TypeShort:
+		case TypeShort:
 			keyRules = append(keyRules, validation.By(validateInt(math.MinInt16, math.MaxInt16)))
-		case field.TypeInteger:
+		case TypeInteger:
 			keyRules = append(keyRules, validation.By(validateInt(math.MinInt32, math.MaxInt32)))
-		case field.TypeLong:
+		case TypeLong:
 			keyRules = append(keyRules, validation.By(validateInt(math.MinInt64, math.MaxInt64)))
-		case field.TypeUnsignedLong:
+		case TypeUnsignedLong:
 			keyRules = append(keyRules, validation.By(validateUint(0, math.MaxUint64)))
-		case field.TypeFloat:
+		case TypeFloat:
 			keyRules = append(keyRules, validation.By(validateFloat(-1*math.MaxFloat32, math.MaxFloat32)))
-		case field.TypeDouble:
+		case TypeDouble:
 			keyRules = append(keyRules, validation.By(validateFloat(-1*math.MaxFloat64, math.MaxFloat64)))
 		}
 
