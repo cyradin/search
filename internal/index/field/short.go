@@ -2,6 +2,7 @@ package field
 
 import (
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
 )
 
@@ -22,8 +23,8 @@ func (f *Short) Init() error {
 	return f.inner.init()
 }
 
-func (f *Short) Type() Type {
-	return TypeShort
+func (f *Short) Type() schema.Type {
+	return schema.TypeShort
 }
 
 func (f *Short) AddValue(id uint32, value interface{}) {

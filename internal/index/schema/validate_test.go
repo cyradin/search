@@ -3,7 +3,6 @@ package schema
 import (
 	"testing"
 
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/stretchr/testify/require"
 )
 
@@ -16,36 +15,36 @@ func Test_Validate(t *testing.T) {
 		{
 			name: "empty_name",
 			fields: []Field{
-				{Type: field.TypeKeyword},
+				{Type: TypeKeyword},
 			},
 			valid: false,
 		},
 		{
 			name: "duplicate_name",
 			fields: []Field{
-				{Name: "name", Type: field.TypeKeyword},
-				{Name: "name", Type: field.TypeKeyword},
+				{Name: "name", Type: TypeKeyword},
+				{Name: "name", Type: TypeKeyword},
 			},
 			valid: false,
 		},
 		{
 			name: "empty_type",
 			fields: []Field{
-				{Name: "name", Type: field.Type("invalid")},
+				{Name: "name", Type: Type("invalid")},
 			},
 			valid: false,
 		},
 		{
 			name: "invalid_type",
 			fields: []Field{
-				{Name: "name", Type: field.Type("invalid")},
+				{Name: "name", Type: Type("invalid")},
 			},
 			valid: false,
 		},
 		{
 			name: "type_cannot_have_child_types",
 			fields: []Field{
-				{Name: "name", Type: field.TypeBool, Children: []Field{
+				{Name: "name", Type: TypeBool, Children: []Field{
 					{Name: "name"},
 				}},
 			},
@@ -54,15 +53,15 @@ func Test_Validate(t *testing.T) {
 		{
 			name: "type_must_have_child_type_defined",
 			fields: []Field{
-				{Name: "name", Type: field.TypeSlice},
+				{Name: "name", Type: TypeSlice},
 			},
 			valid: false,
 		},
 		{
 			name: "invalid_child",
 			fields: []Field{
-				{Name: "name", Type: field.TypeSlice, Children: []Field{
-					{Name: "", Type: field.TypeBool},
+				{Name: "name", Type: TypeSlice, Children: []Field{
+					{Name: "", Type: TypeBool},
 				}},
 			},
 			valid: false,
@@ -70,9 +69,9 @@ func Test_Validate(t *testing.T) {
 		{
 			name: "valid",
 			fields: []Field{
-				{Name: "name", Type: field.TypeBool},
-				{Name: "name2", Type: field.TypeSlice, Children: []Field{
-					{Name: "name", Type: field.TypeKeyword},
+				{Name: "name", Type: TypeBool},
+				{Name: "name2", Type: TypeSlice, Children: []Field{
+					{Name: "name", Type: TypeKeyword},
 				}},
 			},
 			valid: true,

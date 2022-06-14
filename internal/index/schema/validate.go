@@ -2,8 +2,6 @@ package schema
 
 import (
 	"fmt"
-
-	"github.com/cyradin/search/internal/index/field"
 )
 
 func Validate(s Schema) error {
@@ -41,7 +39,7 @@ func validateField(f Field, path string) error {
 		return fmt.Errorf("invalid field %q type %q", path, f.Type)
 	}
 	if len(f.Children) != 0 {
-		if f.Type != field.TypeSlice && f.Type != field.TypeMap {
+		if f.Type != TypeSlice && f.Type != TypeMap {
 			return fmt.Errorf("field %q type %q cannot have children types", path, f.Type)
 		}
 
@@ -51,7 +49,7 @@ func validateField(f Field, path string) error {
 				return err
 			}
 		}
-	} else if f.Type == field.TypeSlice || f.Type == field.TypeMap {
+	} else if f.Type == TypeSlice || f.Type == TypeMap {
 		return fmt.Errorf("field %q type %q must have children defined", path, f.Type)
 	}
 

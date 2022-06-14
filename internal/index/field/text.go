@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
 )
 
@@ -37,8 +38,8 @@ func (f *Text) Init() error {
 	return f.inner.init()
 }
 
-func (f *Text) Type() Type {
-	return TypeText
+func (f *Text) Type() schema.Type {
+	return schema.TypeText
 }
 
 func (f *Text) AddValue(id uint32, value interface{}) {

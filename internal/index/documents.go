@@ -44,7 +44,7 @@ func NewDocuments(i entity.Index, sourceStorage Storage[uint32, entity.DocSource
 	fields = append(fields, schema.Field{
 		Name:     field.AllField,
 		Required: false,
-		Type:     field.TypeAll,
+		Type:     schema.TypeAll,
 	})
 
 	for _, f := range fields {
@@ -65,33 +65,33 @@ func (d *Documents) addField(schemaField schema.Field, src string) error {
 	var f field.Field
 
 	switch schemaField.Type {
-	case field.TypeAll:
+	case schema.TypeAll:
 		f = field.NewAll(src)
-	case field.TypeBool:
+	case schema.TypeBool:
 		f = field.NewBool(src)
-	case field.TypeKeyword:
+	case schema.TypeKeyword:
 		f = field.NewKeyword(src)
-	case field.TypeText:
+	case schema.TypeText:
 		f = field.NewText(src) // @todo pass analyzers from schema
 	// @todo implement slice type
-	// case field.TypeSlice:
+	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice(src)
 	// @todo implement map type
-	// case field.TypeNap:
+	// case schema.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap(src)
-	case field.TypeUnsignedLong:
+	case schema.TypeUnsignedLong:
 		f = field.NewUnsignedLong(src)
-	case field.TypeLong:
+	case schema.TypeLong:
 		f = field.NewLong(src)
-	case field.TypeInteger:
+	case schema.TypeInteger:
 		f = field.NewInteger(src)
-	case field.TypeShort:
+	case schema.TypeShort:
 		f = field.NewShort(src)
-	case field.TypeByte:
+	case schema.TypeByte:
 		f = field.NewByte(src)
-	case field.TypeDouble:
+	case schema.TypeDouble:
 		f = field.NewDouble(src)
-	case field.TypeFloat:
+	case schema.TypeFloat:
 		f = field.NewFloat(src)
 	default:
 		return fmt.Errorf("invalid field type %q", schemaField.Type)

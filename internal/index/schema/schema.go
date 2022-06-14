@@ -5,19 +5,57 @@ import (
 	"os"
 
 	jsoniter "github.com/json-iterator/go"
-
-	"github.com/cyradin/search/internal/index/field"
 )
 
+type Type string
+
+const (
+	TypeAll  Type = "all"
+	TypeBool Type = "bool"
+
+	// String types
+	TypeKeyword Type = "keyword"
+	TypeText    Type = "text"
+
+	TypeSlice Type = "slice"
+	TypeMap   Type = "map"
+
+	// Integer types
+	TypeUnsignedLong Type = "unsigned_long" // unsigned int64
+	TypeLong         Type = "long"          // signed int64
+	TypeInteger      Type = "integer"       // signed int32
+	TypeShort        Type = "short"         // signed int16
+	TypeByte         Type = "byte"          // signed int8
+
+	// Float types
+	TypeDouble Type = "double" // float64
+	TypeFloat  Type = "float"  // float32
+)
+
+func (t Type) Valid() bool {
+	return t == TypeBool ||
+		t == TypeKeyword ||
+		t == TypeText ||
+		t == TypeSlice ||
+		t == TypeMap ||
+		t == TypeUnsignedLong ||
+		t == TypeLong ||
+		t == TypeInteger ||
+		t == TypeShort ||
+		t == TypeByte ||
+		t == TypeDouble ||
+		t == TypeFloat
+}
+
 type Field struct {
-	Name     string     `json:"name"`
-	Type     field.Type `json:"type"`
-	Required bool       `json:"required"`
+	Name     string `json:"name"`
+	Type     Type   `json:"type"`
+	Required bool   `json:"required"`
 
 	Children []Field `json:"children"`
 }
 
-func NewField(name string, fieldType field.Type, required bool, children ...Field) Field {
+func NewField(name string, fieldType Type, required bool, children ...Field) Field {
 	return Field{
 		Name:     name,
 		Type:     fieldType,
