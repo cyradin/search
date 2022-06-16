@@ -8,3 +8,5 @@
 
 # default data folder
 /.data/
+
+__debug_bin
