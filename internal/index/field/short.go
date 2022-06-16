@@ -12,15 +12,11 @@ type Short struct {
 	inner *field[int16]
 }
 
-func NewShort(src string) *Short {
-	gf := newField[int16](src, cast.ToInt16E)
+func NewShort() *Short {
+	gf := newField[int16](cast.ToInt16E)
 	return &Short{
 		inner: gf,
 	}
-}
-
-func (f *Short) Init() error {
-	return f.inner.init()
 }
 
 func (f *Short) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Short) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Short) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Short) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Short) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

@@ -12,15 +12,11 @@ type Keyword struct {
 	inner *field[string]
 }
 
-func NewKeyword(src string) *Keyword {
-	gf := newField[string](src, cast.ToStringE)
+func NewKeyword() *Keyword {
+	gf := newField[string](cast.ToStringE)
 	return &Keyword{
 		inner: gf,
 	}
-}
-
-func (f *Keyword) Init() error {
-	return f.inner.init()
 }
 
 func (f *Keyword) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Keyword) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Keyword) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Keyword) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Keyword) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

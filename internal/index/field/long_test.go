@@ -9,7 +9,7 @@ import (
 func Test_Long_AddValue(t *testing.T) {
 	t.Run("1", func(t *testing.T) {
 		var value int64 = 1
-		field := NewLong("")
+		field := NewLong()
 
 		field.AddValue(1, value)
 		bm, ok := field.inner.data[value]
@@ -19,7 +19,7 @@ func Test_Long_AddValue(t *testing.T) {
 	})
 
 	t.Run("string", func(t *testing.T) {
-		field := NewLong("")
+		field := NewLong()
 
 		field.AddValue(1, "qwe")
 		_, ok := field.inner.data[0]

@@ -12,15 +12,11 @@ type Long struct {
 	inner *field[int64]
 }
 
-func NewLong(src string) *Long {
-	gf := newField[int64](src, cast.ToInt64E)
+func NewLong() *Long {
+	gf := newField[int64](cast.ToInt64E)
 	return &Long{
 		inner: gf,
 	}
-}
-
-func (f *Long) Init() error {
-	return f.inner.init()
 }
 
 func (f *Long) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Long) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Long) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Long) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Long) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

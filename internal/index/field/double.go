@@ -12,15 +12,11 @@ type Double struct {
 	inner *field[float64]
 }
 
-func NewDouble(src string) *Double {
-	gf := newField[float64](src, cast.ToFloat64E)
+func NewDouble() *Double {
+	gf := newField[float64](cast.ToFloat64E)
 	return &Double{
 		inner: gf,
 	}
-}
-
-func (f *Double) Init() error {
-	return f.inner.init()
 }
 
 func (f *Double) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Double) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Double) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Double) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Double) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

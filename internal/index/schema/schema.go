@@ -98,3 +98,7 @@ func NewFromFile(src string) (*Schema, error) {
 
 	return NewFromJSON(data)
 }
+
+func (s Schema) ValidateDoc(doc map[string]interface{}) error {
+	return ValidateDoc(s, doc)
+}

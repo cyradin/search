@@ -1,8 +1,6 @@
 package field
 
 import (
-	"context"
-
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
@@ -20,8 +18,8 @@ type (
 
 var _ Field = (*Text)(nil)
 
-func NewText(src string, analyzers ...AnalyzerHandler) *Text {
-	gf := newField[string](src, cast.ToStringE)
+func NewText(analyzers ...AnalyzerHandler) *Text {
+	gf := newField[string](cast.ToStringE)
 
 	analyzer := func(s []string) []string { return s }
 	for i := len(analyzers) - 1; i >= 0; i-- {
@@ -32,10 +30,6 @@ func NewText(src string, analyzers ...AnalyzerHandler) *Text {
 		inner:    gf,
 		analyzer: analyzer,
 	}
-}
-
-func (f *Text) Init() error {
-	return f.inner.init()
 }
 
 func (f *Text) Type() schema.Type {
@@ -53,10 +47,6 @@ func (f *Text) AddValue(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Stop(ctx context.Context) error {
-	return f.inner.Stop(ctx)
-}
-
 func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValue(value)
 }
@@ -67,4 +57,12 @@ func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Text) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Text) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Text) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

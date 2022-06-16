@@ -58,7 +58,7 @@ func Test_Exec(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := field.NewBool("")
+			f := field.NewBool()
 			f.AddValue(1, true)
 
 			query, err := decodeQuery(d.query)
@@ -158,7 +158,7 @@ func Test_build(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewBool("query")
+			f1 := field.NewBool()
 
 			query, err := decodeQuery(d.query)
 			require.NoError(t, err)
