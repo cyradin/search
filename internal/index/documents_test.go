@@ -89,7 +89,7 @@ func Test_Documents_Add(t *testing.T) {
 				&testDocStorage{
 					insert: d.sourceInsert,
 				},
-				"",
+				t.TempDir(),
 			)
 			require.NoError(t, err)
 
