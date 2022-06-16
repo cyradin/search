@@ -39,7 +39,6 @@ var testAnalyzer3 AnalyzerHandler = func(next Analyzer) Analyzer {
 }
 
 func Test_Text_AddValue(t *testing.T) {
-
 	t.Run("string", func(t *testing.T) {
 		value := "value value1"
 		field := NewText(testAnalyzer1, testAnalyzer2, testAnalyzer3)
@@ -60,7 +59,7 @@ func Test_Text_AddValue(t *testing.T) {
 		field := NewText(testAnalyzer1, testAnalyzer2, testAnalyzer3)
 
 		field.AddValue(1, true)
-		bm, ok := field.inner.data["true"]
+		bm, ok := field.inner.data["true_addition1_addition2"]
 
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
