@@ -9,7 +9,7 @@ import (
 func Test_Keyword_AddValue(t *testing.T) {
 	t.Run("string", func(t *testing.T) {
 		value := "qwe"
-		field := NewKeyword("")
+		field := NewKeyword()
 
 		field.AddValue(1, value)
 		bm, ok := field.inner.data[value]
@@ -19,7 +19,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 	})
 
 	t.Run("bool", func(t *testing.T) {
-		field := NewKeyword("")
+		field := NewKeyword()
 
 		field.AddValue(1, true)
 		bm, ok := field.inner.data["true"]

@@ -12,15 +12,11 @@ type Byte struct {
 	inner *field[int8]
 }
 
-func NewByte(src string) *Byte {
-	gf := newField[int8](src, cast.ToInt8E)
+func NewByte() *Byte {
+	gf := newField[int8](cast.ToInt8E)
 	return &Byte{
 		inner: gf,
 	}
-}
-
-func (f *Byte) Init() error {
-	return f.inner.init()
 }
 
 func (f *Byte) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Byte) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Byte) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Byte) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Byte) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

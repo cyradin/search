@@ -12,15 +12,11 @@ type UnsignedLong struct {
 	inner *field[uint64]
 }
 
-func NewUnsignedLong(src string) *UnsignedLong {
-	gf := newField[uint64](src, cast.ToUint64E)
+func NewUnsignedLong() *UnsignedLong {
+	gf := newField[uint64](cast.ToUint64E)
 	return &UnsignedLong{
 		inner: gf,
 	}
-}
-
-func (f *UnsignedLong) Init() error {
-	return f.inner.init()
 }
 
 func (f *UnsignedLong) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *UnsignedLong) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 
 func (f *UnsignedLong) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *UnsignedLong) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *UnsignedLong) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

@@ -42,7 +42,7 @@ func Test_Text_AddValue(t *testing.T) {
 
 	t.Run("string", func(t *testing.T) {
 		value := "value value1"
-		field := NewText("", testAnalyzer1, testAnalyzer2, testAnalyzer3)
+		field := NewText(testAnalyzer1, testAnalyzer2, testAnalyzer3)
 
 		field.AddValue(1, value)
 		bm, ok := field.inner.data["value_addition1_addition2"]
@@ -57,7 +57,7 @@ func Test_Text_AddValue(t *testing.T) {
 	})
 
 	t.Run("bool", func(t *testing.T) {
-		field := NewKeyword("")
+		field := NewText(testAnalyzer1, testAnalyzer2, testAnalyzer3)
 
 		field.AddValue(1, true)
 		bm, ok := field.inner.data["true"]

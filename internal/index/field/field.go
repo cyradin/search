@@ -2,21 +2,21 @@ package field
 
 import (
 	"bytes"
-	"context"
+	"encoding"
 	"encoding/gob"
-	"os"
+	"fmt"
 	"sync"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/schema"
 )
 
 type Field interface {
+	encoding.BinaryMarshaler
+	encoding.BinaryUnmarshaler
+
 	// Type returns field type
 	Type() schema.Type
-	// Init initialize field
-	Init() error
 	// AddValue add document field value
 	AddValue(id uint32, value interface{})
 	// GetValue get bitmap clone by value
@@ -37,33 +37,18 @@ type Score struct {
 type Scores []Score
 
 type field[T comparable] struct {
-	src string
-
 	mtx       sync.Mutex
 	data      map[T]*roaring.Bitmap
 	transform func(interface{}) (T, error)
 }
 
-func newField[T comparable](src string, transformer func(interface{}) (T, error)) *field[T] {
+func newField[T comparable](transformer func(interface{}) (T, error)) *field[T] {
 	result := &field[T]{
-		src:       src,
 		data:      make(map[T]*roaring.Bitmap),
 		transform: transformer,
 	}
 
 	return result
-}
-
-func (f *field[T]) init() error {
-	err := load(f.src, &f.data)
-	if err != nil {
-		return err
-	}
-	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
-		f.Stop(ctx)
-	})
-
-	return nil
 }
 
 func (f *field[T]) AddValue(id uint32, value interface{}) {
@@ -85,36 +70,23 @@ func (f *field[T]) AddValue(id uint32, value interface{}) {
 	return
 }
 
-func (f *field[T]) Stop(ctx context.Context) error {
+func (f *field[T]) MarshalBinary() ([]byte, error) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	return dump(f.data, f.src)
-}
-
-func load(src string, dest interface{}) error {
-	contents, err := os.ReadFile(src)
-	if err != nil {
-		if os.IsNotExist(err) {
-			return nil
-		}
-		return err
-	}
-
-	if err := gob.NewDecoder(bytes.NewBuffer(contents)).Decode(dest); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func dump(src interface{}, dest string) error {
 	var buf bytes.Buffer
-	if err := gob.NewEncoder(&buf).Encode(src); err != nil {
-		return err
-	}
+	err := gob.NewEncoder(&buf).Encode(f.data)
 
-	return os.WriteFile(dest, buf.Bytes(), 0644)
+	return buf.Bytes(), err
+}
+
+func (f *field[T]) UnmarshalBinary(data []byte) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	buf := bytes.NewBuffer(data)
+
+	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
 func (f *field[T]) getValue(v interface{}) (*roaring.Bitmap, bool) {
@@ -163,4 +135,43 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *field[T]) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return nil
+}
+
+func New(t schema.Type) (Field, error) {
+	var f Field
+
+	switch t {
+	case schema.TypeAll:
+		f = NewAll()
+	case schema.TypeBool:
+		f = NewBool()
+	case schema.TypeKeyword:
+		f = NewKeyword()
+	case schema.TypeText:
+		f = NewText() // @todo pass analyzers from schema
+	// @todo implement slice type
+	// case schema.TypeSlice:
+	// 	i.fields[f.Name] = field.NewSlice()
+	// @todo implement map type
+	// case schema.TypeNap:
+	// 	i.fields[f.Name] = field.NewMap()
+	case schema.TypeUnsignedLong:
+		f = NewUnsignedLong()
+	case schema.TypeLong:
+		f = NewLong()
+	case schema.TypeInteger:
+		f = NewInteger()
+	case schema.TypeShort:
+		f = NewShort()
+	case schema.TypeByte:
+		f = NewByte()
+	case schema.TypeDouble:
+		f = NewDouble()
+	case schema.TypeFloat:
+		f = NewFloat()
+	default:
+		return nil, fmt.Errorf("invalid field type %q", t)
+	}
+
+	return f, nil
 }

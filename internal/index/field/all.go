@@ -18,15 +18,11 @@ type All struct {
 	inner *field[bool]
 }
 
-func NewAll(src string) *All {
-	gf := newField[bool](src, cast.ToBoolE)
+func NewAll() *All {
+	gf := newField[bool](cast.ToBoolE)
 	return &All{
 		inner: gf,
 	}
-}
-
-func (f *All) Init() error {
-	return f.inner.init()
 }
 
 func (f *All) Type() schema.Type {
@@ -47,4 +43,12 @@ func (f *All) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *All) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *All) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *All) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }

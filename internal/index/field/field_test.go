@@ -1,9 +1,6 @@
 package field
 
 import (
-	"context"
-	"os"
-	"path/filepath"
 	"testing"
 	"time"
 
@@ -74,7 +71,7 @@ func Test_genericField_AddValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			field := newField[bool]("", cast.ToBoolE)
+			field := newField[bool](cast.ToBoolE)
 
 			for _, v := range d.values {
 				field.AddValue(v.id, v.value)
@@ -92,94 +89,6 @@ func Test_genericField_AddValue(t *testing.T) {
 				require.Equal(t, v, bm.GetCardinality())
 			}
 		})
-	}
-}
-
-func Test_load(t *testing.T) {
-	bm := roaring.New()
-	bm.Add(1)
-
-	data := []struct {
-		name      string
-		src       string
-		erroneous bool
-		expected  map[string]*roaring.Bitmap
-	}{
-		{
-			name:      "file_not_exists",
-			src:       "not_exists",
-			erroneous: false,
-			expected:  make(map[string]*roaring.Bitmap),
-		},
-		{
-			name:      "ok",
-			src:       "../../../test/testdata/field/test.gob",
-			erroneous: false,
-			expected: map[string]*roaring.Bitmap{
-				"value": bm,
-			},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f := newField[string](d.src, cast.ToStringE)
-			err := f.init()
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-			require.NoError(t, err)
-
-			var expectedKeys []string
-			for k := range d.expected {
-				expectedKeys = append(expectedKeys, k)
-			}
-			var dataKeys []string
-			for k := range f.data {
-				dataKeys = append(dataKeys, k)
-			}
-			require.EqualValues(t, expectedKeys, dataKeys)
-
-			for k, v := range d.expected {
-				require.True(t, f.data[k].Equals(v))
-			}
-		})
-	}
-}
-
-func Test_genericField_Stop(t *testing.T) {
-	dir, err := os.MkdirTemp("", "testdir")
-	require.NoError(t, err)
-	defer os.RemoveAll(dir)
-
-	src := filepath.Join(dir, "data.gob")
-
-	f1 := newField[string](src, cast.ToStringE)
-	err = f1.init()
-	require.NoError(t, err)
-
-	f1.AddValue(1, "value")
-
-	err = f1.Stop(context.Background())
-	require.NoError(t, err)
-
-	f2 := newField[string](src, cast.ToStringE)
-	err = f2.init()
-	require.NoError(t, err)
-
-	var expectedKeys []string
-	for k := range f1.data {
-		expectedKeys = append(expectedKeys, k)
-	}
-	var dataKeys []string
-	for k := range f2.data {
-		dataKeys = append(dataKeys, k)
-	}
-	require.EqualValues(t, expectedKeys, dataKeys)
-
-	for k, v := range f1.data {
-		require.True(t, f2.data[k].Equals(v))
 	}
 }
 
@@ -218,7 +127,7 @@ func Test_genericField_getValue(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := newField[bool]("", cast.ToBoolE)
+			f := newField[bool](cast.ToBoolE)
 
 			f.data = d.data
 			f.data[true].Add(1)
@@ -297,7 +206,7 @@ func Test_genericField_getValuesOr(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			f := newField[int]("", cast.ToIntE)
+			f := newField[int](cast.ToIntE)
 
 			f.data = d.data
 

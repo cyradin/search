@@ -12,15 +12,11 @@ type Integer struct {
 	inner *field[int32]
 }
 
-func NewInteger(src string) *Integer {
-	gf := newField[int32](src, cast.ToInt32E)
+func NewInteger() *Integer {
+	gf := newField[int32](cast.ToInt32E)
 	return &Integer{
 		inner: gf,
 	}
-}
-
-func (f *Integer) Init() error {
-	return f.inner.init()
 }
 
 func (f *Integer) Type() schema.Type {
@@ -41,4 +37,12 @@ func (f *Integer) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 
 func (f *Integer) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return f.inner.Scores(value, bm)
+}
+
+func (f *Integer) MarshalBinary() ([]byte, error) {
+	return f.inner.MarshalBinary()
+}
+
+func (f *Integer) UnmarshalBinary(data []byte) error {
+	return f.inner.UnmarshalBinary(data)
 }
