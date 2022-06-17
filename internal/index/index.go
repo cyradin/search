@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"os"
 	"path"
 	"sync"
 
@@ -118,6 +117,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 
 		return fmt.Errorf("index delete err: %w", err)
 	}
+	delete(r.data, name)
 	events.Dispatch(ctx, events.NewIndexDelete(name))
 
 	return nil
@@ -136,25 +136,16 @@ func (r *Repository) Documents(index string) (*Documents, error) {
 }
 
 func (r *Repository) initData(index entity.Index) error {
-	fieldPath := r.fieldPath(index.Name)
-	if err := os.MkdirAll(fieldPath, dirPermissions); err != nil {
-		return fmt.Errorf("source storage dir create err: %w", err)
-	}
-
 	sourceStorage, err := NewIndexSourceStorage(r.dataDir, index.Name)
 	if err != nil {
 		return fmt.Errorf("source storage init err: %w", err)
 	}
 
-	data, err := NewDocuments(index, sourceStorage, fieldPath)
+	data, err := NewDocuments(index, sourceStorage, path.Join(r.dataDir, index.Name))
 	if err != nil {
 		return fmt.Errorf("index data constructor err: %w", err)
 	}
 	r.data[index.Name] = data
 
 	return nil
-}
-
-func (r *Repository) fieldPath(indexName string) string {
-	return path.Join(r.dataDir, indexName, "fields")
 }

@@ -2,10 +2,13 @@ package index
 
 import (
 	"fmt"
+	"os"
+	"path"
 
 	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
+	"github.com/cyradin/search/internal/index/relevance"
 	"github.com/cyradin/search/internal/index/schema"
 )
 
@@ -20,12 +23,18 @@ type (
 )
 
 type Documents struct {
-	index         entity.Index
-	fieldStorage  *field.Storage
-	sourceStorage Storage[uint32, entity.DocSource]
+	index            entity.Index
+	fieldStorage     *field.Storage
+	sourceStorage    Storage[uint32, entity.DocSource]
+	relevanceStorage *relevance.Storage
+	relevanceCalc    relevance.Calculator
 }
 
-func NewDocuments(i entity.Index, sourceStorage Storage[uint32, entity.DocSource], fieldPath string) (*Documents, error) {
+func NewDocuments(i entity.Index, sourceStorage Storage[uint32, entity.DocSource], dataPath string) (*Documents, error) {
+	fieldPath := path.Join(dataPath, "fields")
+	if err := os.MkdirAll(fieldPath, dirPermissions); err != nil {
+		return nil, fmt.Errorf("field storage dir create err: %w", err)
+	}
 	fieldStorage, err := field.NewStorage(fieldPath, i.Schema)
 	if err != nil {
 		return nil, fmt.Errorf("field storage init err: %w", err)

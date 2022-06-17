@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cyradin/search/internal/index"
-	"github.com/cyradin/search/pkg/ctxt"
+	"github.com/cyradin/search/internal/logger"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -62,9 +62,9 @@ func bindContext(appCtx context.Context) func(next http.Handler) http.Handler {
 			}
 
 			reqCtx := r.Context()
-			reqCtx = ctxt.WithRequestMethod(reqCtx, method)
-			reqCtx = ctxt.WithRequestRoute(reqCtx, path)
-			reqCtx = ctxt.WithRequestID(reqCtx, r.Header.Get(middleware.RequestIDHeader))
+			reqCtx = logger.WithRequestMethod(reqCtx, method)
+			reqCtx = logger.WithRequestRoute(reqCtx, path)
+			reqCtx = logger.WithRequestID(reqCtx, r.Header.Get(middleware.RequestIDHeader))
 
 			r = r.WithContext(reqCtx)
 

@@ -8,7 +8,7 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/events"
-	"github.com/cyradin/search/pkg/ctxt"
+	"github.com/cyradin/search/internal/logger"
 	"github.com/google/uuid"
 	"github.com/pkg/profile"
 	"go.uber.org/zap"
@@ -29,11 +29,11 @@ func main() {
 	}
 
 	instanceID := uuid.NewString()
-	logger, err := newLogger(cfg.Logger.Level, cfg.Logger.TraceLevel, "search", version, instanceID, cfg.Env)
+	log, err := logger.New(cfg.Logger.Level, cfg.Logger.TraceLevel, "search", version, instanceID, cfg.Env)
 	panicOnError(err)
 
-	ctx := ctxt.WithLogger(context.Background(), logger)
-	defer panicHandle(ctx, logger)
+	ctx := logger.WithLogger(context.Background(), log)
+	defer panicHandle(ctx, log)
 
 	stopCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
@@ -42,8 +42,8 @@ func main() {
 
 	errors := make(chan error, 1)
 	go func(ctx context.Context) {
-		defer panicHandle(ctx, logger)
-		logger.Info("app.server.start", ctxt.ExtractFields(ctx)...)
+		defer panicHandle(ctx, log)
+		log.Info("app.server.start", logger.ExtractFields(ctx)...)
 		err := srv.ListenAndServe()
 		if err != nil {
 			errors <- err
@@ -52,21 +52,21 @@ func main() {
 
 	select {
 	case <-stopCtx.Done():
-		logger.Info("app.stopping", ctxt.ExtractFields(ctx)...)
+		log.Info("app.stopping", logger.ExtractFields(ctx)...)
 		events.Dispatch(ctx, events.NewAppStop())
 
-		logger.Info("server.stopping", ctxt.ExtractFields(ctx)...)
+		log.Info("server.stopping", logger.ExtractFields(ctx)...)
 		ctx, cancel := context.WithTimeout(ctx, time.Second*10)
 		defer cancel()
 		if err := srv.Shutdown(ctx); err != nil && err != context.Canceled {
-			logger.Error("server.error", ctxt.ExtractFields(ctx)...)
+			log.Error("server.error", logger.ExtractFields(ctx)...)
 		}
 		if err := srv.Close(); err != nil {
-			logger.Error("server.error", ctxt.ExtractFields(ctx)...)
+			log.Error("server.error", logger.ExtractFields(ctx)...)
 		}
-		logger.Info("server.stopped", ctxt.ExtractFields(ctx)...)
+		log.Info("server.stopped", logger.ExtractFields(ctx)...)
 	case err := <-errors:
-		logger.Error("server.error", ctxt.ExtractFields(ctx, zap.Error(err))...)
+		log.Error("server.error", logger.ExtractFields(ctx, zap.Error(err))...)
 	}
 }
 
@@ -83,6 +83,6 @@ func panicHandle(ctx context.Context, l *zap.Logger) {
 			err = fmt.Errorf("%v", r)
 		}
 
-		l.Fatal("app.panic", ctxt.ExtractFields(ctx, zap.Error(err))...)
+		l.Fatal("app.panic", logger.ExtractFields(ctx, zap.Error(err))...)
 	}
 }
