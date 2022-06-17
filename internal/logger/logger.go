@@ -1,4 +1,4 @@
-package main
+package logger
 
 import (
 	"os"
@@ -7,7 +7,7 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-func newLogger(level zapcore.Level, traceLevel zapcore.Level, name string, version string, instanceID string, env string) (*zap.Logger, error) {
+func New(level zapcore.Level, traceLevel zapcore.Level, name string, version string, instanceID string, env string) (*zap.Logger, error) {
 	encoder := zapcore.NewJSONEncoder(zapcore.EncoderConfig{
 		NameKey:        "app",
 		LevelKey:       "level",
@@ -34,4 +34,8 @@ func newLogger(level zapcore.Level, traceLevel zapcore.Level, name string, versi
 			zap.String("env", env),
 		),
 	), nil
+}
+
+func NewNop() *zap.Logger {
+	return zap.NewNop()
 }

@@ -11,6 +11,8 @@ import (
 
 	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/cyradin/search/internal/logger"
+	"go.uber.org/zap"
 )
 
 const filePermissions = 0644
@@ -52,7 +54,9 @@ func NewStorage(src string, s schema.Schema) (*Storage, error) {
 		return nil, err
 	}
 	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
-		_ = result.dump()
+		if err := result.dump(); err == nil {
+			logger.FromCtx(ctx).Error("field.storage.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
+		}
 	})
 
 	return result, nil
