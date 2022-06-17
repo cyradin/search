@@ -3,11 +3,9 @@ package field
 import (
 	"context"
 	"fmt"
-	"io/fs"
 	"os"
 	"path"
-	"path/filepath"
-	"strings"
+	"sync"
 
 	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/schema"
@@ -15,108 +13,79 @@ import (
 	"go.uber.org/zap"
 )
 
+const fieldsDir = "fields"
+const dirPermissions = 0755
 const filePermissions = 0644
 const fileExt = ".gob"
 
 type Storage struct {
 	src    string
-	schema schema.Schema
-
-	fields map[string]Field
+	mtx    sync.RWMutex
+	fields map[string]*index
 }
 
-func NewStorage(src string, s schema.Schema) (*Storage, error) {
+type Index interface {
+	Add(id uint32, source map[string]interface{})
+}
+
+func NewStorage(src string) *Storage {
 	result := &Storage{
-		src:    src,
-		schema: s,
-		fields: make(map[string]Field),
+		fields: make(map[string]*index),
 	}
 
-	// add "allField" which contains all documents
-	fields := make([]schema.Field, len(s.Fields))
-	copy(fields, s.Fields)
-	fields = append(fields, schema.Field{
-		Name:     AllField,
-		Required: false,
-		Type:     schema.TypeAll,
-	})
-
-	for _, f := range fields {
-		field, err := New(f.Type)
-		if err != nil {
-			return nil, err
-		}
-		result.fields[f.Name] = field
-	}
-
-	err := result.load()
-	if err != nil {
-		return nil, err
-	}
 	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
-		if err := result.dump(); err == nil {
-			logger.FromCtx(ctx).Error("field.storage.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
+		result.mtx.Lock()
+		defer result.mtx.Unlock()
+		for _, f := range result.fields {
+			if err := f.dump(); err == nil {
+				logger.FromCtx(ctx).Error("field.storage.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
+			}
 		}
 	})
-
-	return result, nil
-}
-
-func (s *Storage) Add(id uint32, source map[string]interface{}) {
-	for key, value := range source {
-		if f, ok := s.fields[key]; ok {
-			f.AddValue(id, value)
-			s.fields[AllField].AddValue(id, value)
-		}
-	}
-}
-
-func (s *Storage) Fields() map[string]Field {
-	result := make(map[string]Field)
-	for name, f := range s.fields {
-		result[name] = f
-	}
 
 	return result
 }
 
-func (s *Storage) load() error {
-	return filepath.Walk(s.src, func(path string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
+func (s *Storage) AddIndex(name string, sc schema.Schema) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
-		name := strings.TrimRight(info.Name(), fileExt)
-		f, ok := s.fields[name]
-		if !ok {
-			return nil
-		}
-
-		data, err := os.ReadFile(path)
-		if err != nil {
-			return fmt.Errorf("file %q read err: %w", path, err)
-		}
-		err = f.UnmarshalBinary(data)
-		if err != nil {
-			return fmt.Errorf("field %q unmarshal err: %w", name, err)
-		}
-
-		return nil
-	})
-}
-
-func (s *Storage) dump() error {
-	for name, field := range s.fields {
-		src := path.Join(s.src, name+fileExt)
-		data, err := field.MarshalBinary()
-		if err != nil {
-			return fmt.Errorf("field %q marshal err: %w", name, err)
-		}
-		err = os.WriteFile(src, data, filePermissions)
-		if err != nil {
-			return fmt.Errorf("file %q write err: %w", src, err)
-		}
+	if _, ok := s.fields[name]; ok {
+		return fmt.Errorf("fields %q aready initialized", name)
 	}
 
+	src := path.Join(s.src, name, fieldsDir)
+	if err := os.MkdirAll(src, dirPermissions); err != nil {
+		return fmt.Errorf("fields dir %q create err: %w", src, err)
+	}
+
+	storage, err := NewIndex(src, sc)
+	if err != nil {
+		return fmt.Errorf("fields %q init err: %w", name, err)
+	}
+
+	s.fields[name] = storage
+
 	return nil
+}
+
+func (s *Storage) DeleteIndex(name string) error {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	delete(s.fields, name)
+
+	return nil
+}
+
+func (s *Storage) GetIndex(name string) (*index, error) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	fs, ok := s.fields[name]
+	if !ok {
+		return nil, fmt.Errorf("fields %q not found", name)
+	}
+
+	return fs, nil
 }
