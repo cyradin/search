@@ -17,7 +17,7 @@ func Test_index(t *testing.T) {
 			{Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
 		require.NotEqual(t, s.Fields, index.fields)
 		require.Contains(t, index.fields, "bool")
 		require.Contains(t, index.fields, AllField)
@@ -37,7 +37,9 @@ func Test_index(t *testing.T) {
 			{Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
+		err = index.load()
+		require.NoError(t, err)
 
 		val, ok := index.fields["bool"].GetValue(true)
 		require.True(t, ok)
@@ -50,7 +52,7 @@ func Test_index(t *testing.T) {
 			{Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		index.fields["bool"].AddValue(1, true)
 
@@ -63,7 +65,10 @@ func Test_index(t *testing.T) {
 		require.NoError(t, err)
 
 		index2, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
+		err = index2.load()
+		require.NoError(t, err)
+
 		require.Contains(t, index2.fields, "bool")
 		val, ok := index2.fields["bool"].GetValue(true)
 		require.True(t, ok)
@@ -77,7 +82,7 @@ func Test_index(t *testing.T) {
 			{Name: "f2", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		index.Add(1, map[string]interface{}{"f1": true})
 		index.Add(2, map[string]interface{}{"f2": true})
@@ -105,7 +110,7 @@ func Test_index(t *testing.T) {
 			{Name: "f2", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
-		require.Nil(t, err)
+		require.NoError(t, err)
 
 		fields := index.Fields()
 		require.EqualValues(t, index.fields, fields)
