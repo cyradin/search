@@ -21,16 +21,13 @@ const fileExt = ".gob"
 type Storage struct {
 	src    string
 	mtx    sync.RWMutex
-	fields map[string]*index
-}
-
-type Index interface {
-	Add(id uint32, source map[string]interface{})
+	fields map[string]*Index
 }
 
 func NewStorage(src string) *Storage {
 	result := &Storage{
-		fields: make(map[string]*index),
+		src:    src,
+		fields: make(map[string]*Index),
 	}
 
 	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
@@ -46,27 +43,27 @@ func NewStorage(src string) *Storage {
 	return result
 }
 
-func (s *Storage) AddIndex(name string, sc schema.Schema) error {
+func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
 	if _, ok := s.fields[name]; ok {
-		return fmt.Errorf("fields %q aready initialized", name)
+		return nil, fmt.Errorf("index %q aready initialized", name)
 	}
 
 	src := path.Join(s.src, name, fieldsDir)
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
-		return fmt.Errorf("fields dir %q create err: %w", src, err)
+		return nil, fmt.Errorf("index dir %q create err: %w", src, err)
 	}
 
 	storage, err := NewIndex(src, sc)
 	if err != nil {
-		return fmt.Errorf("fields %q init err: %w", name, err)
+		return nil, fmt.Errorf("index %q init err: %w", name, err)
 	}
 
 	s.fields[name] = storage
 
-	return nil
+	return storage, nil
 }
 
 func (s *Storage) DeleteIndex(name string) error {
@@ -78,13 +75,13 @@ func (s *Storage) DeleteIndex(name string) error {
 	return nil
 }
 
-func (s *Storage) GetIndex(name string) (*index, error) {
+func (s *Storage) GetIndex(name string) (*Index, error) {
 	s.mtx.RLock()
 	defer s.mtx.RUnlock()
 
 	fs, ok := s.fields[name]
 	if !ok {
-		return nil, fmt.Errorf("fields %q not found", name)
+		return nil, fmt.Errorf("index %q not found", name)
 	}
 
 	return fs, nil

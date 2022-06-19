@@ -11,15 +11,15 @@ import (
 	"github.com/cyradin/search/internal/index/schema"
 )
 
-type index struct {
+type Index struct {
 	src    string
 	schema schema.Schema
 
 	fields map[string]Field
 }
 
-func NewIndex(src string, s schema.Schema) (*index, error) {
-	result := &index{
+func NewIndex(src string, s schema.Schema) (*Index, error) {
+	result := &Index{
 		src:    src,
 		schema: s,
 		fields: make(map[string]Field),
@@ -42,15 +42,10 @@ func NewIndex(src string, s schema.Schema) (*index, error) {
 		result.fields[f.Name] = field
 	}
 
-	err := result.load()
-	if err != nil {
-		return nil, err
-	}
-
 	return result, nil
 }
 
-func (s *index) Add(id uint32, source map[string]interface{}) {
+func (s *Index) Add(id uint32, source map[string]interface{}) {
 	for key, value := range source {
 		if f, ok := s.fields[key]; ok {
 			f.AddValue(id, value)
@@ -59,7 +54,7 @@ func (s *index) Add(id uint32, source map[string]interface{}) {
 	}
 }
 
-func (s *index) Fields() map[string]Field {
+func (s *Index) Fields() map[string]Field {
 	result := make(map[string]Field)
 	for name, f := range s.fields {
 		result[name] = f
@@ -68,7 +63,7 @@ func (s *index) Fields() map[string]Field {
 	return result
 }
 
-func (s *index) load() error {
+func (s *Index) load() error {
 	return filepath.Walk(s.src, func(path string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
@@ -93,7 +88,7 @@ func (s *index) load() error {
 	})
 }
 
-func (s *index) dump() error {
+func (s *Index) dump() error {
 	for name, field := range s.fields {
 		src := path.Join(s.src, name+fileExt)
 		data, err := field.MarshalBinary()
