@@ -10,7 +10,7 @@ import (
 )
 
 func Test_index(t *testing.T) {
-	t.Run("can create new storage", func(t *testing.T) {
+	t.Run("can create new index", func(t *testing.T) {
 		dir := t.TempDir()
 
 		s := schema.New([]schema.Field{

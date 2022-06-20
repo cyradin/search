@@ -19,7 +19,7 @@ func Test_Storage(t *testing.T) {
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index)
-		require.Equal(t, s.fields["name"], index)
+		require.Equal(t, s.indexes["name"], index)
 	})
 
 	t.Run("cannot add an existing index", func(t *testing.T) {
@@ -41,16 +41,14 @@ func Test_Storage(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, index)
 
-		err = s.DeleteIndex("name")
-		require.NoError(t, err)
-		require.Nil(t, s.fields["name"])
+		s.DeleteIndex("name")
+		require.Nil(t, s.indexes["name"])
 	})
 
 	t.Run("no error when deleting non-existent index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
-		err := s.DeleteIndex("name")
-		require.NoError(t, err)
-		require.Nil(t, s.fields["name"])
+		s.DeleteIndex("name")
+		require.Nil(t, s.indexes["name"])
 	})
 
 	t.Run("can get existing index", func(t *testing.T) {
@@ -63,7 +61,7 @@ func Test_Storage(t *testing.T) {
 
 		index, err = s.GetIndex("name")
 		require.NoError(t, err)
-		require.Equal(t, s.fields["name"], index)
+		require.Equal(t, s.indexes["name"], index)
 	})
 
 	t.Run("error getting non-existent index", func(t *testing.T) {
