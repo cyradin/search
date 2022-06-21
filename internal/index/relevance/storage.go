@@ -1,144 +1,87 @@
 package relevance
 
-import "sync"
+import (
+	"context"
+	"fmt"
+	"os"
+	"path"
+	"sync"
+
+	"github.com/cyradin/search/internal/events"
+	"github.com/cyradin/search/internal/logger"
+	"go.uber.org/zap"
+)
+
+const relevanceFile = "relevance.json"
+const dirPermissions = 0755
+const filePermissions = 0644
 
 type Storage struct {
-	mtx sync.Mutex
-
-	wordCounts map[string]int            // count of docs containing a word
-	docCounts  map[uint32]map[string]int // number of times a word occurs in a document
-	docLengths map[uint32]int            // lengths of docs
-
-	totalWordCnt int     // total word count within the entire index
-	avgDocLen    float64 // average doc length within index
+	src     string
+	mtx     sync.RWMutex
+	indexes map[string]*Index
 }
 
-func NewStorage() *Storage {
-	return &Storage{
-		wordCounts: make(map[string]int),
-		docCounts:  make(map[uint32]map[string]int),
-		docLengths: make(map[uint32]int),
-	}
-}
-
-func (s *Storage) Add(docID uint32, terms []string) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	if len(terms) == 0 {
-		return
+func NewStorage(src string) *Storage {
+	result := &Storage{
+		src:     src,
+		indexes: make(map[string]*Index),
 	}
 
-	if _, ok := s.docCounts[docID]; ok {
-		s.delete(docID)
-	}
-	s.add(docID, terms)
-}
-
-func (s *Storage) Delete(docID uint32) {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	s.delete(docID)
-}
-
-// IndexWordCount returns number of documents in the index
-func (s *Storage) IndexDocCount() int {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	return len(s.docCounts)
-}
-
-// IndexWordCount returns number of documents containing the word
-func (s *Storage) IndexWordCount(word string) int {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	return s.wordCounts[word]
-}
-
-// DocWordCount returns number of times a word occurs in a document
-func (s *Storage) DocWordCount(docID uint32, word string) int {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	m, ok := s.docCounts[docID]
-	if !ok {
-		return 0
-	}
-
-	return m[word]
-}
-
-// DocLen returns document length in words
-func (s *Storage) DocLen(docID uint32) int {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	return s.docLengths[docID]
-}
-
-func (s *Storage) AvgDocLen() float64 {
-	s.mtx.Lock()
-	defer s.mtx.Unlock()
-
-	return s.avgDocLen
-}
-
-func (s *Storage) add(docID uint32, terms []string) {
-	if _, ok := s.docCounts[docID]; ok {
-		s.Delete(docID)
-	}
-
-	counts := make(map[string]int)
-	for _, term := range terms {
-		counts[term]++
-	}
-
-	oldDocCnts := s.docCounts[docID]
-	for term, cnt := range oldDocCnts {
-		s.wordCounts[term]--
-		s.totalWordCnt -= cnt
-		if s.wordCounts[term] <= 0 {
-			delete(s.wordCounts, term)
+	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
+		result.mtx.Lock()
+		defer result.mtx.Unlock()
+		for _, i := range result.indexes {
+			if err := i.dump(); err != nil {
+				logger.FromCtx(ctx).Error("relevance.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
+			}
 		}
-	}
+	})
 
-	s.docCounts[docID] = make(map[string]int)
-	s.docLengths[docID] = len(terms)
-	for term, cnt := range counts {
-		s.docCounts[docID][term] = cnt
-		s.wordCounts[term]++
-		s.totalWordCnt += cnt
-	}
-
-	s.calcAvgDocLength()
+	return result
 }
 
-func (s *Storage) delete(docID uint32) {
-	m, ok := s.docCounts[docID]
+func (s *Storage) AddIndex(name string) (*Index, error) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	if _, ok := s.indexes[name]; ok {
+		return nil, fmt.Errorf("index %q aready initialized", name)
+	}
+
+	dir := path.Join(s.src, name)
+	if err := os.MkdirAll(dir, dirPermissions); err != nil {
+		return nil, fmt.Errorf("index dir %q create err: %w", dir, err)
+	}
+	src := path.Join(dir, relevanceFile)
+
+	index := NewIndex(src)
+
+	err := index.load()
+	if err != nil {
+		return nil, fmt.Errorf("index %q data load err: %w", name, err)
+	}
+
+	s.indexes[name] = index
+
+	return index, nil
+}
+
+func (s *Storage) DeleteIndex(name string) {
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
+
+	delete(s.indexes, name)
+}
+
+func (s *Storage) GetIndex(name string) (*Index, error) {
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
+
+	fs, ok := s.indexes[name]
 	if !ok {
-		return
+		return nil, fmt.Errorf("index %q not found", name)
 	}
 
-	for term, cnt := range m {
-		s.wordCounts[term]--
-		if s.wordCounts[term] <= 0 {
-			delete(s.wordCounts, term)
-		}
-		s.totalWordCnt -= cnt
-	}
-	delete(s.docCounts, docID)
-	delete(s.docLengths, docID)
-	s.calcAvgDocLength()
-}
-
-func (s *Storage) calcAvgDocLength() {
-	docCnt := float64(len(s.docCounts))
-	if docCnt == 0 {
-		s.avgDocLen = 0
-	} else {
-		s.avgDocLen = float64(s.totalWordCnt) / docCnt
-	}
+	return fs, nil
 }

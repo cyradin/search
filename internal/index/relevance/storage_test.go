@@ -1,186 +1,84 @@
 package relevance
 
 import (
+	"context"
+	"os"
 	"testing"
 
+	"github.com/cyradin/search/internal/events"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Storage_Add(t *testing.T) {
-	data := []struct {
-		name string
-		data []testStorageData
+func Test_Storage(t *testing.T) {
+	t.Run("can add new index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		index, err := s.AddIndex("name")
+		require.NoError(t, err)
+		require.NotNil(t, index)
+		require.Equal(t, s.indexes["name"], index)
+	})
 
-		indexCnt  map[string]int
-		docCnt    map[uint32]map[string]int
-		docLen    map[uint32]int
-		avgDocLen float64
-	}{
-		{
-			name:     "empty_data",
-			indexCnt: make(map[string]int),
-			docCnt:   make(map[uint32]map[string]int),
-			docLen:   make(map[uint32]int),
-		},
-		{
-			name: "one",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-			},
-			indexCnt: map[string]int{
-				"foo": 1,
-				"bar": 1,
-			},
-			docCnt: map[uint32]map[string]int{
-				1: {"foo": 1, "bar": 2},
-			},
-			docLen: map[uint32]int{
-				1: 3,
-			},
-			avgDocLen: 3,
-		},
-		{
-			name: "two",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-				{id: 2, words: []string{"foo", "bar", "baz", "baz"}},
-			},
-			indexCnt: map[string]int{
-				"foo": 2,
-				"bar": 2,
-				"baz": 1,
-			},
-			docCnt: map[uint32]map[string]int{
-				1: {"foo": 1, "bar": 2},
-				2: {"foo": 1, "bar": 1, "baz": 2},
-			},
-			docLen: map[uint32]int{
-				1: 3, 2: 4,
-			},
-			avgDocLen: 3.5,
-		},
-		{
-			name: "replace",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-				{id: 1, words: []string{"bar", "baz", "baz", "baz"}},
-			},
-			indexCnt: map[string]int{
-				"bar": 1,
-				"baz": 1,
-			},
-			docCnt: map[uint32]map[string]int{
-				1: {"baz": 3, "bar": 1},
-			},
-			docLen: map[uint32]int{
-				1: 4,
-			},
-			avgDocLen: 4,
-		},
-	}
+	t.Run("cannot add an existing index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		index, err := s.AddIndex("name")
+		require.NoError(t, err)
+		require.NotNil(t, index)
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			storage := NewStorage()
-			for _, item := range d.data {
-				storage.Add(item.id, item.words)
-			}
+		index, err = s.AddIndex("name")
+		require.Error(t, err)
+		require.Nil(t, index)
+	})
 
-			require.EqualValues(t, d.indexCnt, storage.wordCounts)
-			require.EqualValues(t, d.docCnt, storage.docCounts)
-			require.EqualValues(t, d.docLen, storage.docLengths)
-			require.Equal(t, d.avgDocLen, storage.AvgDocLen())
-		})
-	}
-}
+	t.Run("can delete index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		index, err := s.AddIndex("name")
+		require.NoError(t, err)
+		require.NotNil(t, index)
 
-func Test_Storage_Delete(t *testing.T) {
-	data := []struct {
-		name   string
-		data   []testStorageData
-		delete []uint32
+		s.DeleteIndex("name")
+		require.Nil(t, s.indexes["name"])
+	})
 
-		indexCnt  map[string]int
-		docCnt    map[uint32]map[string]int
-		docLen    map[uint32]int
-		avgDocLen float64
-	}{
-		{
-			name:     "empty_data",
-			delete:   []uint32{1},
-			indexCnt: make(map[string]int),
-			docCnt:   make(map[uint32]map[string]int),
-			docLen:   make(map[uint32]int),
-		},
-		{
-			name: "one_not_found",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-			},
-			delete: []uint32{2},
-			indexCnt: map[string]int{
-				"foo": 1,
-				"bar": 1,
-			},
-			docCnt: map[uint32]map[string]int{
-				1: {"foo": 1, "bar": 2},
-			},
-			docLen: map[uint32]int{
-				1: 3,
-			},
-			avgDocLen: 3,
-		},
-		{
-			name: "one_delete",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-			},
-			delete:    []uint32{1},
-			indexCnt:  map[string]int{},
-			docCnt:    map[uint32]map[string]int{},
-			docLen:    map[uint32]int{},
-			avgDocLen: 0,
-		},
-		{
-			name: "three_delete_one",
-			data: []testStorageData{
-				{id: 1, words: []string{"foo", "bar", "bar"}},
-				{id: 2, words: []string{"foo", "bar", "baz", "baz"}},
-				{id: 3, words: []string{"foo"}},
-			},
-			delete: []uint32{1},
-			indexCnt: map[string]int{
-				"foo": 2,
-				"bar": 1,
-				"baz": 1,
-			},
-			docCnt: map[uint32]map[string]int{
-				2: {"foo": 1, "bar": 1, "baz": 2},
-				3: {"foo": 1},
-			},
-			docLen: map[uint32]int{
-				2: 4,
-				3: 1,
-			},
-			avgDocLen: 2.5,
-		},
-	}
+	t.Run("no error when deleting non-existent index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		s.DeleteIndex("name")
+		require.Nil(t, s.indexes["name"])
+	})
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			storage := NewStorage()
-			for _, item := range d.data {
-				storage.Add(item.id, item.words)
-			}
+	t.Run("can get existing index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		index, err := s.AddIndex("name")
+		require.NoError(t, err)
+		require.NotNil(t, index)
 
-			for _, id := range d.delete {
-				storage.Delete(id)
-			}
+		index, err = s.GetIndex("name")
+		require.NoError(t, err)
+		require.Equal(t, s.indexes["name"], index)
+	})
 
-			require.EqualValues(t, d.indexCnt, storage.wordCounts)
-			require.EqualValues(t, d.docCnt, storage.docCounts)
-			require.EqualValues(t, d.docLen, storage.docLengths)
-			require.Equal(t, d.avgDocLen, storage.AvgDocLen())
-		})
-	}
+	t.Run("error getting non-existent index", func(t *testing.T) {
+		s := NewStorage(t.TempDir())
+		index, err := s.GetIndex("name")
+		require.Error(t, err)
+		require.Nil(t, index)
+	})
+
+	t.Run("can dump all indexes on app stop", func(t *testing.T) {
+		dir := t.TempDir()
+		s := NewStorage(dir)
+		index1, err := s.AddIndex("name1")
+		require.NoError(t, err)
+		require.NotNil(t, index1)
+		index2, err := s.AddIndex("name2")
+		require.NoError(t, err)
+		require.NotNil(t, index2)
+
+		events.Dispatch(context.Background(), events.NewAppStop())
+
+		_, err = os.Stat(index1.src)
+		require.NoError(t, err)
+
+		_, err = os.Stat(index2.src)
+		require.NoError(t, err)
+	})
 }
