@@ -24,10 +24,9 @@ func NewDocument(id uint32, source map[string]interface{}) Document {
 }
 
 type Index struct {
-	src string
-
-	docsMtx sync.RWMutex
-	docs    map[uint32]Document
+	src  string
+	mtx  sync.RWMutex
+	docs map[uint32]Document
 }
 
 func NewIndex(src string) (*Index, error) {
@@ -44,8 +43,8 @@ func (s *Index) All() (<-chan Document, <-chan error) {
 	errors := make(chan error)
 
 	go func() {
-		s.docsMtx.RLock()
-		defer s.docsMtx.RUnlock()
+		s.mtx.RLock()
+		defer s.mtx.RUnlock()
 		defer close(ch)
 		defer close(errors)
 
@@ -58,8 +57,8 @@ func (s *Index) All() (<-chan Document, <-chan error) {
 }
 
 func (s *Index) One(id uint32) (Document, error) {
-	s.docsMtx.RLock()
-	defer s.docsMtx.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
 	doc, ok := s.docs[id]
 	if !ok {
@@ -70,8 +69,8 @@ func (s *Index) One(id uint32) (Document, error) {
 }
 
 func (s *Index) Multi(ids ...uint32) ([]Document, error) {
-	s.docsMtx.RLock()
-	defer s.docsMtx.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
 	result := make([]Document, 0, len(ids))
 
@@ -85,8 +84,8 @@ func (s *Index) Multi(ids ...uint32) ([]Document, error) {
 }
 
 func (s *Index) Insert(id uint32, doc map[string]interface{}) (uint32, error) {
-	s.docsMtx.Lock()
-	defer s.docsMtx.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	if id == 0 {
 		id = s.nextID()
@@ -105,8 +104,8 @@ func (s *Index) Update(id uint32, doc map[string]interface{}) error {
 		return ErrEmptyDocId
 	}
 
-	s.docsMtx.Lock()
-	defer s.docsMtx.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	if _, ok := s.docs[id]; !ok {
 		return ErrDocNotFound
@@ -121,8 +120,8 @@ func (s *Index) Delete(id uint32) error {
 		return ErrEmptyDocId
 	}
 
-	s.docsMtx.Lock()
-	defer s.docsMtx.Unlock()
+	s.mtx.Lock()
+	defer s.mtx.Unlock()
 
 	if _, ok := s.docs[id]; !ok {
 		return ErrDocNotFound
@@ -163,8 +162,8 @@ func (s *Index) load() error {
 }
 
 func (s *Index) dump() error {
-	s.docsMtx.RLock()
-	defer s.docsMtx.RUnlock()
+	s.mtx.RLock()
+	defer s.mtx.RUnlock()
 
 	data, err := jsoniter.Marshal(s.docs)
 	if err != nil {
