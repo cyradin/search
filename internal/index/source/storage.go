@@ -45,6 +45,10 @@ func (s *Storage) AddIndex(name string) (*Index, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
+	if _, ok := s.indexes[name]; ok {
+		return nil, fmt.Errorf("index %q aready initialized", name)
+	}
+
 	dir := path.Join(s.src, name)
 	if err := os.MkdirAll(dir, dirPermissions); err != nil {
 		return nil, fmt.Errorf("index dir %q create err: %w", dir, err)
