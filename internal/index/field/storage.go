@@ -34,7 +34,7 @@ func NewStorage(src string) *Storage {
 		result.mtx.Lock()
 		defer result.mtx.Unlock()
 		for _, f := range result.indexes {
-			if err := f.dump(); err == nil {
+			if err := f.dump(); err != nil {
 				logger.FromCtx(ctx).Error("field.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
 			}
 		}

@@ -1,7 +1,6 @@
 package index
 
 import (
-	"fmt"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/entity"
@@ -42,36 +41,20 @@ func (s *testDocStorage) Delete(id uint32) error {
 
 func Test_Documents_Add(t *testing.T) {
 	data := []struct {
-		name         string
-		sourceInsert func(id uint32, doc entity.DocSource) (uint32, error)
-		source       entity.DocSource
-		erroneous    bool
-		expected     uint32
+		name      string
+		source    entity.DocSource
+		erroneous bool
+		expected  uint32
 	}{
 		{
-			name:   "source_insert_err",
-			source: entity.DocSource{"v": true},
-			sourceInsert: func(id uint32, doc entity.DocSource) (uint32, error) {
-				return 0, fmt.Errorf("err")
-			},
+			name:      "field_value_set_err",
+			source:    entity.DocSource{"v": "1"},
 			erroneous: true,
 			expected:  1,
 		},
 		{
-			name:   "field_value_set_err",
-			source: entity.DocSource{"v": "1"},
-			sourceInsert: func(id uint32, doc entity.DocSource) (uint32, error) {
-				return 1, nil
-			},
-			erroneous: true,
-			expected:  1,
-		},
-		{
-			name:   "ok",
-			source: entity.DocSource{"v": true},
-			sourceInsert: func(id uint32, doc entity.DocSource) (uint32, error) {
-				return 1, nil
-			},
+			name:      "ok",
+			source:    entity.DocSource{"v": true},
 			erroneous: false,
 			expected:  1,
 		},
@@ -79,21 +62,19 @@ func Test_Documents_Add(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			docs, err := NewDocuments(
-				entity.NewIndex(
-					"name",
-					schema.New(
-						[]schema.Field{schema.NewField("v", schema.TypeBool, true)},
-					),
+			i := entity.NewIndex(
+				"name",
+				schema.New(
+					[]schema.Field{schema.NewField("v", schema.TypeBool, true)},
 				),
-				&testDocStorage{
-					insert: d.sourceInsert,
-				},
-				t.TempDir(),
 			)
+
+			docs := NewDocuments(t.TempDir())
+
+			err := docs.AddIndex(i)
 			require.NoError(t, err)
 
-			guid, err := docs.Add(0, d.source)
+			guid, err := docs.Add(i, 0, d.source)
 			if d.erroneous {
 				require.Error(t, err)
 			} else {
