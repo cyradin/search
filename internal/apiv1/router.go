@@ -13,7 +13,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi.Router) {
+func NewHandler(ctx context.Context, indexRepository *index.Repository, docRepository *index.Documents) func(chi.Router) {
 	return func(r chi.Router) {
 		r.Use(
 			middleware.StripSlashes,
@@ -27,14 +27,14 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository) func(chi
 
 		r.Route("/indexes", func(r chi.Router) {
 			ic := NewIndexController(indexRepository)
-			dc := NewDocumentController(indexRepository)
+			dc := NewDocumentController(indexRepository, docRepository)
 			r.Get("/", ic.ListAction())
 			r.Post("/", ic.AddAction())
 
 			r.Route("/{"+indexParam+"}", func(r chi.Router) {
 				r.Get("/", ic.GetAction())
 				r.Delete("/", ic.DeleteAction())
-				r.Post("/search", ic.SearchAction())
+				r.Post("/search", dc.SearchAction())
 				r.Route("/documents", func(r chi.Router) {
 					r.Post("/", dc.AddAction())
 					r.Get("/{"+documentParam+"}", dc.GetAction())

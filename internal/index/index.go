@@ -4,10 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"path"
 	"sync"
 
-	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/schema"
 )
@@ -20,34 +18,37 @@ type Repository struct {
 	storage Storage[string, entity.Index]
 
 	dataDir string
-	data    map[string]*Documents
+
+	docs *Documents
 }
 
-func NewRepository(dataDir string) (*Repository, error) {
+func NewRepository(dataDir string, docs *Documents) (*Repository, error) {
 	storage, err := NewIndexStorage(dataDir)
 	if err != nil {
 		return nil, fmt.Errorf("index storage init err: %w", err)
 	}
 
-	r := &Repository{
+	return &Repository{
 		storage: storage,
 		dataDir: dataDir,
-		data:    make(map[string]*Documents),
-	}
+		docs:    docs,
+	}, nil
+}
 
+func (r *Repository) Init(ctx context.Context) error {
 	indexes, err := r.All()
 	if err != nil {
-		return nil, fmt.Errorf("index list load err: %w", err)
+		return fmt.Errorf("index list load err: %w", err)
 	}
 
 	for _, index := range indexes {
-		err := r.initData(index)
+		err := r.docs.AddIndex(index)
 		if err != nil {
-			return nil, fmt.Errorf("index data init err: %w", err)
+			return fmt.Errorf("index data init err: %w", err)
 		}
 	}
 
-	return r, nil
+	return nil
 }
 
 func (r *Repository) Get(name string) (entity.Index, error) {
@@ -96,12 +97,6 @@ func (r *Repository) Add(ctx context.Context, index entity.Index) error {
 	if errors.Is(err, ErrDocAlreadyExists) {
 		return ErrIndexAlreadyExists
 	}
-	events.Dispatch(ctx, events.NewIndexAdd(index.Name, index.Schema))
-
-	err = r.initData(index)
-	if err != nil {
-		return err
-	}
 
 	return err
 }
@@ -117,35 +112,6 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 
 		return fmt.Errorf("index delete err: %w", err)
 	}
-	delete(r.data, name)
-	events.Dispatch(ctx, events.NewIndexDelete(name))
-
-	return nil
-}
-
-func (r *Repository) Documents(index string) (*Documents, error) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	data, ok := r.data[index]
-	if !ok {
-		return nil, ErrIndexNotFound
-	}
-
-	return data, nil
-}
-
-func (r *Repository) initData(index entity.Index) error {
-	sourceStorage, err := NewIndexSourceStorage(r.dataDir, index.Name)
-	if err != nil {
-		return fmt.Errorf("source storage init err: %w", err)
-	}
-
-	data, err := NewDocuments(index, sourceStorage, path.Join(r.dataDir, index.Name))
-	if err != nil {
-		return fmt.Errorf("index data constructor err: %w", err)
-	}
-	r.data[index.Name] = data
 
 	return nil
 }
