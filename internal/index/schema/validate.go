@@ -2,6 +2,8 @@ package schema
 
 import (
 	"fmt"
+
+	"github.com/cyradin/search/internal/index/analyzer"
 )
 
 func Validate(s Schema) error {
@@ -51,6 +53,16 @@ func validateField(f Field, path string) error {
 		}
 	} else if f.Type == TypeSlice || f.Type == TypeMap {
 		return fmt.Errorf("field %q type %q must have children defined", path, f.Type)
+	}
+
+	if f.Type == TypeText && len(f.Analyzers) == 0 {
+		return fmt.Errorf("field %q has type %q and must have at least one analyzer", path, TypeText)
+	}
+
+	for _, a := range f.Analyzers {
+		if !analyzer.Valid(a) {
+			return fmt.Errorf("field %q has unknown analyzer %q", path, a)
+		}
 	}
 
 	return nil

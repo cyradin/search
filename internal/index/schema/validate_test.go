@@ -3,90 +3,109 @@ package schema
 import (
 	"testing"
 
+	"github.com/cyradin/search/internal/index/analyzer"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_Validate(t *testing.T) {
-	data := []struct {
-		name   string
-		fields []Field
-		valid  bool
-	}{
-		{
-			name: "empty_name",
-			fields: []Field{
-				{Type: TypeKeyword},
-			},
-			valid: false,
-		},
-		{
-			name: "duplicate_name",
-			fields: []Field{
-				{Name: "name", Type: TypeKeyword},
-				{Name: "name", Type: TypeKeyword},
-			},
-			valid: false,
-		},
-		{
-			name: "empty_type",
-			fields: []Field{
-				{Name: "name", Type: Type("invalid")},
-			},
-			valid: false,
-		},
-		{
-			name: "invalid_type",
-			fields: []Field{
-				{Name: "name", Type: Type("invalid")},
-			},
-			valid: false,
-		},
-		{
-			name: "type_cannot_have_child_types",
-			fields: []Field{
+	t.Run("must fail if field name is empty", func(t *testing.T) {
+		s := New([]Field{
+			{Type: TypeKeyword},
+		})
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if two fields has the same name", func(t *testing.T) {
+		s := New([]Field{
+			{Type: TypeKeyword, Name: "name"},
+			{Type: TypeKeyword, Name: "name"},
+		})
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if field type is empty", func(t *testing.T) {
+		s := New([]Field{
+			{Name: "name"},
+		})
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if field type is invalid", func(t *testing.T) {
+		s := New([]Field{
+			{Name: "name", Type: "invalid"},
+		})
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if field type cannot have child types", func(t *testing.T) {
+		s := New(
+			[]Field{
 				{Name: "name", Type: TypeBool, Children: []Field{
 					{Name: "name"},
 				}},
 			},
-			valid: false,
-		},
-		{
-			name: "type_must_have_child_type_defined",
-			fields: []Field{
+		)
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if field type must have children but there aren't any", func(t *testing.T) {
+		s := New(
+			[]Field{
 				{Name: "name", Type: TypeSlice},
 			},
-			valid: false,
-		},
-		{
-			name: "invalid_child",
-			fields: []Field{
+		)
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if field child validation fails", func(t *testing.T) {
+		s := New(
+			[]Field{
 				{Name: "name", Type: TypeSlice, Children: []Field{
 					{Name: "", Type: TypeBool},
 				}},
 			},
-			valid: false,
-		},
-		{
-			name: "valid",
-			fields: []Field{
+		)
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if text field has no analyzers", func(t *testing.T) {
+		s := New(
+			[]Field{
+				{Name: "name", Type: TypeText},
+			},
+		)
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if text field has invalid analyzer", func(t *testing.T) {
+		s := New(
+			[]Field{
+				{Name: "name", Type: TypeText, Analyzers: []analyzer.Type{"invalid"}},
+			},
+		)
+		err := Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must not fail for vaild fields", func(t *testing.T) {
+		s := New(
+			[]Field{
 				{Name: "name", Type: TypeBool},
-				{Name: "name2", Type: TypeSlice, Children: []Field{
+				{Name: "name2", Type: TypeText, Analyzers: []analyzer.Type{analyzer.Nop}},
+				{Name: "name3", Type: TypeSlice, Children: []Field{
 					{Name: "name", Type: TypeKeyword},
 				}},
 			},
-			valid: true,
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			s := New(d.fields)
-			err := Validate(s)
-			if d.valid {
-				require.NoError(t, err)
-				return
-			}
-			require.Error(t, err)
-		})
-	}
+		)
+		err := Validate(s)
+		require.NoError(t, err)
+	})
 }
