@@ -18,11 +18,13 @@ type Document struct {
 
 type DocumentController struct {
 	repo *index.Repository
+	docs *index.Documents
 }
 
-func NewDocumentController(repo *index.Repository) *DocumentController {
+func NewDocumentController(repo *index.Repository, docs *index.Documents) *DocumentController {
 	return &DocumentController{
 		repo: repo,
+		docs: docs,
 	}
 }
 
@@ -35,7 +37,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -47,7 +49,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		id, err := docs.Add(req.ID, req.Source)
+		id, err := c.docs.Add(i, req.ID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
@@ -69,7 +71,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 		id64, err := strconv.ParseUint(idStr, 10, 32)
 		id := uint32(id64)
 
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -81,7 +83,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		doc, err := docs.Get(id)
+		doc, err := c.docs.Get(i, id)
 		if err != nil {
 			handleErr(w, r, err)
 			return
@@ -92,11 +94,18 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) SearchAction() http.HandlerFunc {
+func (c *DocumentController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		docs, err := c.repo.Documents(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
 			handleErr(w, r, err)
+			return
 		}
 
 		query := entity.Search{}
@@ -107,7 +116,7 @@ func (c *IndexController) SearchAction() http.HandlerFunc {
 			return
 		}
 
-		result, err := docs.Search(query)
+		result, err := c.docs.Search(i, query)
 		if err != nil {
 			handleErr(w, r, err)
 			return

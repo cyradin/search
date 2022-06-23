@@ -1,4 +1,4 @@
-package field
+package source
 
 import (
 	"context"
@@ -8,15 +8,13 @@ import (
 	"sync"
 
 	"github.com/cyradin/search/internal/events"
-	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/logger"
 	"go.uber.org/zap"
 )
 
-const fieldsDir = "fields"
+const sourceFile = "source.json"
 const dirPermissions = 0755
 const filePermissions = 0644
-const fileExt = ".gob"
 
 type Storage struct {
 	src     string
@@ -33,9 +31,9 @@ func NewStorage(src string) *Storage {
 	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
 		result.mtx.Lock()
 		defer result.mtx.Unlock()
-		for _, f := range result.indexes {
-			if err := f.dump(); err != nil {
-				logger.FromCtx(ctx).Error("field.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
+		for _, i := range result.indexes {
+			if err := i.dump(); err != nil {
+				logger.FromCtx(ctx).Error("source.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
 			}
 		}
 	})
@@ -43,7 +41,7 @@ func NewStorage(src string) *Storage {
 	return result
 }
 
-func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
+func (s *Storage) AddIndex(name string) (*Index, error) {
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
@@ -51,12 +49,13 @@ func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 		return nil, fmt.Errorf("index %q aready initialized", name)
 	}
 
-	src := path.Join(s.src, name, fieldsDir)
-	if err := os.MkdirAll(src, dirPermissions); err != nil {
-		return nil, fmt.Errorf("index dir %q create err: %w", src, err)
+	dir := path.Join(s.src, name)
+	if err := os.MkdirAll(dir, dirPermissions); err != nil {
+		return nil, fmt.Errorf("index dir %q create err: %w", dir, err)
 	}
+	src := path.Join(dir, sourceFile)
 
-	index, err := NewIndex(src, sc)
+	index, err := NewIndex(src)
 	if err != nil {
 		return nil, fmt.Errorf("index %q init err: %w", name, err)
 	}

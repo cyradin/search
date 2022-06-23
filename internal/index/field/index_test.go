@@ -1,0 +1,118 @@
+package field
+
+import (
+	"os"
+	"path"
+	"testing"
+
+	"github.com/cyradin/search/internal/index/schema"
+	"github.com/stretchr/testify/require"
+)
+
+func Test_index(t *testing.T) {
+	t.Run("can create new index", func(t *testing.T) {
+		dir := t.TempDir()
+
+		s := schema.New([]schema.Field{
+			{Name: "bool", Type: schema.TypeBool},
+		})
+		index, err := NewIndex(dir, s)
+		require.NoError(t, err)
+		require.NotEqual(t, s.Fields, index.fields)
+		require.Contains(t, index.fields, "bool")
+		require.Contains(t, index.fields, AllField)
+	})
+
+	t.Run("can load data from file", func(t *testing.T) {
+		dir := t.TempDir()
+
+		field := NewBool()
+		field.AddValue(1, true)
+		data, err := field.MarshalBinary()
+		require.NoError(t, err)
+		err = os.WriteFile(path.Join(dir, "bool"+fileExt), data, filePermissions)
+		require.NoError(t, err)
+
+		s := schema.New([]schema.Field{
+			{Name: "bool", Type: schema.TypeBool},
+		})
+		index, err := NewIndex(dir, s)
+		require.NoError(t, err)
+		err = index.load()
+		require.NoError(t, err)
+
+		val, ok := index.fields["bool"].GetValue(true)
+		require.True(t, ok)
+		require.True(t, val.Contains(1))
+	})
+
+	t.Run("can dump data to file", func(t *testing.T) {
+		dir := t.TempDir()
+		s := schema.New([]schema.Field{
+			{Name: "bool", Type: schema.TypeBool},
+		})
+		index, err := NewIndex(dir, s)
+		require.NoError(t, err)
+
+		index.fields["bool"].AddValue(1, true)
+
+		err = index.dump()
+		require.NoError(t, err)
+
+		_, err = os.Stat(path.Join(dir, AllField+fileExt))
+		require.NoError(t, err)
+		_, err = os.Stat(path.Join(dir, "bool"+fileExt))
+		require.NoError(t, err)
+
+		index2, err := NewIndex(dir, s)
+		require.NoError(t, err)
+		err = index2.load()
+		require.NoError(t, err)
+
+		require.Contains(t, index2.fields, "bool")
+		val, ok := index2.fields["bool"].GetValue(true)
+		require.True(t, ok)
+		require.True(t, val.Contains(1))
+	})
+
+	t.Run("can add document", func(t *testing.T) {
+		dir := t.TempDir()
+		s := schema.New([]schema.Field{
+			{Name: "f1", Type: schema.TypeBool},
+			{Name: "f2", Type: schema.TypeBool},
+		})
+		index, err := NewIndex(dir, s)
+		require.NoError(t, err)
+
+		index.Add(1, map[string]interface{}{"f1": true})
+		index.Add(2, map[string]interface{}{"f2": true})
+
+		f1, ok := index.fields["f1"].GetValue(true)
+		require.True(t, ok)
+		require.True(t, f1.Contains(1))
+		require.False(t, f1.Contains(2))
+
+		f2, ok := index.fields["f2"].GetValue(true)
+		require.True(t, ok)
+		require.False(t, f2.Contains(1))
+		require.True(t, f2.Contains(2))
+
+		all, ok := index.fields[AllField].GetValue(true)
+		require.True(t, ok)
+		require.True(t, all.Contains(1))
+		require.True(t, all.Contains(2))
+	})
+
+	t.Run("can get all fields", func(t *testing.T) {
+		dir := t.TempDir()
+		s := schema.New([]schema.Field{
+			{Name: "f1", Type: schema.TypeBool},
+			{Name: "f2", Type: schema.TypeBool},
+		})
+		index, err := NewIndex(dir, s)
+		require.NoError(t, err)
+
+		fields := index.Fields()
+		require.EqualValues(t, index.fields, fields)
+	})
+}
