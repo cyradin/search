@@ -5,9 +5,12 @@ import (
 	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/field"
 )
+
+type SearchHit struct {
+	ID uint32
+}
 
 type queryType string
 
@@ -48,7 +51,7 @@ type queryParams struct {
 	path   string
 }
 
-func Exec(data map[string]interface{}, fields map[string]field.Field) ([]entity.SearchHit, error) {
+func Exec(data map[string]interface{}, fields map[string]field.Field) ([]SearchHit, error) {
 	q, err := build(queryParams{
 		data:   data,
 		fields: fields,
@@ -63,9 +66,9 @@ func Exec(data map[string]interface{}, fields map[string]field.Field) ([]entity.
 		return nil, err
 	}
 
-	hits := make([]entity.SearchHit, 0, bm.GetCardinality())
+	hits := make([]SearchHit, 0, bm.GetCardinality())
 	bm.Iterate(func(x uint32) bool {
-		hits = append(hits, entity.SearchHit{
+		hits = append(hits, SearchHit{
 			ID: x,
 		})
 		return true

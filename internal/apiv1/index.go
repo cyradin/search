@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/index"
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -21,7 +20,7 @@ type IndexList struct {
 	Items []IndexListItem `json:"items"`
 }
 
-func (l *IndexList) FromIndexes(indexes []entity.Index) {
+func (l *IndexList) FromIndexes(indexes []index.Index) {
 	l.Items = make([]IndexListItem, len(indexes))
 	for i, item := range indexes {
 		listItem := IndexListItem{}
@@ -35,7 +34,7 @@ type IndexListItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func (i *IndexListItem) FromIndex(item entity.Index) {
+func (i *IndexListItem) FromIndex(item index.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 }
@@ -46,7 +45,7 @@ type Index struct {
 	Schema    Schema    `json:"schema"`
 }
 
-func (i *Index) FromIndex(item entity.Index) {
+func (i *Index) FromIndex(item index.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 	i.Schema.FromSchema(item.Schema)
@@ -98,7 +97,7 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		newIndex := entity.NewIndex(req.Name, req.Schema.ToSchema())
+		newIndex := index.New(req.Name, req.Schema.ToSchema())
 
 		err := c.repo.Add(r.Context(), newIndex)
 		if err != nil {
@@ -149,7 +148,7 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 	}
 }
 
-func (c *IndexController) transformIndexList(i entity.Index) IndexListItem {
+func (c *IndexController) transformIndexList(i index.Index) IndexListItem {
 	return IndexListItem{
 		Name:      i.Name,
 		CreatedAt: i.CreatedAt,

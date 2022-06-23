@@ -6,7 +6,6 @@ import (
 	"strconv"
 
 	"github.com/cyradin/search/internal/index"
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 )
@@ -108,7 +107,7 @@ func (c *DocumentController) SearchAction() http.HandlerFunc {
 			return
 		}
 
-		query := entity.Search{}
+		query := index.Search{}
 		if err := decodeAndValidate(r, &query); err != nil {
 			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 			render.Status(r, status)
