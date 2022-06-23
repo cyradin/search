@@ -4,6 +4,7 @@ import (
 	"io/ioutil"
 	"os"
 
+	"github.com/cyradin/search/internal/index/analyzer"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -48,11 +49,11 @@ func (t Type) Valid() bool {
 }
 
 type Field struct {
-	Name     string `json:"name"`
-	Type     Type   `json:"type"`
-	Required bool   `json:"required"`
-
-	Children []Field `json:"children"`
+	Name      string          `json:"name"`
+	Type      Type            `json:"type"`
+	Required  bool            `json:"required"`
+	Children  []Field         `json:"children"`
+	Analyzers []analyzer.Type `json:"analyzers"`
 }
 
 func NewField(name string, fieldType Type, required bool, children ...Field) Field {
