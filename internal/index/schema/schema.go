@@ -56,12 +56,32 @@ type Field struct {
 	Analyzers []analyzer.Type `json:"analyzers"`
 }
 
-func NewField(name string, fieldType Type, required bool, children ...Field) Field {
+func NewField(name string, fieldType Type, required bool, analyzers ...string) Field {
+	typedAnalyzers := make([]analyzer.Type, len(analyzers))
+	for i, a := range analyzers {
+		typedAnalyzers[i] = analyzer.Type(a)
+	}
+
 	return Field{
-		Name:     name,
-		Type:     fieldType,
-		Required: required,
-		Children: children,
+		Name:      name,
+		Type:      fieldType,
+		Required:  required,
+		Analyzers: typedAnalyzers,
+	}
+}
+
+func NewFieldWithChildren(name string, fieldType Type, required bool, analyzers []string, children ...Field) Field {
+	typedAnalyzers := make([]analyzer.Type, len(analyzers))
+	for i, a := range analyzers {
+		typedAnalyzers[i] = analyzer.Type(a)
+	}
+
+	return Field{
+		Name:      name,
+		Type:      fieldType,
+		Required:  required,
+		Analyzers: typedAnalyzers,
+		Children:  children,
 	}
 }
 
