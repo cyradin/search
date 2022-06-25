@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 var ErrIndexNotFound = fmt.Errorf("index not found")
@@ -103,7 +104,7 @@ func (r *Repository) Add(ctx context.Context, index Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if err := schema.Validate(index.Schema); err != nil {
+	if err := validation.Validate(index.Schema); err != nil {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 

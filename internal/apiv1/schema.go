@@ -20,9 +20,9 @@ func (s *Schema) ToSchema() schema.Schema {
 	res := schema.Schema{}
 
 	if len(s.Fields) != 0 {
-		res.Fields = make([]schema.Field, 0, len(s.Fields))
+		res.Fields = make(map[string]schema.Field)
 		for name, f := range s.Fields {
-			res.Fields = append(res.Fields, s.toSchemaField(name, f))
+			res.Fields[name] = s.toSchemaField(name, f)
 		}
 	}
 
@@ -36,13 +36,13 @@ func (s Schema) Validate() error {
 }
 
 func (s *Schema) toSchemaField(name string, f SchemaField) schema.Field {
-	children := make([]schema.Field, 0, len(f.Fields))
+	children := make(map[string]schema.Field)
 	for name, child := range f.Fields {
-		children = append(children, s.toSchemaField(name, child))
+		children[name] = s.toSchemaField(name, child)
 	}
 
 	if len(children) > 0 {
-		return schema.NewFieldWithChildren(name, schema.Type(f.Type), f.Required, f.Analyzers, children...)
+		return schema.NewFieldWithChildren(name, schema.Type(f.Type), f.Required, f.Analyzers, children)
 
 	}
 
