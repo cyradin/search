@@ -14,8 +14,8 @@ import (
 func Test_Storage(t *testing.T) {
 	t.Run("can add new index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
-		index, err := s.AddIndex("name", schema.New([]schema.Field{
-			schema.NewField("bool", schema.TypeBool, false),
+		index, err := s.AddIndex("name", schema.New(map[string]schema.Field{
+			"bool": schema.NewField("bool", schema.TypeBool, false),
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index)
@@ -24,19 +24,19 @@ func Test_Storage(t *testing.T) {
 
 	t.Run("cannot add an existing index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
-		index, err := s.AddIndex("name", schema.New([]schema.Field{}))
+		index, err := s.AddIndex("name", schema.New(map[string]schema.Field{}))
 		require.NoError(t, err)
 		require.NotNil(t, index)
 
-		index, err = s.AddIndex("name", schema.New([]schema.Field{}))
+		index, err = s.AddIndex("name", schema.New(map[string]schema.Field{}))
 		require.Error(t, err)
 		require.Nil(t, index)
 	})
 
 	t.Run("can delete index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
-		index, err := s.AddIndex("name", schema.New([]schema.Field{
-			schema.NewField("bool", schema.TypeBool, false),
+		index, err := s.AddIndex("name", schema.New(map[string]schema.Field{
+			"bool": schema.NewField("bool", schema.TypeBool, false),
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index)
@@ -53,8 +53,8 @@ func Test_Storage(t *testing.T) {
 
 	t.Run("can get existing index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
-		index, err := s.AddIndex("name", schema.New([]schema.Field{
-			schema.NewField("bool", schema.TypeBool, false),
+		index, err := s.AddIndex("name", schema.New(map[string]schema.Field{
+			"bool": schema.NewField("bool", schema.TypeBool, false),
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index)
@@ -74,13 +74,13 @@ func Test_Storage(t *testing.T) {
 	t.Run("can dump all indexes on app stop", func(t *testing.T) {
 		dir := t.TempDir()
 		s := NewStorage(dir)
-		index1, err := s.AddIndex("name1", schema.New([]schema.Field{
-			schema.NewField("bool", schema.TypeBool, false),
+		index1, err := s.AddIndex("name1", schema.New(map[string]schema.Field{
+			"bool": schema.NewField("bool", schema.TypeBool, false),
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index1)
-		index2, err := s.AddIndex("name2", schema.New([]schema.Field{
-			schema.NewField("bool", schema.TypeBool, false),
+		index2, err := s.AddIndex("name2", schema.New(map[string]schema.Field{
+			"bool": schema.NewField("bool", schema.TypeBool, false),
 		}))
 		require.NoError(t, err)
 		require.NotNil(t, index2)

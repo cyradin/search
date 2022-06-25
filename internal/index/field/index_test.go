@@ -13,8 +13,8 @@ func Test_index(t *testing.T) {
 	t.Run("can create new index", func(t *testing.T) {
 		dir := t.TempDir()
 
-		s := schema.New([]schema.Field{
-			{Name: "bool", Type: schema.TypeBool},
+		s := schema.New(map[string]schema.Field{
+			"bool": {Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
@@ -33,8 +33,8 @@ func Test_index(t *testing.T) {
 		err = os.WriteFile(path.Join(dir, "bool"+fileExt), data, filePermissions)
 		require.NoError(t, err)
 
-		s := schema.New([]schema.Field{
-			{Name: "bool", Type: schema.TypeBool},
+		s := schema.New(map[string]schema.Field{
+			"bool": {Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
@@ -48,8 +48,8 @@ func Test_index(t *testing.T) {
 
 	t.Run("can dump data to file", func(t *testing.T) {
 		dir := t.TempDir()
-		s := schema.New([]schema.Field{
-			{Name: "bool", Type: schema.TypeBool},
+		s := schema.New(map[string]schema.Field{
+			"bool": {Name: "bool", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
@@ -77,9 +77,9 @@ func Test_index(t *testing.T) {
 
 	t.Run("can add document", func(t *testing.T) {
 		dir := t.TempDir()
-		s := schema.New([]schema.Field{
-			{Name: "f1", Type: schema.TypeBool},
-			{Name: "f2", Type: schema.TypeBool},
+		s := schema.New(map[string]schema.Field{
+			"f1": {Name: "f1", Type: schema.TypeBool},
+			"f2": {Name: "f2", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
@@ -105,9 +105,9 @@ func Test_index(t *testing.T) {
 
 	t.Run("can get all fields", func(t *testing.T) {
 		dir := t.TempDir()
-		s := schema.New([]schema.Field{
-			{Name: "f1", Type: schema.TypeBool},
-			{Name: "f2", Type: schema.TypeBool},
+		s := schema.New(map[string]schema.Field{
+			"f1": {Name: "f1", Type: schema.TypeBool},
+			"f2": {Name: "f2", Type: schema.TypeBool},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
