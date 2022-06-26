@@ -7,16 +7,16 @@ import (
 )
 
 func Test_GetFunc(t *testing.T) {
-	t.Run("can get func by valid analyzer name", func(t *testing.T) {
-		f, err := GetFunc(Nop)
-		require.NoError(t, err)
-		require.NotNil(t, f)
-	})
-
-	t.Run("cannot get func by invalid analyzer name", func(t *testing.T) {
-		f, err := GetFunc("")
+	t.Run("cannot get func by invalid analyzer type", func(t *testing.T) {
+		f, err := GetFunc(Analyzer{})
 		require.Error(t, err)
 		require.Nil(t, f)
+	})
+
+	t.Run("can get func by valid analyzer type", func(t *testing.T) {
+		f, err := GetFunc(Analyzer{Type: Nop})
+		require.NoError(t, err)
+		require.NotNil(t, f)
 	})
 }
 
@@ -28,13 +28,13 @@ func Test_Chain(t *testing.T) {
 	})
 
 	t.Run("cannot build chain if invalid analyzer name provided", func(t *testing.T) {
-		f, err := Chain([]Type{Nop, ""})
+		f, err := Chain([]Analyzer{{Type: ""}})
 		require.Error(t, err)
 		require.Nil(t, f)
 	})
 
 	t.Run("can build chain by valid analyzer names", func(t *testing.T) {
-		f, err := Chain([]Type{Whitespace, Dedup})
+		f, err := Chain([]Analyzer{{Type: Whitespace}, {Type: Dedup}})
 
 		require.NoError(t, err)
 		require.NotNil(t, f)
