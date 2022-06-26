@@ -3,14 +3,14 @@ package analyzer
 import "strings"
 
 // NopFunc Does nothing
-func NopFunc(next Func) Func {
+func NopFunc() Func {
 	return func(s []string) []string {
-		return next(s)
+		return s
 	}
 }
 
-// WhitespaceTokenizerFunc splits string by whitespace characters (see strings.Fields)
-func WhitespaceTokenizerFunc(next Func) Func {
+// WhitespaceFunc splits string by whitespace characters (see strings.Fields)
+func WhitespaceFunc() Func {
 	return func(s []string) []string {
 		if len(s) == 0 {
 			return s
@@ -27,7 +27,7 @@ func WhitespaceTokenizerFunc(next Func) Func {
 }
 
 // DedupFunc leaves only the first copy of the token
-func DedupFunc(next Func) Func {
+func DedupFunc() Func {
 	return func(s []string) []string {
 		if len(s) == 0 || len(s) == 1 {
 			return s

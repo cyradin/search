@@ -6,19 +6,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testNopFunc = func(s []string) []string {
-	return s
-}
-
 func Test_NopFunc(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		var data []string
-		result := NopFunc(testNopFunc)(data)
+		result := NopFunc()(data)
 		require.Equal(t, data, result)
 	})
 	t.Run("not empty", func(t *testing.T) {
 		data := []string{"qwerty", "asdfgh"}
-		result := NopFunc(testNopFunc)(data)
+		result := NopFunc()(data)
 		require.Equal(t, data, result)
 	})
 }
@@ -26,7 +22,7 @@ func Test_NopFunc(t *testing.T) {
 func Test_TokenizeWhitespace(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		var data []string
-		result := WhitespaceTokenizerFunc(testNopFunc)(data)
+		result := WhitespaceFunc()(data)
 		require.Equal(t, data, result)
 	})
 
@@ -35,7 +31,7 @@ func Test_TokenizeWhitespace(t *testing.T) {
 			"hello world",
 			"hello  world ",
 		}
-		result := WhitespaceTokenizerFunc(testNopFunc)(data)
+		result := WhitespaceFunc()(data)
 		require.Equal(t, []string{"hello", "world", "hello", "world"}, result)
 	})
 }
@@ -43,7 +39,7 @@ func Test_TokenizeWhitespace(t *testing.T) {
 func Test_DedupFunc(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		var data []string
-		result := DedupFunc(testNopFunc)(data)
+		result := DedupFunc()(data)
 		require.Equal(t, data, result)
 	})
 
@@ -53,7 +49,7 @@ func Test_DedupFunc(t *testing.T) {
 			"hello",
 			"hello world",
 		}
-		result := DedupFunc(testNopFunc)(data)
+		result := DedupFunc()(data)
 		require.Equal(t, []string{"hello world", "hello"}, result)
 	})
 }
