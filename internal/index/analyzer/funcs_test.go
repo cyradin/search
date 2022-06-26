@@ -6,15 +6,54 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_nopFunc(t *testing.T) {
+var testNopFunc = func(s []string) []string {
+	return s
+}
+
+func Test_NopFunc(t *testing.T) {
 	t.Run("empty", func(t *testing.T) {
 		var data []string
-		result := nopFunc(data)
+		result := NopFunc(testNopFunc)(data)
 		require.Equal(t, data, result)
 	})
 	t.Run("not empty", func(t *testing.T) {
 		data := []string{"qwerty", "asdfgh"}
-		result := nopFunc(data)
+		result := NopFunc(testNopFunc)(data)
 		require.Equal(t, data, result)
+	})
+}
+
+func Test_TokenizeWhitespace(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		var data []string
+		result := WhitespaceTokenizerFunc(testNopFunc)(data)
+		require.Equal(t, data, result)
+	})
+
+	t.Run("not empty", func(t *testing.T) {
+		data := []string{
+			"hello world",
+			"hello  world ",
+		}
+		result := WhitespaceTokenizerFunc(testNopFunc)(data)
+		require.Equal(t, []string{"hello", "world", "hello", "world"}, result)
+	})
+}
+
+func Test_DedupFunc(t *testing.T) {
+	t.Run("empty", func(t *testing.T) {
+		var data []string
+		result := DedupFunc(testNopFunc)(data)
+		require.Equal(t, data, result)
+	})
+
+	t.Run("not empty", func(t *testing.T) {
+		data := []string{
+			"hello world",
+			"hello",
+			"hello world",
+		}
+		result := DedupFunc(testNopFunc)(data)
+		require.Equal(t, []string{"hello world", "hello"}, result)
 	})
 }
