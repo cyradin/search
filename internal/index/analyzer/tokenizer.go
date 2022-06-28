@@ -1,6 +1,7 @@
 package analyzer
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
@@ -23,7 +24,21 @@ func TokenizerWhitespaceFunc() Func {
 }
 
 // TokenizerRegexpFunc splits string by regular expression
-func TokenizerRegexpFunc(expression string) (Func, error) {
+func TokenizerRegexpFunc(settings map[string]interface{}) (Func, error) {
+	var (
+		expression string
+		ok         bool
+	)
+	for k, v := range settings {
+		if k != "pattern" {
+			return nil, fmt.Errorf("key %q is not allowed", k)
+		}
+		expression, ok = v.(string)
+		if !ok {
+			return nil, fmt.Errorf("%q must be a string value", v)
+		}
+	}
+
 	exp, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err
