@@ -34,7 +34,7 @@ func Test_Chain(t *testing.T) {
 	})
 
 	t.Run("can build chain by valid analyzer names", func(t *testing.T) {
-		f, err := Chain([]Analyzer{{Type: Whitespace}, {Type: Dedup}})
+		f, err := Chain([]Analyzer{{Type: TokenizerWhitespace}, {Type: Dedup}})
 
 		require.NoError(t, err)
 		require.NotNil(t, f)
