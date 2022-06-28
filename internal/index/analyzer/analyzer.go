@@ -13,14 +13,15 @@ type Func func([]string) []string
 type Handler func(next Func) Func
 
 const (
-	Nop        Type = "nop"
-	Dedup      Type = "dedup"
-	Whitespace Type = "whitespace"
+	Nop                 Type = "nop"
+	Dedup               Type = "dedup"
+	TokenizerWhitespace Type = "whitespace"
+	TokenizerRegexp     Type = "regexp"
 )
 
 // Valid check if analyzer is valid
 func Valid(t Type) bool {
-	return t == Nop || t == Dedup || t == Whitespace
+	return t == Nop || t == Dedup || t == TokenizerWhitespace || t == TokenizerRegexp
 }
 
 // GetFunc get analyzer func by name
@@ -30,8 +31,8 @@ func GetFunc(a Analyzer) (Func, error) {
 		return NopFunc(), nil
 	case Dedup:
 		return DedupFunc(), nil
-	case Whitespace:
-		return WhitespaceFunc(), nil
+	case TokenizerWhitespace:
+		return TokenizerWhitespaceFunc(), nil
 	}
 
 	return nil, fmt.Errorf("unknown type %q", a.Type)
