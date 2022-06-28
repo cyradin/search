@@ -5,17 +5,32 @@ import (
 	"errors"
 	"fmt"
 	"sync"
+	"time"
 
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 var ErrIndexNotFound = fmt.Errorf("index not found")
 var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
 
+type Index struct {
+	Name      string        `json:"name"`
+	CreatedAt time.Time     `json:"createdAt"`
+	Schema    schema.Schema `json:"schema"`
+}
+
+func New(name string, s schema.Schema) Index {
+	return Index{
+		Name:      name,
+		CreatedAt: time.Now(),
+		Schema:    s,
+	}
+}
+
 type Repository struct {
 	mtx     sync.Mutex
-	storage Storage[string, entity.Index]
+	storage Storage[string, Index]
 
 	dataDir string
 
@@ -51,23 +66,23 @@ func (r *Repository) Init(ctx context.Context) error {
 	return nil
 }
 
-func (r *Repository) Get(name string) (entity.Index, error) {
+func (r *Repository) Get(name string) (Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
 	doc, err := r.storage.One(name)
 	if errors.Is(err, ErrDocNotFound) {
-		return entity.Index{}, ErrIndexNotFound
+		return Index{}, ErrIndexNotFound
 	}
 
 	return doc.Source, nil
 }
 
-func (r *Repository) All() ([]entity.Index, error) {
+func (r *Repository) All() ([]Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	var result []entity.Index
+	var result []Index
 
 	indexes, errors := r.storage.All()
 	for {
@@ -85,11 +100,11 @@ func (r *Repository) All() ([]entity.Index, error) {
 	}
 }
 
-func (r *Repository) Add(ctx context.Context, index entity.Index) error {
+func (r *Repository) Add(ctx context.Context, index Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if err := schema.Validate(index.Schema); err != nil {
+	if err := validation.Validate(index.Schema); err != nil {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 

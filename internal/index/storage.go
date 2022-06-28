@@ -8,7 +8,6 @@ import (
 	"sync"
 
 	"github.com/cyradin/search/internal/events"
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/google/uuid"
 
 	jsoniter "github.com/json-iterator/go"
@@ -219,13 +218,13 @@ func (s *FileStorage[K, T]) Stop(ctx context.Context) error {
 	return os.WriteFile(s.src, data, filePermissions)
 }
 
-func NewIndexStorage(src string) (*FileStorage[string, entity.Index], error) {
+func NewIndexStorage(src string) (*FileStorage[string, Index], error) {
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
 		return nil, err
 	}
 
 	path := path.Join(src, "indexes.json")
-	storage, err := NewFileStorage[string, entity.Index](path)
+	storage, err := NewFileStorage[string, Index](path)
 	if err != nil {
 		return nil, err
 	}
@@ -236,13 +235,13 @@ func NewIndexStorage(src string) (*FileStorage[string, entity.Index], error) {
 	return storage, nil
 }
 
-func NewIndexSourceStorage(src string, name string) (*FileStorage[uint32, entity.DocSource], error) {
+func NewIndexSourceStorage(src string, name string) (*FileStorage[uint32, DocSource], error) {
 	src = path.Join(src, name)
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
 		return nil, err
 	}
 
-	storage, err := NewFileStorage[uint32, entity.DocSource](path.Join(src, "source.json"))
+	storage, err := NewFileStorage[uint32, DocSource](path.Join(src, "source.json"))
 	if err != nil {
 		return nil, err
 	}

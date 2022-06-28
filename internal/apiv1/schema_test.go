@@ -26,8 +26,8 @@ func Test_Schema_ToSchema(t *testing.T) {
 				},
 			},
 			expected: schema.Schema{
-				Fields: []schema.Field{
-					{Name: "test", Type: schema.TypeText},
+				Fields: map[string]schema.Field{
+					"test": {Name: "test", Type: schema.TypeText},
 				},
 			},
 		},
@@ -40,9 +40,9 @@ func Test_Schema_ToSchema(t *testing.T) {
 				},
 			},
 			expected: schema.Schema{
-				Fields: []schema.Field{
-					{Name: "test2", Type: schema.TypeByte},
-					{Name: "test", Type: schema.TypeText},
+				Fields: map[string]schema.Field{
+					"test2": {Name: "test2", Type: schema.TypeByte},
+					"test":  {Name: "test", Type: schema.TypeText},
 				},
 			},
 		},
@@ -59,12 +59,12 @@ func Test_Schema_ToSchema(t *testing.T) {
 				},
 			},
 			expected: schema.Schema{
-				Fields: []schema.Field{
-					{
+				Fields: map[string]schema.Field{
+					"test": {
 						Name: "test",
 						Type: schema.TypeSlice,
-						Children: []schema.Field{
-							{Name: "test2", Type: schema.TypeByte},
+						Children: map[string]schema.Field{
+							"test2": {Name: "test2", Type: schema.TypeByte},
 						},
 					},
 				},
@@ -75,7 +75,7 @@ func Test_Schema_ToSchema(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			res := d.src.ToSchema()
-			require.ElementsMatch(t, d.expected.Fields, res.Fields)
+			require.EqualValues(t, d.expected.Fields, res.Fields)
 		})
 	}
 }
@@ -94,8 +94,8 @@ func Test_Schema_FromSchema(t *testing.T) {
 		{
 			name: "one_field",
 			src: schema.Schema{
-				Fields: []schema.Field{
-					{Name: "test", Type: schema.TypeText},
+				Fields: map[string]schema.Field{
+					"test": {Name: "test", Type: schema.TypeText},
 				},
 			},
 			expected: Schema{
@@ -107,9 +107,9 @@ func Test_Schema_FromSchema(t *testing.T) {
 		{
 			name: "two_fields",
 			src: schema.Schema{
-				Fields: []schema.Field{
-					{Name: "test2", Type: schema.TypeByte},
-					{Name: "test", Type: schema.TypeText},
+				Fields: map[string]schema.Field{
+					"test2": {Name: "test2", Type: schema.TypeByte},
+					"test":  {Name: "test", Type: schema.TypeText},
 				},
 			},
 			expected: Schema{
@@ -122,12 +122,12 @@ func Test_Schema_FromSchema(t *testing.T) {
 		{
 			name: "nested_fields",
 			src: schema.Schema{
-				Fields: []schema.Field{
-					{
+				Fields: map[string]schema.Field{
+					"test": {
 						Name: "test",
 						Type: schema.TypeSlice,
-						Children: []schema.Field{
-							{Name: "test2", Type: schema.TypeByte},
+						Children: map[string]schema.Field{
+							"test2": {Name: "test2", Type: schema.TypeByte},
 						},
 					},
 				},

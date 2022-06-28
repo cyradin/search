@@ -3,13 +3,22 @@ package index
 import (
 	"fmt"
 
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
 	"github.com/cyradin/search/internal/index/relevance"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/index/source"
 )
+
+type DocSource map[string]interface{}
+
+type Search struct {
+	Query  map[string]interface{} `json:"query"`
+	Limit  int                    `json:"limit"`
+	Offset int                    `json:"offset"`
+}
+
+type SearchResult struct{}
 
 type Documents struct {
 	sources   *source.Storage
@@ -27,7 +36,7 @@ func NewDocuments(dataPath string) *Documents {
 	return result
 }
 
-func (d *Documents) AddIndex(index entity.Index) error {
+func (d *Documents) AddIndex(index Index) error {
 	_, err := d.sources.AddIndex(index.Name)
 	if err != nil {
 		return err
@@ -45,7 +54,7 @@ func (d *Documents) AddIndex(index entity.Index) error {
 	return nil
 }
 
-func (d *Documents) Add(index entity.Index, id uint32, source entity.DocSource) (uint32, error) {
+func (d *Documents) Add(index Index, id uint32, source DocSource) (uint32, error) {
 	if err := schema.ValidateDoc(index.Schema, source); err != nil {
 		return 0, fmt.Errorf("source validation err: %w", err)
 	}
@@ -64,7 +73,7 @@ func (d *Documents) Add(index entity.Index, id uint32, source entity.DocSource) 
 	return id, nil
 }
 
-func (d *Documents) Get(index entity.Index, id uint32) (entity.DocSource, error) {
+func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 	srcIndex, _, _, err := d.getIndexes(index.Name)
 	if err != nil {
 		return nil, err
@@ -78,20 +87,20 @@ func (d *Documents) Get(index entity.Index, id uint32) (entity.DocSource, error)
 	return doc.Source, err
 }
 
-func (d *Documents) Search(index entity.Index, q entity.Search) (entity.SearchResult, error) {
+func (d *Documents) Search(index Index, q Search) (SearchResult, error) {
 	_, fieldIndex, _, err := d.getIndexes(index.Name)
 	if err != nil {
-		return entity.SearchResult{}, err
+		return SearchResult{}, err
 	}
 
 	hits, err := query.Exec(q.Query, fieldIndex.Fields())
 	if err != nil {
-		return entity.SearchResult{}, err
+		return SearchResult{}, err
 	}
 
 	fmt.Println(hits) // @todo make search result
 
-	return entity.SearchResult{}, nil
+	return SearchResult{}, nil
 }
 
 func (d *Documents) getIndexes(

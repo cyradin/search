@@ -26,15 +26,13 @@ func NewIndex(src string, s schema.Schema) (*Index, error) {
 	}
 
 	// add "allField" which contains all documents
-	fields := make([]schema.Field, len(s.Fields))
-	copy(fields, s.Fields)
-	fields = append(fields, schema.Field{
-		Name:     AllField,
-		Required: false,
-		Type:     schema.TypeAll,
-	})
+	fieldsCopy := make(map[string]schema.Field)
+	for name, field := range s.Fields {
+		fieldsCopy[name] = field
+	}
+	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false)
 
-	for _, f := range fields {
+	for _, f := range fieldsCopy {
 		field, err := New(f.Type)
 		if err != nil {
 			return nil, err

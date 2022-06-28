@@ -4,71 +4,15 @@ import (
 	"io/ioutil"
 	"os"
 
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	jsoniter "github.com/json-iterator/go"
 )
 
-type Type string
-
-const (
-	TypeAll  Type = "all"
-	TypeBool Type = "bool"
-
-	// String types
-	TypeKeyword Type = "keyword"
-	TypeText    Type = "text"
-
-	TypeSlice Type = "slice"
-	TypeMap   Type = "map"
-
-	// Integer types
-	TypeUnsignedLong Type = "unsigned_long" // unsigned int64
-	TypeLong         Type = "long"          // signed int64
-	TypeInteger      Type = "integer"       // signed int32
-	TypeShort        Type = "short"         // signed int16
-	TypeByte         Type = "byte"          // signed int8
-
-	// Float types
-	TypeDouble Type = "double" // float64
-	TypeFloat  Type = "float"  // float32
-)
-
-func (t Type) Valid() bool {
-	return t == TypeBool ||
-		t == TypeKeyword ||
-		t == TypeText ||
-		t == TypeSlice ||
-		t == TypeMap ||
-		t == TypeUnsignedLong ||
-		t == TypeLong ||
-		t == TypeInteger ||
-		t == TypeShort ||
-		t == TypeByte ||
-		t == TypeDouble ||
-		t == TypeFloat
-}
-
-type Field struct {
-	Name     string `json:"name"`
-	Type     Type   `json:"type"`
-	Required bool   `json:"required"`
-
-	Children []Field `json:"children"`
-}
-
-func NewField(name string, fieldType Type, required bool, children ...Field) Field {
-	return Field{
-		Name:     name,
-		Type:     fieldType,
-		Required: required,
-		Children: children,
-	}
-}
-
 type Schema struct {
-	Fields []Field `json:"fields"`
+	Fields map[string]Field `json:"fields"`
 }
 
-func New(fields []Field) Schema {
+func New(fields map[string]Field) Schema {
 	return Schema{
 		Fields: fields,
 	}
@@ -101,4 +45,10 @@ func NewFromFile(src string) (*Schema, error) {
 
 func (s Schema) ValidateDoc(doc map[string]interface{}) error {
 	return ValidateDoc(s, doc)
+}
+
+func (s Schema) Validate() error {
+	return validation.ValidateStruct(&s,
+		validation.Field(&s.Fields, validation.Required),
+	)
 }

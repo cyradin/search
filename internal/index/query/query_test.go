@@ -4,7 +4,6 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/cyradin/search/internal/index/entity"
 	"github.com/cyradin/search/internal/index/field"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
@@ -41,7 +40,7 @@ func Test_Exec(t *testing.T) {
 		name      string
 		query     string
 		erroneous bool
-		expected  []entity.SearchHit
+		expected  []SearchHit
 	}{
 		{
 			name:      "error",
@@ -52,7 +51,7 @@ func Test_Exec(t *testing.T) {
 			name:      "ok",
 			query:     `{"term":{ "field": 1 }}`,
 			erroneous: false,
-			expected:  []entity.SearchHit{{ID: 1}},
+			expected:  []SearchHit{{ID: 1}},
 		},
 	}
 

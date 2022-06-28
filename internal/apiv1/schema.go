@@ -10,18 +10,19 @@ type Schema struct {
 }
 
 type SchemaField struct {
-	Type     string                 `json:"type"`
-	Required bool                   `json:"required"`
-	Fields   map[string]SchemaField `json:"fields,omitempty"`
+	Type      string                 `json:"type"`
+	Required  bool                   `json:"required"`
+	Analyzers []string               `json:"analyzers"`
+	Fields    map[string]SchemaField `json:"fields,omitempty"`
 }
 
 func (s *Schema) ToSchema() schema.Schema {
 	res := schema.Schema{}
 
 	if len(s.Fields) != 0 {
-		res.Fields = make([]schema.Field, 0, len(s.Fields))
+		res.Fields = make(map[string]schema.Field)
 		for name, f := range s.Fields {
-			res.Fields = append(res.Fields, s.toSchemaField(name, f))
+			res.Fields[name] = s.toSchemaField(name, f)
 		}
 	}
 
@@ -35,20 +36,17 @@ func (s Schema) Validate() error {
 }
 
 func (s *Schema) toSchemaField(name string, f SchemaField) schema.Field {
-	result := schema.Field{
-		Name:     name,
-		Type:     schema.Type(f.Type),
-		Required: f.Required,
+	children := make(map[string]schema.Field)
+	for name, child := range f.Fields {
+		children[name] = s.toSchemaField(name, child)
 	}
 
-	if len(f.Fields) > 0 {
-		result.Children = make([]schema.Field, 0, len(f.Fields))
-		for name, child := range f.Fields {
-			result.Children = append(result.Children, s.toSchemaField(name, child))
-		}
+	if len(children) > 0 {
+		return schema.NewFieldWithChildren(name, schema.Type(f.Type), f.Required, f.Analyzers, children)
+
 	}
 
-	return result
+	return schema.NewField(name, schema.Type(f.Type), f.Required, f.Analyzers...)
 }
 
 func (s *Schema) FromSchema(src schema.Schema) {
