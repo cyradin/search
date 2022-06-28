@@ -30,7 +30,7 @@ func NewIndex(src string, s schema.Schema) (*Index, error) {
 	for name, field := range s.Fields {
 		fieldsCopy[name] = field
 	}
-	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false)
+	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false, "")
 
 	for _, f := range fieldsCopy {
 		field, err := New(f.Type)

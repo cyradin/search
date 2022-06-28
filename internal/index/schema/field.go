@@ -1,9 +1,9 @@
 package schema
 
 import (
+	"context"
 	"fmt"
 
-	"github.com/cyradin/search/internal/index/analyzer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -48,53 +48,40 @@ func (t Type) Valid() bool {
 }
 
 type Field struct {
-	Name      string           `json:"name"`
-	Type      Type             `json:"type"`
-	Required  bool             `json:"required"`
-	Children  map[string]Field `json:"children"`
-	Analyzers []analyzer.Type  `json:"analyzers"`
+	Name     string           `json:"name"`
+	Type     Type             `json:"type"`
+	Required bool             `json:"required"`
+	Children map[string]Field `json:"children"`
+	Analyzer string           `json:"analyzer"`
 }
 
-func NewField(name string, fieldType Type, required bool, analyzers ...string) Field {
-	var typedAnalyzers []analyzer.Type
-	if len(analyzers) > 0 {
-		typedAnalyzers = make([]analyzer.Type, len(analyzers))
-		for i, a := range analyzers {
-			typedAnalyzers[i] = analyzer.Type(a)
-		}
-	}
-
+func NewField(name string, fieldType Type, required bool, analyzer string) Field {
 	return Field{
-		Name:      name,
-		Type:      fieldType,
-		Required:  required,
-		Analyzers: typedAnalyzers,
+		Name:     name,
+		Type:     fieldType,
+		Required: required,
+		Analyzer: analyzer,
 	}
 }
 
-func NewFieldWithChildren(name string, fieldType Type, required bool, analyzers []string, children map[string]Field) Field {
-	var typedAnalyzers []analyzer.Type
-	if len(analyzers) > 0 {
-		typedAnalyzers = make([]analyzer.Type, len(analyzers))
-		for i, a := range analyzers {
-			typedAnalyzers[i] = analyzer.Type(a)
-		}
-	}
-
+func NewFieldWithChildren(name string, fieldType Type, required bool, analyzer string, children map[string]Field) Field {
 	return Field{
-		Name:      name,
-		Type:      fieldType,
-		Required:  required,
-		Analyzers: typedAnalyzers,
-		Children:  children,
+		Name:     name,
+		Type:     fieldType,
+		Required: required,
+		Analyzer: analyzer,
+		Children: children,
 	}
 }
 
-func (f Field) Validate() error {
-	return validation.ValidateStruct(&f,
+func (f Field) ValidateWithContext(ctx context.Context) error {
+	return validation.ValidateStructWithContext(ctx, &f,
 		validation.Field(&f.Name, validation.Required),
 		validation.Field(&f.Type, validation.Required, validation.By(validateFieldType())),
-		validation.Field(&f.Analyzers, validation.By(validateFieldAnalyzers(f.Type))),
+		validation.Field(
+			&f.Analyzer,
+			validation.When(f.Type == TypeText, validation.Required),
+			validation.WithContext(validateFieldAnalyzers(f.Type))),
 		validation.Field(&f.Children, validation.By(validateFieldChildren(f.Type))),
 	)
 }
@@ -109,17 +96,16 @@ func validateFieldType() validation.RuleFunc {
 	}
 }
 
-func validateFieldAnalyzers(t Type) validation.RuleFunc {
-	return func(value interface{}) error {
-		v := value.([]analyzer.Type)
-		if t == TypeText && len(v) == 0 {
-			return fmt.Errorf("field has type %q and must have at least one analyzer", t)
+func validateFieldAnalyzers(t Type) validation.RuleWithContextFunc {
+	return func(ctx context.Context, value interface{}) error {
+		v := value.(string)
+		if v == "" {
+			return nil
 		}
 
-		for _, a := range v {
-			if !analyzer.Valid(a) {
-				return fmt.Errorf("unknown analyzer %q", a)
-			}
+		s := ctx.Value("schema").(Schema)
+		if _, ok := s.Analyzers[v]; !ok {
+			return fmt.Errorf("unknown analyzer %q", v)
 		}
 
 		return nil
