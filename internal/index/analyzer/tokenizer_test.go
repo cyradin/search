@@ -30,6 +30,12 @@ func Test_TokenizerRegexpFunc(t *testing.T) {
 		require.Nil(t, f)
 	})
 
+	t.Run("must return error if pattern not provided", func(t *testing.T) {
+		f, err := TokenizerRegexpFunc(nil)
+		require.Error(t, err)
+		require.Nil(t, f)
+	})
+
 	t.Run("must return error if non-string pattern provided", func(t *testing.T) {
 		f, err := TokenizerRegexpFunc(map[string]interface{}{"pattern": 4})
 		require.Error(t, err)

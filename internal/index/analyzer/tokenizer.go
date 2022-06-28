@@ -38,6 +38,9 @@ func TokenizerRegexpFunc(settings map[string]interface{}) (Func, error) {
 			return nil, fmt.Errorf("%q must be a string value", v)
 		}
 	}
+	if expression == "" {
+		return nil, fmt.Errorf("%q key must be provided", "pattern")
+	}
 
 	exp, err := regexp.Compile(expression)
 	if err != nil {

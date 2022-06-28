@@ -15,7 +15,7 @@ func Test_index(t *testing.T) {
 
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
-		})
+		}, nil)
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
 		require.NotEqual(t, s.Fields, index.fields)
@@ -35,7 +35,7 @@ func Test_index(t *testing.T) {
 
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
-		})
+		}, nil)
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
 		err = index.load()
@@ -50,7 +50,7 @@ func Test_index(t *testing.T) {
 		dir := t.TempDir()
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
-		})
+		}, nil)
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
 
@@ -80,7 +80,7 @@ func Test_index(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
 			"f1": {Name: "f1", Type: schema.TypeBool},
 			"f2": {Name: "f2", Type: schema.TypeBool},
-		})
+		}, nil)
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
 
@@ -108,7 +108,7 @@ func Test_index(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
 			"f1": {Name: "f1", Type: schema.TypeBool},
 			"f2": {Name: "f2", Type: schema.TypeBool},
-		})
+		}, nil)
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
 
