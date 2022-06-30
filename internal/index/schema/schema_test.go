@@ -116,7 +116,7 @@ func Test_Schema_Validate(t *testing.T) {
 			map[string]FieldAnalyzer{
 				"analyzer": {
 					Analyzers: []Analyzer{
-						{Type: string(analyzer.TokenizerRegexp), Settings: nil},
+						{Type: analyzer.TokenizerRegexp, Settings: nil},
 					},
 				},
 			},
@@ -136,7 +136,7 @@ func Test_Schema_Validate(t *testing.T) {
 			},
 			map[string]FieldAnalyzer{
 				"analyzer": {Analyzers: []Analyzer{
-					{Type: string(analyzer.TokenizerRegexp), Settings: map[string]interface{}{"pattern": "\\s"}},
+					{Type: analyzer.TokenizerRegexp, Settings: map[string]interface{}{"pattern": "\\s"}},
 				}},
 			},
 		)
