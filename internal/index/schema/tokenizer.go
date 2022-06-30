@@ -1,4 +1,4 @@
-package analyzer
+package schema
 
 import (
 	"fmt"
@@ -7,7 +7,7 @@ import (
 )
 
 // TokenizerWhitespaceFunc splits string by whitespace characters (see strings.Fields)
-func TokenizerWhitespaceFunc() Func {
+func TokenizerWhitespaceFunc() AnalyzerFunc {
 	return func(s []string) []string {
 		if len(s) == 0 {
 			return s
@@ -24,7 +24,7 @@ func TokenizerWhitespaceFunc() Func {
 }
 
 // TokenizerRegexpFunc splits string by regular expression
-func TokenizerRegexpFunc(settings map[string]interface{}) (Func, error) {
+func TokenizerRegexpFunc(settings map[string]interface{}) (AnalyzerFunc, error) {
 	var (
 		expression string
 		ok         bool

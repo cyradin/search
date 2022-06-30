@@ -5,7 +5,6 @@ import (
 	"path"
 	"testing"
 
-	"github.com/cyradin/search/internal/index/analyzer"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
@@ -18,7 +17,7 @@ func Test_index(t *testing.T) {
 			"bool": {Name: "bool", Type: schema.TypeBool},
 			"text": {Name: "text", Type: schema.TypeText, Analyzer: "analyzer"},
 		}, map[string]schema.FieldAnalyzer{
-			"analyzer": {Analyzers: []schema.Analyzer{{Type: analyzer.TokenizerWhitespace}}},
+			"analyzer": {Analyzers: []schema.Analyzer{{Type: schema.TokenizerWhitespace}}},
 		})
 		index, err := NewIndex(dir, s)
 		require.NoError(t, err)
