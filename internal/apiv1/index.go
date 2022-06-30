@@ -6,6 +6,7 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/index"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -40,20 +41,20 @@ func (i *IndexListItem) FromIndex(item index.Index) {
 }
 
 type Index struct {
-	Name      string    `json:"name"`
-	CreatedAt time.Time `json:"createdAt"`
-	Schema    Schema    `json:"schema"`
+	Name      string        `json:"name"`
+	CreatedAt time.Time     `json:"createdAt"`
+	Schema    schema.Schema `json:"schema"`
 }
 
 func (i *Index) FromIndex(item index.Index) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
-	i.Schema.FromSchema(item.Schema)
+	i.Schema = item.Schema
 }
 
 type IndexAddRequest struct {
-	Name   string `json:"name" validate:"required,max=255"`
-	Schema Schema `json:"schema"`
+	Name   string        `json:"name" validate:"required,max=255"`
+	Schema schema.Schema `json:"schema"`
 }
 
 func (r IndexAddRequest) Validate() error {
@@ -97,7 +98,7 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		newIndex := index.New(req.Name, req.Schema.ToSchema())
+		newIndex := index.New(req.Name, req.Schema)
 
 		err := c.repo.Add(r.Context(), newIndex)
 		if err != nil {

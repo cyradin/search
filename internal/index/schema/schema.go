@@ -11,6 +11,15 @@ type FieldAnalyzer struct {
 	Analyzers []Analyzer `json:"analyzers"`
 }
 
+func (fa FieldAnalyzer) Build() (analyzer.Func, error) {
+	items := make([]analyzer.Analyzer, len(fa.Analyzers))
+	for i, a := range fa.Analyzers {
+		items[i] = analyzer.New(analyzer.Type(a.Type), a.Settings)
+	}
+
+	return analyzer.Chain(items)
+}
+
 func (a FieldAnalyzer) Validate() error {
 	return validation.ValidateStruct(&a,
 		validation.Field(&a.Analyzers, validation.Required, validation.Length(1, 0)),
@@ -18,7 +27,7 @@ func (a FieldAnalyzer) Validate() error {
 }
 
 type Analyzer struct {
-	Type     string                 `json:"type"`
+	Type     analyzer.Type          `json:"type"`
 	Settings map[string]interface{} `json:"settings"`
 }
 

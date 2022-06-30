@@ -4,11 +4,19 @@ import (
 	"fmt"
 )
 
+type Type string
 type Analyzer struct {
 	Type     Type
 	Settings map[string]interface{}
 }
-type Type string
+
+func New(t Type, settings map[string]interface{}) Analyzer {
+	return Analyzer{
+		Type:     t,
+		Settings: settings,
+	}
+}
+
 type Func func([]string) []string
 type Handler func(next Func) Func
 
