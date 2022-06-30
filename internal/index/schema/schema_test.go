@@ -3,7 +3,6 @@ package schema
 import (
 	"testing"
 
-	"github.com/cyradin/search/internal/index/analyzer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/stretchr/testify/require"
 )
@@ -116,7 +115,7 @@ func Test_Schema_Validate(t *testing.T) {
 			map[string]FieldAnalyzer{
 				"analyzer": {
 					Analyzers: []Analyzer{
-						{Type: analyzer.TokenizerRegexp, Settings: nil},
+						{Type: TokenizerRegexp, Settings: nil},
 					},
 				},
 			},
@@ -136,7 +135,7 @@ func Test_Schema_Validate(t *testing.T) {
 			},
 			map[string]FieldAnalyzer{
 				"analyzer": {Analyzers: []Analyzer{
-					{Type: analyzer.TokenizerRegexp, Settings: map[string]interface{}{"pattern": "\\s"}},
+					{Type: TokenizerRegexp, Settings: map[string]interface{}{"pattern": "\\s"}},
 				}},
 			},
 		)

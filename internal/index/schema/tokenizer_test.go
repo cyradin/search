@@ -1,4 +1,4 @@
-package analyzer
+package schema
 
 import (
 	"testing"

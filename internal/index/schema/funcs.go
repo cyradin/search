@@ -1,14 +1,14 @@
-package analyzer
+package schema
 
 // NopFunc Does nothing
-func NopFunc() Func {
+func NopFunc() AnalyzerFunc {
 	return func(s []string) []string {
 		return s
 	}
 }
 
 // DedupFunc leaves only the first copy of the token
-func DedupFunc() Func {
+func DedupFunc() AnalyzerFunc {
 	return func(s []string) []string {
 		if len(s) == 0 || len(s) == 1 {
 			return s
