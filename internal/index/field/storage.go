@@ -16,7 +16,7 @@ import (
 const fieldsDir = "fields"
 const dirPermissions = 0755
 const filePermissions = 0644
-const fileExt = ".gob"
+const fieldFileExt = ".gob"
 
 type Storage struct {
 	src     string
