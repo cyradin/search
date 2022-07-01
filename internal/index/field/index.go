@@ -15,7 +15,8 @@ type Index struct {
 	src    string
 	schema schema.Schema
 
-	fields map[string]Field
+	fields    map[string]Field
+	relevance map[string]*Relevance
 }
 
 func NewIndex(src string, s schema.Schema) (*Index, error) {
@@ -30,12 +31,22 @@ func NewIndex(src string, s schema.Schema) (*Index, error) {
 	for name, field := range s.Fields {
 		fieldsCopy[name] = field
 	}
-	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false)
+	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false, "")
 
 	for _, f := range fieldsCopy {
-		field, err := New(f.Type)
+		fdata := FieldData{Type: f.Type}
+
+		if f.Analyzer != "" {
+			a, err := s.Analyzers[f.Analyzer].Build()
+			if err != nil {
+				return nil, fmt.Errorf("analyzer build err: %w", err)
+			}
+			fdata.Analyzer = a
+		}
+
+		field, err := New(fdata)
 		if err != nil {
-			return nil, err
+			return nil, fmt.Errorf("field build err: %w", err)
 		}
 		result.fields[f.Name] = field
 	}
@@ -62,20 +73,20 @@ func (s *Index) Fields() map[string]Field {
 }
 
 func (s *Index) load() error {
-	return filepath.Walk(s.src, func(path string, info fs.FileInfo, err error) error {
+	return filepath.Walk(s.src, func(p string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		name := strings.TrimRight(info.Name(), fileExt)
+		name := strings.TrimRight(info.Name(), fieldFileExt)
 		f, ok := s.fields[name]
 		if !ok {
 			return nil
 		}
 
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(p)
 		if err != nil {
-			return fmt.Errorf("file %q read err: %w", path, err)
+			return fmt.Errorf("file %q read err: %w", p, err)
 		}
 		err = f.UnmarshalBinary(data)
 		if err != nil {
@@ -88,7 +99,7 @@ func (s *Index) load() error {
 
 func (s *Index) dump() error {
 	for name, field := range s.fields {
-		src := path.Join(s.src, name+fileExt)
+		src := path.Join(s.src, name+fieldFileExt)
 		data, err := field.MarshalBinary()
 		if err != nil {
 			return fmt.Errorf("field %q marshal err: %w", name, err)

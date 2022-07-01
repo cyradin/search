@@ -1,4 +1,4 @@
-package analyzer
+package schema
 
 import (
 	"testing"
@@ -8,13 +8,13 @@ import (
 
 func Test_GetFunc(t *testing.T) {
 	t.Run("cannot get func by invalid analyzer type", func(t *testing.T) {
-		f, err := GetFunc(Analyzer{})
+		f, err := (Analyzer{}).GetFunc()
 		require.Error(t, err)
 		require.Nil(t, f)
 	})
 
 	t.Run("can get func by valid analyzer type", func(t *testing.T) {
-		f, err := GetFunc(Analyzer{Type: Nop})
+		f, err := (Analyzer{Type: Nop}).GetFunc()
 		require.NoError(t, err)
 		require.NotNil(t, f)
 	})

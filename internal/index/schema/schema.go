@@ -1,46 +1,35 @@
 package schema
 
 import (
-	"io/ioutil"
-	"os"
+	"context"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	jsoniter "github.com/json-iterator/go"
 )
 
+type FieldAnalyzer struct {
+	Analyzers []Analyzer `json:"analyzers"`
+}
+
+func (fa FieldAnalyzer) Build() (AnalyzerFunc, error) {
+	return Chain(fa.Analyzers)
+}
+
+func (a FieldAnalyzer) Validate() error {
+	return validation.ValidateStruct(&a,
+		validation.Field(&a.Analyzers, validation.Required, validation.Length(1, 0)),
+	)
+}
+
 type Schema struct {
-	Fields map[string]Field `json:"fields"`
+	Analyzers map[string]FieldAnalyzer `json:"analyzers"`
+	Fields    map[string]Field         `json:"fields"`
 }
 
-func New(fields map[string]Field) Schema {
+func New(fields map[string]Field, analyzers map[string]FieldAnalyzer) Schema {
 	return Schema{
-		Fields: fields,
+		Fields:    fields,
+		Analyzers: analyzers,
 	}
-}
-
-func NewFromJSON(data []byte) (*Schema, error) {
-	result := new(Schema)
-	err := jsoniter.Unmarshal(data, result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func NewFromFile(src string) (*Schema, error) {
-	f, err := os.Open(src)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	data, err := ioutil.ReadAll(f)
-	if err != nil {
-		return nil, err
-	}
-
-	return NewFromJSON(data)
 }
 
 func (s Schema) ValidateDoc(doc map[string]interface{}) error {
@@ -48,7 +37,11 @@ func (s Schema) ValidateDoc(doc map[string]interface{}) error {
 }
 
 func (s Schema) Validate() error {
-	return validation.ValidateStruct(&s,
+	ctx := context.Background()
+	ctx = context.WithValue(ctx, "schema", s)
+
+	return validation.ValidateStructWithContext(ctx, &s,
 		validation.Field(&s.Fields, validation.Required),
+		validation.Field(&s.Analyzers),
 	)
 }

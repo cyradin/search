@@ -5,7 +5,6 @@ import (
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
-	"github.com/cyradin/search/internal/index/relevance"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/index/source"
 )
@@ -21,16 +20,14 @@ type Search struct {
 type SearchResult struct{}
 
 type Documents struct {
-	sources   *source.Storage
-	fields    *field.Storage
-	relevance *relevance.Storage
+	sources *source.Storage
+	fields  *field.Storage
 }
 
 func NewDocuments(dataPath string) *Documents {
 	result := &Documents{
-		relevance: relevance.NewStorage(dataPath),
-		fields:    field.NewStorage(dataPath),
-		sources:   source.NewStorage(dataPath),
+		fields:  field.NewStorage(dataPath),
+		sources: source.NewStorage(dataPath),
 	}
 
 	return result
@@ -46,11 +43,6 @@ func (d *Documents) AddIndex(index Index) error {
 		return err
 	}
 
-	_, err = d.relevance.AddIndex(index.Name)
-	if err != nil {
-		return err
-	}
-
 	return nil
 }
 
@@ -59,7 +51,7 @@ func (d *Documents) Add(index Index, id uint32, source DocSource) (uint32, error
 		return 0, fmt.Errorf("source validation err: %w", err)
 	}
 
-	srcIndex, fieldIndex, _, err := d.getIndexes(index.Name)
+	srcIndex, fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
 		return 0, err
 	}
@@ -74,7 +66,7 @@ func (d *Documents) Add(index Index, id uint32, source DocSource) (uint32, error
 }
 
 func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
-	srcIndex, _, _, err := d.getIndexes(index.Name)
+	srcIndex, _, err := d.getIndexes(index.Name)
 	if err != nil {
 		return nil, err
 	}
@@ -88,7 +80,7 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 }
 
 func (d *Documents) Search(index Index, q Search) (SearchResult, error) {
-	_, fieldIndex, _, err := d.getIndexes(index.Name)
+	_, fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
 		return SearchResult{}, err
 	}
@@ -105,16 +97,12 @@ func (d *Documents) Search(index Index, q Search) (SearchResult, error) {
 
 func (d *Documents) getIndexes(
 	name string,
-) (sourceIndex *source.Index, fieldIndex *field.Index, relevanceIndex *relevance.Index, err error) {
+) (sourceIndex *source.Index, fieldIndex *field.Index, err error) {
 	sourceIndex, err = d.sources.GetIndex(name)
 	if err != nil {
 		return
 	}
 	fieldIndex, err = d.fields.GetIndex(name)
-	if err != nil {
-		return
-	}
-	relevanceIndex, err = d.relevance.GetIndex(name)
 	if err != nil {
 		return
 	}

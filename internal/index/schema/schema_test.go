@@ -3,63 +3,15 @@ package schema
 import (
 	"testing"
 
-	"github.com/cyradin/search/internal/index/analyzer"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/stretchr/testify/require"
 )
-
-// func Test_NewFromFile(t *testing.T) {
-// 	data := []struct {
-// 		name     string
-// 		src      string
-// 		expected *Schema
-// 	}{
-// 		{
-// 			name: "schema_1",
-// 			src:  "../../../test/testdata/schema/schema.json",
-// 			expected: &Schema{
-// 				Fields: map[string]Field{
-// 					{
-// 						Name:     "field_keyword",
-// 						Type:     "keyword",
-// 						Required: true,
-// 					},
-// 					{
-// 						Name:     "field_slice",
-// 						Type:     "slice",
-// 						Required: false,
-// 						Children: map[string]Field{
-// 							{
-// 								Name:     "field_slice_child_keyword",
-// 								Type:     "keyword",
-// 								Required: true,
-// 							},
-// 							{
-// 								Name:     "field_slice_child_bool",
-// 								Type:     "bool",
-// 								Required: true,
-// 							},
-// 						},
-// 					},
-// 				},
-// 			},
-// 		},
-// 	}
-
-// 	for _, d := range data {
-// 		t.Run(d.name, func(t *testing.T) {
-// 			result, err := NewFromFile(d.src)
-// 			require.NoError(t, err)
-// 			require.EqualValues(t, d.expected, result)
-// 		})
-// 	}
-// }
 
 func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field name is empty", func(t *testing.T) {
 		s := New(map[string]Field{
 			"": {Type: TypeKeyword},
-		})
+		}, nil)
 		err := validation.Validate(s)
 		require.Error(t, err)
 	})
@@ -67,7 +19,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field type is empty", func(t *testing.T) {
 		s := New(map[string]Field{
 			"name": {Name: "name"},
-		})
+		}, nil)
 		err := validation.Validate(s)
 		require.Error(t, err)
 	})
@@ -75,7 +27,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field type is invalid", func(t *testing.T) {
 		s := New(map[string]Field{
 			"name": {Name: "name", Type: "invalid"},
-		})
+		}, nil)
 		err := validation.Validate(s)
 		require.Error(t, err)
 	})
@@ -84,9 +36,10 @@ func Test_Schema_Validate(t *testing.T) {
 		s := New(
 			map[string]Field{
 				"name": {Name: "name", Type: TypeBool, Children: map[string]Field{
-					"name": Field{Name: "name"},
+					"name": {Name: "name"},
 				}},
 			},
+			nil,
 		)
 		err := validation.Validate(s)
 		require.Error(t, err)
@@ -97,6 +50,7 @@ func Test_Schema_Validate(t *testing.T) {
 			map[string]Field{
 				"name": {Name: "name", Type: TypeSlice},
 			},
+			nil,
 		)
 		err := validation.Validate(s)
 		require.Error(t, err)
@@ -108,7 +62,7 @@ func Test_Schema_Validate(t *testing.T) {
 				"name": {Name: "name", Type: TypeSlice, Children: map[string]Field{
 					"": {Name: "", Type: TypeBool},
 				}},
-			},
+			}, nil,
 		)
 		err := validation.Validate(s)
 		require.Error(t, err)
@@ -119,15 +73,51 @@ func Test_Schema_Validate(t *testing.T) {
 			map[string]Field{
 				"name": {Name: "name", Type: TypeText},
 			},
+			nil,
 		)
 		err := validation.Validate(s)
 		require.Error(t, err)
 	})
 
-	t.Run("must fail if text field has invalid analyzer", func(t *testing.T) {
+	t.Run("must fail if text field has unknown analyzer", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeText, Analyzers: []analyzer.Type{"invalid"}},
+				"name": {Name: "name", Type: TypeText, Analyzer: "invalid"},
+			},
+			nil,
+		)
+		err := validation.Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if analyzer has invalid type", func(t *testing.T) {
+		s := New(
+			map[string]Field{
+				"name": {Name: "name", Type: TypeText, Analyzer: "analyzer"},
+			},
+			map[string]FieldAnalyzer{
+				"analyzer": {
+					Analyzers: []Analyzer{
+						{Type: "invalid", Settings: nil},
+					},
+				},
+			},
+		)
+		err := validation.Validate(s)
+		require.Error(t, err)
+	})
+
+	t.Run("must fail if analyzer has invalid settings", func(t *testing.T) {
+		s := New(
+			map[string]Field{
+				"name": {Name: "name", Type: TypeText, Analyzer: "analyzer"},
+			},
+			map[string]FieldAnalyzer{
+				"analyzer": {
+					Analyzers: []Analyzer{
+						{Type: TokenizerRegexp, Settings: nil},
+					},
+				},
 			},
 		)
 		err := validation.Validate(s)
@@ -138,9 +128,14 @@ func Test_Schema_Validate(t *testing.T) {
 		s := New(
 			map[string]Field{
 				"name":  {Name: "name", Type: TypeBool},
-				"name2": {Name: "name2", Type: TypeText, Analyzers: []analyzer.Type{analyzer.Nop}},
+				"name2": {Name: "name2", Type: TypeText, Analyzer: "analyzer"},
 				"name3": {Name: "name3", Type: TypeSlice, Children: map[string]Field{
 					"name": {Name: "name", Type: TypeKeyword},
+				}},
+			},
+			map[string]FieldAnalyzer{
+				"analyzer": {Analyzers: []Analyzer{
+					{Type: TokenizerRegexp, Settings: map[string]interface{}{"pattern": "\\s"}},
 				}},
 			},
 		)

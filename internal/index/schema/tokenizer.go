@@ -1,12 +1,13 @@
-package analyzer
+package schema
 
 import (
+	"fmt"
 	"regexp"
 	"strings"
 )
 
 // TokenizerWhitespaceFunc splits string by whitespace characters (see strings.Fields)
-func TokenizerWhitespaceFunc() Func {
+func TokenizerWhitespaceFunc() AnalyzerFunc {
 	return func(s []string) []string {
 		if len(s) == 0 {
 			return s
@@ -23,7 +24,24 @@ func TokenizerWhitespaceFunc() Func {
 }
 
 // TokenizerRegexpFunc splits string by regular expression
-func TokenizerRegexpFunc(expression string) (Func, error) {
+func TokenizerRegexpFunc(settings map[string]interface{}) (AnalyzerFunc, error) {
+	var (
+		expression string
+		ok         bool
+	)
+	for k, v := range settings {
+		if k != "pattern" {
+			return nil, fmt.Errorf("key %q is not allowed", k)
+		}
+		expression, ok = v.(string)
+		if !ok {
+			return nil, fmt.Errorf("%q must be a string value", v)
+		}
+	}
+	if expression == "" {
+		return nil, fmt.Errorf("%q key must be provided", "pattern")
+	}
+
 	exp, err := regexp.Compile(expression)
 	if err != nil {
 		return nil, err

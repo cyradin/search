@@ -11,6 +11,11 @@ import (
 	"github.com/cyradin/search/internal/index/schema"
 )
 
+type FieldData struct {
+	Type     schema.Type
+	Analyzer func([]string) []string
+}
+
 type Field interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
@@ -137,18 +142,18 @@ func (f *field[T]) Scores(value interface{}, bm *roaring.Bitmap) Scores {
 	return nil
 }
 
-func New(t schema.Type) (Field, error) {
-	var f Field
+func New(f FieldData) (Field, error) {
+	var field Field
 
-	switch t {
+	switch f.Type {
 	case schema.TypeAll:
-		f = NewAll()
+		field = NewAll()
 	case schema.TypeBool:
-		f = NewBool()
+		field = NewBool()
 	case schema.TypeKeyword:
-		f = NewKeyword()
+		field = NewKeyword()
 	case schema.TypeText:
-		f = NewText() // @todo pass analyzers from schema
+		field = NewText(f.Analyzer) // @todo pass analyzers from schema
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()
@@ -156,22 +161,22 @@ func New(t schema.Type) (Field, error) {
 	// case schema.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap()
 	case schema.TypeUnsignedLong:
-		f = NewUnsignedLong()
+		field = NewUnsignedLong()
 	case schema.TypeLong:
-		f = NewLong()
+		field = NewLong()
 	case schema.TypeInteger:
-		f = NewInteger()
+		field = NewInteger()
 	case schema.TypeShort:
-		f = NewShort()
+		field = NewShort()
 	case schema.TypeByte:
-		f = NewByte()
+		field = NewByte()
 	case schema.TypeDouble:
-		f = NewDouble()
+		field = NewDouble()
 	case schema.TypeFloat:
-		f = NewFloat()
+		field = NewFloat()
 	default:
-		return nil, fmt.Errorf("invalid field type %q", t)
+		return nil, fmt.Errorf("invalid field type %q", f.Type)
 	}
 
-	return f, nil
+	return field, nil
 }

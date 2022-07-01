@@ -7,24 +7,19 @@ import (
 )
 
 type (
-	AnalyzerHandler func(next Analyzer) Analyzer
-	Analyzer        func([]string) []string
+	Analyzer func([]string) []string
 
 	Text struct {
-		analyzer Analyzer
-		inner    *field[string]
+		analyzer  Analyzer
+		inner     *field[string]
+		relevance *Relevance
 	}
 )
 
 var _ Field = (*Text)(nil)
 
-func NewText(analyzers ...AnalyzerHandler) *Text {
+func NewText(analyzer func([]string) []string) *Text {
 	gf := newField[string](cast.ToStringE)
-
-	analyzer := func(s []string) []string { return s }
-	for i := len(analyzers) - 1; i >= 0; i-- {
-		analyzer = analyzers[i](analyzer)
-	}
 
 	return &Text{
 		inner:    gf,

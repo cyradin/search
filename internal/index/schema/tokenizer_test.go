@@ -1,4 +1,4 @@
-package analyzer
+package schema
 
 import (
 	"testing"
@@ -24,15 +24,33 @@ func Test_TokenizerWhitespaceFunc(t *testing.T) {
 }
 
 func Test_TokenizerRegexpFunc(t *testing.T) {
-	t.Run("must return error if expression is invalid", func(t *testing.T) {
-		f, err := TokenizerRegexpFunc("(")
+	t.Run("must return error if extra keys provided", func(t *testing.T) {
+		f, err := TokenizerRegexpFunc(map[string]interface{}{"extra": 4})
+		require.Error(t, err)
+		require.Nil(t, f)
+	})
+
+	t.Run("must return error if pattern not provided", func(t *testing.T) {
+		f, err := TokenizerRegexpFunc(nil)
+		require.Error(t, err)
+		require.Nil(t, f)
+	})
+
+	t.Run("must return error if non-string pattern provided", func(t *testing.T) {
+		f, err := TokenizerRegexpFunc(map[string]interface{}{"pattern": 4})
+		require.Error(t, err)
+		require.Nil(t, f)
+	})
+
+	t.Run("must return error if pattern is not a valid regexp", func(t *testing.T) {
+		f, err := TokenizerRegexpFunc(map[string]interface{}{"pattern": "("})
 		require.Error(t, err)
 		require.Nil(t, f)
 	})
 
 	t.Run("empty", func(t *testing.T) {
 		var data []string
-		f, err := TokenizerRegexpFunc("\\s")
+		f, err := TokenizerRegexpFunc(map[string]interface{}{"pattern": "\\s"})
 		require.NoError(t, err)
 		result := f(data)
 		require.Equal(t, data, result)
@@ -43,7 +61,7 @@ func Test_TokenizerRegexpFunc(t *testing.T) {
 			"hello world",
 			"hello  world ",
 		}
-		f, err := TokenizerRegexpFunc("\\s")
+		f, err := TokenizerRegexpFunc(map[string]interface{}{"pattern": "\\s"})
 		require.NoError(t, err)
 		result := f(data)
 		require.Equal(t, []string{"hello", "world", "hello", "world"}, result)
