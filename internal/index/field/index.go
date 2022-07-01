@@ -15,7 +15,8 @@ type Index struct {
 	src    string
 	schema schema.Schema
 
-	fields map[string]Field
+	fields    map[string]Field
+	relevance map[string]*Relevance
 }
 
 func NewIndex(src string, s schema.Schema) (*Index, error) {
@@ -72,20 +73,20 @@ func (s *Index) Fields() map[string]Field {
 }
 
 func (s *Index) load() error {
-	return filepath.Walk(s.src, func(path string, info fs.FileInfo, err error) error {
+	return filepath.Walk(s.src, func(p string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
 
-		name := strings.TrimRight(info.Name(), fileExt)
+		name := strings.TrimRight(info.Name(), fieldFileExt)
 		f, ok := s.fields[name]
 		if !ok {
 			return nil
 		}
 
-		data, err := os.ReadFile(path)
+		data, err := os.ReadFile(p)
 		if err != nil {
-			return fmt.Errorf("file %q read err: %w", path, err)
+			return fmt.Errorf("file %q read err: %w", p, err)
 		}
 		err = f.UnmarshalBinary(data)
 		if err != nil {
@@ -98,7 +99,7 @@ func (s *Index) load() error {
 
 func (s *Index) dump() error {
 	for name, field := range s.fields {
-		src := path.Join(s.src, name+fileExt)
+		src := path.Join(s.src, name+fieldFileExt)
 		data, err := field.MarshalBinary()
 		if err != nil {
 			return fmt.Errorf("field %q marshal err: %w", name, err)

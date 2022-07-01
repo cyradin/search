@@ -34,7 +34,7 @@ func Test_index(t *testing.T) {
 		field.AddValue(1, true)
 		data, err := field.MarshalBinary()
 		require.NoError(t, err)
-		err = os.WriteFile(path.Join(dir, "bool"+fileExt), data, filePermissions)
+		err = os.WriteFile(path.Join(dir, "bool"+fieldFileExt), data, filePermissions)
 		require.NoError(t, err)
 
 		s := schema.New(map[string]schema.Field{
@@ -63,9 +63,9 @@ func Test_index(t *testing.T) {
 		err = index.dump()
 		require.NoError(t, err)
 
-		_, err = os.Stat(path.Join(dir, AllField+fileExt))
+		_, err = os.Stat(path.Join(dir, AllField+fieldFileExt))
 		require.NoError(t, err)
-		_, err = os.Stat(path.Join(dir, "bool"+fileExt))
+		_, err = os.Stat(path.Join(dir, "bool"+fieldFileExt))
 		require.NoError(t, err)
 
 		index2, err := NewIndex(dir, s)
