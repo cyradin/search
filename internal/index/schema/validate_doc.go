@@ -18,11 +18,11 @@ func ValidateDoc(s Schema, source map[string]interface{}) error {
 func buildRules(s Schema, source map[string]interface{}) validation.MapRule {
 	var rules []*validation.KeyRules
 
-	for _, f := range s.Fields {
+	for name, f := range s.Fields {
 		var keyRules []validation.Rule
 		if f.Required {
 			keyRules = append(keyRules, validation.Required)
-		} else if _, ok := source[f.Name]; !ok {
+		} else if _, ok := source[name]; !ok {
 			continue
 		}
 
@@ -49,7 +49,7 @@ func buildRules(s Schema, source map[string]interface{}) validation.MapRule {
 			keyRules = append(keyRules, validation.By(validateFloat(-1*math.MaxFloat64, math.MaxFloat64)))
 		}
 
-		rules = append(rules, validation.Key(f.Name, keyRules...))
+		rules = append(rules, validation.Key(name, keyRules...))
 	}
 
 	return validation.Map(rules...)

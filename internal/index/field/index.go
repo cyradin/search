@@ -26,9 +26,9 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 	for name, field := range s.Fields {
 		fieldsCopy[name] = field
 	}
-	fieldsCopy[AllField] = schema.NewField(AllField, schema.TypeAll, false, "")
+	fieldsCopy[AllField] = schema.NewField(schema.TypeAll, false, "")
 
-	for _, f := range fieldsCopy {
+	for name, f := range fieldsCopy {
 		fdata := FieldData{Type: f.Type}
 
 		if f.Analyzer != "" {
@@ -47,7 +47,7 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 		if err != nil {
 			return nil, fmt.Errorf("field build err: %w", err)
 		}
-		result.fields[f.Name] = field
+		result.fields[name] = field
 	}
 
 	return result, nil
