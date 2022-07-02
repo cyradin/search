@@ -124,6 +124,10 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
+	if err := r.docs.DeleteIndex(name); err != nil {
+		return fmt.Errorf("docs index delete err: %w", err)
+	}
+
 	if err := r.storage.Delete(name); err != nil {
 		if errors.Is(err, ErrDocNotFound) {
 			return nil
