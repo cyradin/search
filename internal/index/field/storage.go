@@ -16,10 +16,12 @@ import (
 	"go.uber.org/zap"
 )
 
-const fieldsDir = "fields"
-const dirPermissions = 0755
-const filePermissions = 0644
-const fieldFileExt = ".gob"
+const (
+	dirPermissions  = 0755
+	filePermissions = 0644
+	fieldsDir       = "fields"
+	fieldFileExt    = ".bin"
+)
 
 type Storage struct {
 	src     string
@@ -96,7 +98,7 @@ func (s *Storage) GetIndex(name string) (*Index, error) {
 func (s *Storage) loadIndex(index *Index) error {
 	dir := s.indexFieldsDir(index.name)
 
-	return filepath.Walk(dir, func(p string, info fs.FileInfo, err error) error {
+	return filepath.Walk(dir, func(src string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -107,10 +109,11 @@ func (s *Storage) loadIndex(index *Index) error {
 			return nil
 		}
 
-		data, err := os.ReadFile(p)
+		data, err := os.ReadFile(src)
 		if err != nil {
-			return fmt.Errorf("file %q read err: %w", p, err)
+			return fmt.Errorf("file %q read err: %w", src, err)
 		}
+
 		err = f.UnmarshalBinary(data)
 		if err != nil {
 			return fmt.Errorf("field %q unmarshal err: %w", name, err)
@@ -129,10 +132,12 @@ func (s *Storage) dumpIndex(index *Index) error {
 
 	for name, field := range index.fields {
 		src := path.Join(dir, name+fieldFileExt)
+
 		data, err := field.MarshalBinary()
 		if err != nil {
-			return fmt.Errorf("field %q marshal err: %w", name, err)
+			return fmt.Errorf("field %q unmarshal err: %w", name, err)
 		}
+
 		err = os.WriteFile(src, data, filePermissions)
 		if err != nil {
 			return fmt.Errorf("file %q write err: %w", src, err)
