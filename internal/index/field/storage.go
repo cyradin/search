@@ -3,8 +3,11 @@ package field
 import (
 	"context"
 	"fmt"
+	"io/fs"
 	"os"
 	"path"
+	"path/filepath"
+	"strings"
 	"sync"
 
 	"github.com/cyradin/search/internal/events"
@@ -34,7 +37,7 @@ func NewStorage(src string) *Storage {
 		result.mtx.Lock()
 		defer result.mtx.Unlock()
 		for _, index := range result.indexes {
-			if err := index.dump(path.Join(result.src, index.name, fieldsDir)); err != nil {
+			if err := result.dumpIndex(index); err != nil {
 				logger.FromCtx(ctx).Error("field.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
 			}
 		}
@@ -61,7 +64,7 @@ func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 		return nil, fmt.Errorf("index %q init err: %w", name, err)
 	}
 
-	err = index.load(src)
+	err = s.loadIndex(index)
 	if err != nil {
 		return nil, fmt.Errorf("index %q data load err: %w", name, err)
 	}
@@ -88,4 +91,61 @@ func (s *Storage) GetIndex(name string) (*Index, error) {
 	}
 
 	return fs, nil
+}
+
+func (s *Storage) loadIndex(index *Index) error {
+	dir := s.indexFieldsDir(index.name)
+
+	return filepath.Walk(dir, func(p string, info fs.FileInfo, err error) error {
+		if err != nil {
+			return err
+		}
+
+		name := strings.TrimRight(info.Name(), fieldFileExt)
+		f, ok := index.fields[name]
+		if !ok {
+			return nil
+		}
+
+		data, err := os.ReadFile(p)
+		if err != nil {
+			return fmt.Errorf("file %q read err: %w", p, err)
+		}
+		err = f.UnmarshalBinary(data)
+		if err != nil {
+			return fmt.Errorf("field %q unmarshal err: %w", name, err)
+		}
+
+		return nil
+	})
+}
+
+func (s *Storage) dumpIndex(index *Index) error {
+	dir := s.indexFieldsDir(index.name)
+	err := os.MkdirAll(dir, dirPermissions)
+	if err != nil {
+		return fmt.Errorf("dir %q create err: %w", dir, err)
+	}
+
+	for name, field := range index.fields {
+		src := path.Join(dir, name+fieldFileExt)
+		data, err := field.MarshalBinary()
+		if err != nil {
+			return fmt.Errorf("field %q marshal err: %w", name, err)
+		}
+		err = os.WriteFile(src, data, filePermissions)
+		if err != nil {
+			return fmt.Errorf("file %q write err: %w", src, err)
+		}
+	}
+
+	return nil
+}
+
+func (s *Storage) indexDir(name string) string {
+	return path.Join(s.src, name)
+}
+
+func (s *Storage) indexFieldsDir(name string) string {
+	return path.Join(s.indexDir(name), fieldsDir)
 }

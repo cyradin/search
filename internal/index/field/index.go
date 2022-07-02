@@ -2,11 +2,6 @@ package field
 
 import (
 	"fmt"
-	"io/fs"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/cyradin/search/internal/index/schema"
 )
@@ -70,45 +65,4 @@ func (s *Index) Fields() map[string]Field {
 	}
 
 	return result
-}
-
-func (s *Index) load(dir string) error {
-	return filepath.Walk(dir, func(p string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		name := strings.TrimRight(info.Name(), fieldFileExt)
-		f, ok := s.fields[name]
-		if !ok {
-			return nil
-		}
-
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return fmt.Errorf("file %q read err: %w", p, err)
-		}
-		err = f.UnmarshalBinary(data)
-		if err != nil {
-			return fmt.Errorf("field %q unmarshal err: %w", name, err)
-		}
-
-		return nil
-	})
-}
-
-func (s *Index) dump(dir string) error {
-	for name, field := range s.fields {
-		src := path.Join(dir, name+fieldFileExt)
-		data, err := field.MarshalBinary()
-		if err != nil {
-			return fmt.Errorf("field %q marshal err: %w", name, err)
-		}
-		err = os.WriteFile(src, data, filePermissions)
-		if err != nil {
-			return fmt.Errorf("file %q write err: %w", src, err)
-		}
-	}
-
-	return nil
 }
