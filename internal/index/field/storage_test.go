@@ -79,14 +79,16 @@ func Test_Storage(t *testing.T) {
 			dir := t.TempDir()
 			s := NewStorage(dir)
 
-			err := os.MkdirAll(s.indexFieldsDir("name"), dirPermissions)
+			fieldsDir := s.indexFieldsDir("name")
+
+			err := os.MkdirAll(fieldsDir, dirPermissions)
 			require.NoError(t, err)
 
 			field := NewBool()
 			field.AddValue(1, true)
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)
-			err = os.WriteFile(path.Join(s.indexFieldsDir("name"), "bool"+fieldFileExt), data, filePermissions)
+			err = os.WriteFile(path.Join(fieldsDir, "bool"+fieldFileExt), data, filePermissions)
 			require.NoError(t, err)
 
 			index, err := NewIndex("name", schemaBoolField)
@@ -102,7 +104,9 @@ func Test_Storage(t *testing.T) {
 			dir := t.TempDir()
 			s := NewStorage(dir)
 
-			err := os.MkdirAll(s.indexFieldsDir("name"), dirPermissions)
+			fieldsDir := s.indexFieldsDir("name")
+
+			err := os.MkdirAll(fieldsDir, dirPermissions)
 			require.NoError(t, err)
 
 			scoring := NewScoring()
@@ -112,7 +116,7 @@ func Test_Storage(t *testing.T) {
 			field.AddValue(1, "word")
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)
-			err = os.WriteFile(path.Join(s.indexFieldsDir("name"), "text"+fieldFileExt), data, filePermissions)
+			err = os.WriteFile(path.Join(fieldsDir, "text"+fieldFileExt), data, filePermissions)
 			require.NoError(t, err)
 
 			index, err := NewIndex("name", schemaTextField)

@@ -1,6 +1,7 @@
 package field
 
 import (
+	"bytes"
 	"context"
 	"fmt"
 	"io/fs"
@@ -104,17 +105,23 @@ func (s *Storage) loadIndex(index *Index) error {
 		}
 
 		name := strings.TrimRight(info.Name(), fieldFileExt)
-		f, ok := index.fields[name]
+		field, ok := index.fields[name]
 		if !ok {
 			return nil
 		}
 
-		data, err := os.ReadFile(src)
+		file, err := os.OpenFile(src, os.O_RDONLY|os.O_CREATE, filePermissions)
+		if err != nil {
+			return fmt.Errorf("file %q open err: %w", src, err)
+		}
+
+		var buf bytes.Buffer
+		_, err = buf.ReadFrom(file)
 		if err != nil {
 			return fmt.Errorf("file %q read err: %w", src, err)
 		}
 
-		err = f.UnmarshalBinary(data)
+		err = field.UnmarshalBinary(buf.Bytes())
 		if err != nil {
 			return fmt.Errorf("field %q unmarshal err: %w", name, err)
 		}
@@ -132,13 +139,17 @@ func (s *Storage) dumpIndex(index *Index) error {
 
 	for name, field := range index.fields {
 		src := path.Join(dir, name+fieldFileExt)
+		file, err := os.OpenFile(src, os.O_WRONLY|os.O_CREATE, filePermissions)
+		if err != nil {
+			return fmt.Errorf("file %q open err: %w", src, err)
+		}
 
 		data, err := field.MarshalBinary()
 		if err != nil {
 			return fmt.Errorf("field %q unmarshal err: %w", name, err)
 		}
 
-		err = os.WriteFile(src, data, filePermissions)
+		_, err = bytes.NewBuffer(data).WriteTo(file)
 		if err != nil {
 			return fmt.Errorf("file %q write err: %w", src, err)
 		}
