@@ -108,6 +108,10 @@ func (r *Repository) Add(ctx context.Context, index Index) error {
 		return fmt.Errorf("schema validation failed: %w", err)
 	}
 
+	if err := r.docs.AddIndex(index); err != nil {
+		return fmt.Errorf("docs index add err: %w", err)
+	}
+
 	_, err := r.storage.Insert(index.Name, index)
 	if errors.Is(err, ErrDocAlreadyExists) {
 		return ErrIndexAlreadyExists
