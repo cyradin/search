@@ -1,61 +1,15 @@
 package field
 
 import (
-	"os"
-	"path"
 	"testing"
 
-	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Relevance(t *testing.T) {
-	t.Run("can load data from file", func(t *testing.T) {
-		dir := t.TempDir()
-
-		indexData := relevanceData{
-			AvgDocLen: 100,
-		}
-
-		data, err := jsoniter.Marshal(indexData)
-		require.NoError(t, err)
-
-		src := path.Join(dir, "relevance.json")
-		err = os.WriteFile(src, data, filePermissions)
-		require.NoError(t, err)
-
-		relevance := NewRelevance()
-		err = relevance.load(src)
-		require.NoError(t, err)
-
-		require.EqualValues(t, relevance.data, indexData)
-	})
-
-	t.Run("can dump data to file", func(t *testing.T) {
-		dir := t.TempDir()
-		src := path.Join(dir, "relevance.json")
-		index := NewRelevance()
-
-		index.data = relevanceData{
-			AvgDocLen: 100,
-		}
-
-		err := index.dump(src)
-		require.NoError(t, err)
-
-		_, err = os.Stat(src)
-		require.NoError(t, err)
-
-		index2 := NewRelevance()
-		err = index2.load(src)
-		require.NoError(t, err)
-
-		require.EqualValues(t, index.data, index2.data)
-	})
-
+func Test_Scoring(t *testing.T) {
 	t.Run("can add one document", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		index.Add(1, []string{"foo", "bar", "bar"})
 
@@ -69,7 +23,7 @@ func Test_Relevance(t *testing.T) {
 	})
 
 	t.Run("can add two documents", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		index.Add(1, []string{"foo", "bar", "bar"})
 		index.Add(2, []string{"foo", "bar", "baz", "baz"})
@@ -93,7 +47,7 @@ func Test_Relevance(t *testing.T) {
 	})
 
 	t.Run("can replace document", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		index.Add(1, []string{"foo", "bar", "bar"})
 		index.Add(1, []string{"foo", "baz"})
@@ -112,7 +66,7 @@ func Test_Relevance(t *testing.T) {
 	})
 
 	t.Run("can delete document", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		index.Add(1, []string{"foo", "bar", "bar"})
 		index.Delete(1)
@@ -129,16 +83,16 @@ func Test_Relevance(t *testing.T) {
 	})
 }
 
-func Test_TF(t *testing.T) {
+func Test_Scoring_TF(t *testing.T) {
 	t.Run("must return 0 if no documents", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		result := index.TF(1, "word")
 		require.Equal(t, 0.0, result)
 	})
 
 	t.Run("must return 0 if no word in index", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo"})
 
 		result := index.TF(1, "word")
@@ -146,7 +100,7 @@ func Test_TF(t *testing.T) {
 	})
 
 	t.Run("can properly calculate TF", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo", "bar"})
 		index.Add(2, []string{"foo", "baz"})
 
@@ -161,16 +115,16 @@ func Test_TF(t *testing.T) {
 	})
 }
 
-func Test_Relevance_IDF(t *testing.T) {
+func Test_Scoring_IDF(t *testing.T) {
 	t.Run("must return 0 if no documents", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		result := index.IDF(1, "word")
 		require.Equal(t, 0.0, result)
 	})
 
 	t.Run("must return 0 if no word in index", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo"})
 
 		result := index.IDF(1, "word")
@@ -178,7 +132,7 @@ func Test_Relevance_IDF(t *testing.T) {
 	})
 
 	t.Run("can properly calculate IDF", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo", "bar"})
 		index.Add(2, []string{"foo", "baz"})
 
@@ -193,16 +147,16 @@ func Test_Relevance_IDF(t *testing.T) {
 	})
 }
 
-func Test_Relevance_TFIDF(t *testing.T) {
+func Test_Scoring_TFIDF(t *testing.T) {
 	t.Run("must return 0 if no documents", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		result := index.TFIDF(1, "word")
 		require.Equal(t, 0.0, result)
 	})
 
 	t.Run("must return 0 if no word in index", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo"})
 
 		result := index.TFIDF(1, "word")
@@ -210,7 +164,7 @@ func Test_Relevance_TFIDF(t *testing.T) {
 	})
 
 	t.Run("can properly calculate TFIDF", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo", "bar"})
 		index.Add(2, []string{"foo", "baz"})
 
@@ -225,16 +179,16 @@ func Test_Relevance_TFIDF(t *testing.T) {
 	})
 }
 
-func Test_Relevance_BM25(t *testing.T) {
+func Test_Scoring_BM25(t *testing.T) {
 	t.Run("must return 0 if no documents", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 
 		result := index.BM25(1, 2.0, 0.75, "word")
 		require.Equal(t, 0.0, result)
 	})
 
 	t.Run("must return 0 if no word in index", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo"})
 
 		result := index.BM25(1, 2.0, 0.75, "word")
@@ -242,7 +196,7 @@ func Test_Relevance_BM25(t *testing.T) {
 	})
 
 	t.Run("can properly calculate TFIDF", func(t *testing.T) {
-		index := NewRelevance()
+		index := NewScoring()
 		index.Add(1, []string{"foo", "bar"})
 		index.Add(2, []string{"foo", "baz"})
 

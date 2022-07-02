@@ -6,7 +6,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var testAnalyzer Analyzer = func(s []string) []string {
+var testAnalyzer = func(s []string) []string {
 	result := make([]string, 0, len(s))
 	for _, ss := range s {
 		result = append(result, ss+"_addition")
@@ -17,7 +17,7 @@ var testAnalyzer Analyzer = func(s []string) []string {
 func Test_Text_AddValue(t *testing.T) {
 	t.Run("string", func(t *testing.T) {
 		value := "value"
-		field := NewText(testAnalyzer)
+		field := NewText(testAnalyzer, NewScoring())
 
 		field.AddValue(1, value)
 		bm, ok := field.inner.data["value_addition"]
@@ -27,7 +27,7 @@ func Test_Text_AddValue(t *testing.T) {
 	})
 
 	t.Run("bool", func(t *testing.T) {
-		field := NewText(testAnalyzer)
+		field := NewText(testAnalyzer, NewScoring())
 
 		field.AddValue(1, true)
 		bm, ok := field.inner.data["true_addition"]

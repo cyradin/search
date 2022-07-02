@@ -41,10 +41,6 @@ func (f *All) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return f.GetValue(true)
 }
 
-func (f *All) Scores(value interface{}, bm *roaring.Bitmap) Scores {
-	return f.inner.Scores(value, bm)
-}
-
 func (f *All) MarshalBinary() ([]byte, error) {
 	return f.inner.MarshalBinary()
 }

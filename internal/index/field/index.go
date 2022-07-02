@@ -11,7 +11,7 @@ type Index struct {
 	schema schema.Schema
 
 	fields    map[string]Field
-	relevance map[string]*Relevance
+	relevance map[string]*Scoring
 }
 
 func NewIndex(name string, s schema.Schema) (*Index, error) {
@@ -37,6 +37,10 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 				return nil, fmt.Errorf("analyzer build err: %w", err)
 			}
 			fdata.Analyzer = a
+		}
+
+		if f.Type == schema.TypeText {
+			fdata.Scoring = NewScoring()
 		}
 
 		field, err := New(fdata)
