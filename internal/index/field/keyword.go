@@ -35,10 +35,6 @@ func (f *Keyword) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return f.inner.getValuesOr(values)
 }
 
-func (f *Keyword) Scores(value interface{}, bm *roaring.Bitmap) Scores {
-	return f.inner.Scores(value, bm)
-}
-
 func (f *Keyword) MarshalBinary() ([]byte, error) {
 	return f.inner.MarshalBinary()
 }

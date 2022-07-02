@@ -142,10 +142,6 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return result, result != nil
 }
 
-func (f *field[T]) Scores(value interface{}, bm *roaring.Bitmap) Scores {
-	return nil
-}
-
 func New(f FieldData) (Field, error) {
 	var field Field
 
