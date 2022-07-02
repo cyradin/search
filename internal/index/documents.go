@@ -46,6 +46,13 @@ func (d *Documents) AddIndex(index Index) error {
 	return nil
 }
 
+func (d *Documents) DeleteIndex(name string) error {
+	d.sources.DeleteIndex(name)
+	d.fields.DeleteIndex(name)
+
+	return nil
+}
+
 func (d *Documents) Add(index Index, id uint32, source DocSource) (uint32, error) {
 	if err := schema.ValidateDoc(index.Schema, source); err != nil {
 		return 0, fmt.Errorf("source validation err: %w", err)
