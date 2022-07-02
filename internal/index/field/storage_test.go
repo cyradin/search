@@ -69,6 +69,47 @@ func Test_Storage(t *testing.T) {
 		require.Nil(t, index)
 	})
 
+	t.Run("can load index from file", func(t *testing.T) {
+		dir := t.TempDir()
+		s := NewStorage(dir)
+
+		err := os.MkdirAll(s.indexFieldsDir("name"), dirPermissions)
+		require.NoError(t, err)
+
+		field := NewBool()
+		field.AddValue(1, true)
+		data, err := field.MarshalBinary()
+		require.NoError(t, err)
+		err = os.WriteFile(path.Join(s.indexFieldsDir("name"), "bool"+fieldFileExt), data, filePermissions)
+		require.NoError(t, err)
+
+		index, err := NewIndex("name", schemaBoolField)
+		require.NoError(t, err)
+		err = s.loadIndex(index)
+		require.NoError(t, err)
+
+		val, ok := index.fields["bool"].GetValue(true)
+		require.True(t, ok)
+		require.True(t, val.Contains(1))
+	})
+
+	t.Run("can dump index to file", func(t *testing.T) {
+		dir := t.TempDir()
+		s := NewStorage(dir)
+
+		index, err := s.AddIndex("name1", schemaBoolField)
+		require.NoError(t, err)
+		require.NotNil(t, index)
+
+		err = s.dumpIndex(index)
+		require.NoError(t, err)
+
+		_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), AllField+fieldFileExt))
+		require.NoError(t, err)
+		_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), "bool"+fieldFileExt))
+		require.NoError(t, err)
+	})
+
 	t.Run("can dump all indexes on app stop", func(t *testing.T) {
 		t.Run("bool field", func(t *testing.T) {
 			dir := t.TempDir()

@@ -1,8 +1,6 @@
 package field
 
 import (
-	"os"
-	"path"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/schema"
@@ -24,58 +22,6 @@ func Test_index(t *testing.T) {
 		require.Contains(t, index.fields, "bool")
 		require.Contains(t, index.fields, "text")
 		require.Contains(t, index.fields, AllField)
-	})
-
-	t.Run("can load data from file", func(t *testing.T) {
-		dir := t.TempDir()
-
-		field := NewBool()
-		field.AddValue(1, true)
-		data, err := field.MarshalBinary()
-		require.NoError(t, err)
-		err = os.WriteFile(path.Join(dir, "bool"+fieldFileExt), data, filePermissions)
-		require.NoError(t, err)
-
-		s := schema.New(map[string]schema.Field{
-			"bool": {Name: "bool", Type: schema.TypeBool},
-		}, nil)
-		index, err := NewIndex("name", s)
-		require.NoError(t, err)
-		err = index.load(dir)
-		require.NoError(t, err)
-
-		val, ok := index.fields["bool"].GetValue(true)
-		require.True(t, ok)
-		require.True(t, val.Contains(1))
-	})
-
-	t.Run("can dump data to file", func(t *testing.T) {
-		dir := t.TempDir()
-		s := schema.New(map[string]schema.Field{
-			"bool": {Name: "bool", Type: schema.TypeBool},
-		}, nil)
-		index, err := NewIndex("name", s)
-		require.NoError(t, err)
-
-		index.fields["bool"].AddValue(1, true)
-
-		err = index.dump(dir)
-		require.NoError(t, err)
-
-		_, err = os.Stat(path.Join(dir, AllField+fieldFileExt))
-		require.NoError(t, err)
-		_, err = os.Stat(path.Join(dir, "bool"+fieldFileExt))
-		require.NoError(t, err)
-
-		index2, err := NewIndex("name", s)
-		require.NoError(t, err)
-		err = index2.load(dir)
-		require.NoError(t, err)
-
-		require.Contains(t, index2.fields, "bool")
-		val, ok := index2.fields["bool"].GetValue(true)
-		require.True(t, ok)
-		require.True(t, val.Contains(1))
 	})
 
 	t.Run("can add document", func(t *testing.T) {
