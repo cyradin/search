@@ -12,16 +12,16 @@ import (
 )
 
 type Index struct {
-	src    string
+	name   string
 	schema schema.Schema
 
 	fields    map[string]Field
 	relevance map[string]*Relevance
 }
 
-func NewIndex(src string, s schema.Schema) (*Index, error) {
+func NewIndex(name string, s schema.Schema) (*Index, error) {
 	result := &Index{
-		src:    src,
+		name:   name,
 		schema: s,
 		fields: make(map[string]Field),
 	}
@@ -72,8 +72,8 @@ func (s *Index) Fields() map[string]Field {
 	return result
 }
 
-func (s *Index) load() error {
-	return filepath.Walk(s.src, func(p string, info fs.FileInfo, err error) error {
+func (s *Index) load(dir string) error {
+	return filepath.Walk(dir, func(p string, info fs.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
@@ -97,9 +97,9 @@ func (s *Index) load() error {
 	})
 }
 
-func (s *Index) dump() error {
+func (s *Index) dump(dir string) error {
 	for name, field := range s.fields {
-		src := path.Join(s.src, name+fieldFileExt)
+		src := path.Join(dir, name+fieldFileExt)
 		data, err := field.MarshalBinary()
 		if err != nil {
 			return fmt.Errorf("field %q marshal err: %w", name, err)
