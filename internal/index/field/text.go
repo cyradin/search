@@ -10,9 +10,8 @@ type (
 	Analyzer func([]string) []string
 
 	Text struct {
-		analyzer  Analyzer
-		inner     *field[string]
-		relevance *Relevance
+		analyzer Analyzer
+		inner    *field[string]
 	}
 )
 

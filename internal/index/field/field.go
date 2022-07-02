@@ -153,7 +153,7 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeKeyword:
 		field = NewKeyword()
 	case schema.TypeText:
-		field = NewText(f.Analyzer) // @todo pass analyzers from schema
+		field = NewText(f.Analyzer)
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()

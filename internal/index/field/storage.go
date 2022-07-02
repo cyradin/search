@@ -33,8 +33,8 @@ func NewStorage(src string) *Storage {
 	events.Subscribe(events.NewAppStop(), func(ctx context.Context, e events.Event) {
 		result.mtx.Lock()
 		defer result.mtx.Unlock()
-		for _, f := range result.indexes {
-			if err := f.dump(); err != nil {
+		for _, index := range result.indexes {
+			if err := index.dump(path.Join(result.src, index.name, fieldsDir)); err != nil {
 				logger.FromCtx(ctx).Error("field.index.dump.error", logger.ExtractFields(ctx, zap.Error(err))...)
 			}
 		}
@@ -56,12 +56,12 @@ func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 		return nil, fmt.Errorf("index dir %q create err: %w", src, err)
 	}
 
-	index, err := NewIndex(src, sc)
+	index, err := NewIndex(name, sc)
 	if err != nil {
 		return nil, fmt.Errorf("index %q init err: %w", name, err)
 	}
 
-	err = index.load()
+	err = index.load(src)
 	if err != nil {
 		return nil, fmt.Errorf("index %q data load err: %w", name, err)
 	}

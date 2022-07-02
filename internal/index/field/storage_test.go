@@ -82,10 +82,10 @@ func Test_Storage(t *testing.T) {
 
 			events.Dispatch(context.Background(), events.NewAppStop())
 
-			_, err = os.Stat(path.Join(index1.src, "bool.gob"))
+			_, err = os.Stat(path.Join(dir, index1.name, fieldsDir, "bool.gob"))
 			require.NoError(t, err)
 
-			_, err = os.Stat(path.Join(index2.src, "bool.gob"))
+			_, err = os.Stat(path.Join(dir, index2.name, fieldsDir, "bool.gob"))
 			require.NoError(t, err)
 		})
 	})

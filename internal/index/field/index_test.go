@@ -11,7 +11,6 @@ import (
 
 func Test_index(t *testing.T) {
 	t.Run("can create new index", func(t *testing.T) {
-		dir := t.TempDir()
 
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
@@ -19,7 +18,7 @@ func Test_index(t *testing.T) {
 		}, map[string]schema.FieldAnalyzer{
 			"analyzer": {Analyzers: []schema.Analyzer{{Type: schema.TokenizerWhitespace}}},
 		})
-		index, err := NewIndex(dir, s)
+		index, err := NewIndex("name", s)
 		require.NoError(t, err)
 		require.NotEqual(t, s.Fields, index.fields)
 		require.Contains(t, index.fields, "bool")
@@ -40,9 +39,9 @@ func Test_index(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
 		}, nil)
-		index, err := NewIndex(dir, s)
+		index, err := NewIndex("name", s)
 		require.NoError(t, err)
-		err = index.load()
+		err = index.load(dir)
 		require.NoError(t, err)
 
 		val, ok := index.fields["bool"].GetValue(true)
@@ -55,12 +54,12 @@ func Test_index(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
 			"bool": {Name: "bool", Type: schema.TypeBool},
 		}, nil)
-		index, err := NewIndex(dir, s)
+		index, err := NewIndex("name", s)
 		require.NoError(t, err)
 
 		index.fields["bool"].AddValue(1, true)
 
-		err = index.dump()
+		err = index.dump(dir)
 		require.NoError(t, err)
 
 		_, err = os.Stat(path.Join(dir, AllField+fieldFileExt))
@@ -68,9 +67,9 @@ func Test_index(t *testing.T) {
 		_, err = os.Stat(path.Join(dir, "bool"+fieldFileExt))
 		require.NoError(t, err)
 
-		index2, err := NewIndex(dir, s)
+		index2, err := NewIndex("name", s)
 		require.NoError(t, err)
-		err = index2.load()
+		err = index2.load(dir)
 		require.NoError(t, err)
 
 		require.Contains(t, index2.fields, "bool")
@@ -80,12 +79,11 @@ func Test_index(t *testing.T) {
 	})
 
 	t.Run("can add document", func(t *testing.T) {
-		dir := t.TempDir()
 		s := schema.New(map[string]schema.Field{
 			"f1": {Name: "f1", Type: schema.TypeBool},
 			"f2": {Name: "f2", Type: schema.TypeBool},
 		}, nil)
-		index, err := NewIndex(dir, s)
+		index, err := NewIndex("name", s)
 		require.NoError(t, err)
 
 		index.Add(1, map[string]interface{}{"f1": true})
@@ -108,12 +106,11 @@ func Test_index(t *testing.T) {
 	})
 
 	t.Run("can get all fields", func(t *testing.T) {
-		dir := t.TempDir()
 		s := schema.New(map[string]schema.Field{
 			"f1": {Name: "f1", Type: schema.TypeBool},
 			"f2": {Name: "f2", Type: schema.TypeBool},
 		}, nil)
-		index, err := NewIndex(dir, s)
+		index, err := NewIndex("name", s)
 		require.NoError(t, err)
 
 		fields := index.Fields()
