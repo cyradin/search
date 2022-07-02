@@ -2,26 +2,21 @@ package field
 
 import (
 	"fmt"
-	"io/fs"
-	"os"
-	"path"
-	"path/filepath"
-	"strings"
 
 	"github.com/cyradin/search/internal/index/schema"
 )
 
 type Index struct {
-	src    string
+	name   string
 	schema schema.Schema
 
 	fields    map[string]Field
-	relevance map[string]*Relevance
+	relevance map[string]*Scoring
 }
 
-func NewIndex(src string, s schema.Schema) (*Index, error) {
+func NewIndex(name string, s schema.Schema) (*Index, error) {
 	result := &Index{
-		src:    src,
+		name:   name,
 		schema: s,
 		fields: make(map[string]Field),
 	}
@@ -42,6 +37,10 @@ func NewIndex(src string, s schema.Schema) (*Index, error) {
 				return nil, fmt.Errorf("analyzer build err: %w", err)
 			}
 			fdata.Analyzer = a
+		}
+
+		if f.Type == schema.TypeText {
+			fdata.Scoring = NewScoring()
 		}
 
 		field, err := New(fdata)
@@ -70,45 +69,4 @@ func (s *Index) Fields() map[string]Field {
 	}
 
 	return result
-}
-
-func (s *Index) load() error {
-	return filepath.Walk(s.src, func(p string, info fs.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-
-		name := strings.TrimRight(info.Name(), fieldFileExt)
-		f, ok := s.fields[name]
-		if !ok {
-			return nil
-		}
-
-		data, err := os.ReadFile(p)
-		if err != nil {
-			return fmt.Errorf("file %q read err: %w", p, err)
-		}
-		err = f.UnmarshalBinary(data)
-		if err != nil {
-			return fmt.Errorf("field %q unmarshal err: %w", name, err)
-		}
-
-		return nil
-	})
-}
-
-func (s *Index) dump() error {
-	for name, field := range s.fields {
-		src := path.Join(s.src, name+fieldFileExt)
-		data, err := field.MarshalBinary()
-		if err != nil {
-			return fmt.Errorf("field %q marshal err: %w", name, err)
-		}
-		err = os.WriteFile(src, data, filePermissions)
-		if err != nil {
-			return fmt.Errorf("file %q write err: %w", src, err)
-		}
-	}
-
-	return nil
 }

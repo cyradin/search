@@ -14,6 +14,7 @@ import (
 type FieldData struct {
 	Type     schema.Type
 	Analyzer func([]string) []string
+	Scoring  *Scoring
 }
 
 type Field interface {
@@ -30,6 +31,9 @@ type Field interface {
 	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
 	// GetValuesAnd compute the intersection between bitmaps of the passed values
 	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
+}
+
+type FTS interface {
 	// Scores calculate doc scores
 	Scores(value interface{}, bm *roaring.Bitmap) Scores
 }
@@ -138,10 +142,6 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 	return result, result != nil
 }
 
-func (f *field[T]) Scores(value interface{}, bm *roaring.Bitmap) Scores {
-	return nil
-}
-
 func New(f FieldData) (Field, error) {
 	var field Field
 
@@ -153,7 +153,10 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeKeyword:
 		field = NewKeyword()
 	case schema.TypeText:
-		field = NewText(f.Analyzer) // @todo pass analyzers from schema
+		if f.Scoring == nil {
+			return nil, fmt.Errorf("field scoring data required, but not provided")
+		}
+		field = NewText(f.Analyzer, f.Scoring)
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()

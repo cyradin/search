@@ -15,6 +15,11 @@ func Test_Storage(t *testing.T) {
 	schemaBoolField := schema.New(map[string]schema.Field{
 		"bool": schema.NewField("bool", schema.TypeBool, false, ""),
 	}, nil)
+	schemaTextField := schema.New(map[string]schema.Field{
+		"text": schema.NewField("text", schema.TypeText, false, "analyzer"),
+	}, map[string]schema.FieldAnalyzer{
+		"analyzer": {Analyzers: []schema.Analyzer{{Type: schema.TokenizerWhitespace}}},
+	})
 
 	t.Run("can add new index", func(t *testing.T) {
 		s := NewStorage(t.TempDir())
@@ -69,6 +74,93 @@ func Test_Storage(t *testing.T) {
 		require.Nil(t, index)
 	})
 
+	t.Run("can load index from file", func(t *testing.T) {
+		t.Run("bool field", func(t *testing.T) {
+			dir := t.TempDir()
+			s := NewStorage(dir)
+
+			err := os.MkdirAll(s.indexFieldsDir("name"), dirPermissions)
+			require.NoError(t, err)
+
+			field := NewBool()
+			field.AddValue(1, true)
+			data, err := field.MarshalBinary()
+			require.NoError(t, err)
+			err = os.WriteFile(path.Join(s.indexFieldsDir("name"), "bool"+fieldFileExt), data, filePermissions)
+			require.NoError(t, err)
+
+			index, err := NewIndex("name", schemaBoolField)
+			require.NoError(t, err)
+			err = s.loadIndex(index)
+			require.NoError(t, err)
+
+			val, ok := index.fields["bool"].GetValue(true)
+			require.True(t, ok)
+			require.True(t, val.Contains(1))
+		})
+		t.Run("text field", func(t *testing.T) {
+			dir := t.TempDir()
+			s := NewStorage(dir)
+
+			err := os.MkdirAll(s.indexFieldsDir("name"), dirPermissions)
+			require.NoError(t, err)
+
+			scoring := NewScoring()
+			scoring.data.AvgDocLen = 5
+
+			field := NewText(func(s []string) []string { return s }, scoring)
+			field.AddValue(1, "word")
+			data, err := field.MarshalBinary()
+			require.NoError(t, err)
+			err = os.WriteFile(path.Join(s.indexFieldsDir("name"), "text"+fieldFileExt), data, filePermissions)
+			require.NoError(t, err)
+
+			index, err := NewIndex("name", schemaTextField)
+			require.NoError(t, err)
+			err = s.loadIndex(index)
+			require.NoError(t, err)
+
+			val, ok := index.fields["text"].GetValue("word")
+			require.True(t, ok)
+			require.True(t, val.Contains(1))
+		})
+	})
+
+	t.Run("can dump index to file", func(t *testing.T) {
+		t.Run("bool field", func(t *testing.T) {
+			dir := t.TempDir()
+			s := NewStorage(dir)
+
+			index, err := s.AddIndex("name1", schemaBoolField)
+			require.NoError(t, err)
+			require.NotNil(t, index)
+
+			err = s.dumpIndex(index)
+			require.NoError(t, err)
+
+			_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), AllField+fieldFileExt))
+			require.NoError(t, err)
+			_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), "bool"+fieldFileExt))
+			require.NoError(t, err)
+		})
+		t.Run("text field", func(t *testing.T) {
+			dir := t.TempDir()
+			s := NewStorage(dir)
+
+			index, err := s.AddIndex("name", schemaTextField)
+			require.NoError(t, err)
+			require.NotNil(t, index)
+
+			err = s.dumpIndex(index)
+			require.NoError(t, err)
+
+			_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), AllField+fieldFileExt))
+			require.NoError(t, err)
+			_, err = os.Stat(path.Join(s.indexFieldsDir(index.name), "text"+fieldFileExt))
+			require.NoError(t, err)
+		})
+	})
+
 	t.Run("can dump all indexes on app stop", func(t *testing.T) {
 		t.Run("bool field", func(t *testing.T) {
 			dir := t.TempDir()
@@ -82,10 +174,10 @@ func Test_Storage(t *testing.T) {
 
 			events.Dispatch(context.Background(), events.NewAppStop())
 
-			_, err = os.Stat(path.Join(index1.src, "bool.gob"))
+			_, err = os.Stat(path.Join(dir, index1.name, fieldsDir, "bool"+fieldFileExt))
 			require.NoError(t, err)
 
-			_, err = os.Stat(path.Join(index2.src, "bool.gob"))
+			_, err = os.Stat(path.Join(dir, index2.name, fieldsDir, "bool"+fieldFileExt))
 			require.NoError(t, err)
 		})
 	})
