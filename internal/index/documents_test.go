@@ -64,7 +64,7 @@ func Test_Documents_Add(t *testing.T) {
 			i := New(
 				"name",
 				schema.New(
-					map[string]schema.Field{"v": schema.NewField("v", schema.TypeBool, true, "")},
+					map[string]schema.Field{"v": schema.NewField(schema.TypeBool, true, "")},
 					nil,
 				),
 			)

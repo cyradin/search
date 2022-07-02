@@ -48,25 +48,22 @@ func (t Type) Valid() bool {
 }
 
 type Field struct {
-	Name     string           `json:"name"`
 	Type     Type             `json:"type"`
 	Required bool             `json:"required"`
 	Children map[string]Field `json:"children"`
 	Analyzer string           `json:"analyzer"`
 }
 
-func NewField(name string, fieldType Type, required bool, analyzer string) Field {
+func NewField(fieldType Type, required bool, analyzer string) Field {
 	return Field{
-		Name:     name,
 		Type:     fieldType,
 		Required: required,
 		Analyzer: analyzer,
 	}
 }
 
-func NewFieldWithChildren(name string, fieldType Type, required bool, analyzer string, children map[string]Field) Field {
+func NewFieldWithChildren(fieldType Type, required bool, analyzer string, children map[string]Field) Field {
 	return Field{
-		Name:     name,
 		Type:     fieldType,
 		Required: required,
 		Analyzer: analyzer,
@@ -75,8 +72,13 @@ func NewFieldWithChildren(name string, fieldType Type, required bool, analyzer s
 }
 
 func (f Field) ValidateWithContext(ctx context.Context) error {
+	if f.Children != nil {
+		if err := validateKeys("fields", f.Children); err != nil {
+			return err
+		}
+	}
+
 	return validation.ValidateStructWithContext(ctx, &f,
-		validation.Field(&f.Name, validation.Required),
 		validation.Field(&f.Type, validation.Required, validation.By(validateFieldType())),
 		validation.Field(
 			&f.Analyzer,

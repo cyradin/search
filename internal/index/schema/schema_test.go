@@ -18,7 +18,7 @@ func Test_Schema_Validate(t *testing.T) {
 
 	t.Run("must fail if field type is empty", func(t *testing.T) {
 		s := New(map[string]Field{
-			"name": {Name: "name"},
+			"name": {Type: ""},
 		}, nil)
 		err := validation.Validate(s)
 		require.Error(t, err)
@@ -26,7 +26,7 @@ func Test_Schema_Validate(t *testing.T) {
 
 	t.Run("must fail if field type is invalid", func(t *testing.T) {
 		s := New(map[string]Field{
-			"name": {Name: "name", Type: "invalid"},
+			"name": {Type: "invalid"},
 		}, nil)
 		err := validation.Validate(s)
 		require.Error(t, err)
@@ -35,8 +35,8 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field type cannot have child types", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeBool, Children: map[string]Field{
-					"name": {Name: "name"},
+				"name": {Type: TypeBool, Children: map[string]Field{
+					"name": {},
 				}},
 			},
 			nil,
@@ -48,7 +48,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field type must have children but there aren't any", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeSlice},
+				"name": {Type: TypeSlice},
 			},
 			nil,
 		)
@@ -59,8 +59,8 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if field child validation fails", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeSlice, Children: map[string]Field{
-					"": {Name: "", Type: TypeBool},
+				"name": {Type: TypeSlice, Children: map[string]Field{
+					"": {Type: TypeBool},
 				}},
 			}, nil,
 		)
@@ -71,7 +71,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if text field has no analyzers", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeText},
+				"name": {Type: TypeText},
 			},
 			nil,
 		)
@@ -82,7 +82,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if text field has unknown analyzer", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeText, Analyzer: "invalid"},
+				"name": {Type: TypeText, Analyzer: "invalid"},
 			},
 			nil,
 		)
@@ -93,7 +93,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if analyzer has invalid type", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeText, Analyzer: "analyzer"},
+				"name": {Type: TypeText, Analyzer: "analyzer"},
 			},
 			map[string]FieldAnalyzer{
 				"analyzer": {
@@ -110,7 +110,7 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must fail if analyzer has invalid settings", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name": {Name: "name", Type: TypeText, Analyzer: "analyzer"},
+				"name": {Type: TypeText, Analyzer: "analyzer"},
 			},
 			map[string]FieldAnalyzer{
 				"analyzer": {
@@ -127,10 +127,10 @@ func Test_Schema_Validate(t *testing.T) {
 	t.Run("must not fail for vaild fields", func(t *testing.T) {
 		s := New(
 			map[string]Field{
-				"name":  {Name: "name", Type: TypeBool},
-				"name2": {Name: "name2", Type: TypeText, Analyzer: "analyzer"},
-				"name3": {Name: "name3", Type: TypeSlice, Children: map[string]Field{
-					"name": {Name: "name", Type: TypeKeyword},
+				"name":  {Type: TypeBool},
+				"name2": {Type: TypeText, Analyzer: "analyzer"},
+				"name3": {Type: TypeSlice, Children: map[string]Field{
+					"name": {Type: TypeKeyword},
 				}},
 			},
 			map[string]FieldAnalyzer{

@@ -2,6 +2,8 @@ package schema
 
 import (
 	"context"
+	"fmt"
+	"regexp"
 
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -40,8 +42,33 @@ func (s Schema) Validate() error {
 	ctx := context.Background()
 	ctx = context.WithValue(ctx, "schema", s)
 
+	if err := validateKeys("fields", s.Fields); err != nil {
+		return err
+	}
+
+	if err := validateKeys("fields", s.Analyzers); err != nil {
+		return err
+	}
+
 	return validation.ValidateStructWithContext(ctx, &s,
 		validation.Field(&s.Fields, validation.Required),
 		validation.Field(&s.Analyzers),
 	)
+}
+
+var keyPattern = "[A-z0-9]+"
+var keyRegex = regexp.MustCompile(keyPattern)
+
+func validateKeys[T any](name string, m map[string]T) error {
+	if _, ok := m[""]; ok {
+		return validation.Errors{name: validation.NewError("", "empty keys not allowed")}
+	}
+
+	for k := range m {
+		if !keyRegex.MatchString(k) {
+			return validation.Errors{name: validation.NewError(k, fmt.Sprintf("key %q does not match %q", k, keyPattern))}
+		}
+	}
+
+	return nil
 }

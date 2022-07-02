@@ -13,10 +13,10 @@ import (
 
 func Test_Storage(t *testing.T) {
 	schemaBoolField := schema.New(map[string]schema.Field{
-		"bool": schema.NewField("bool", schema.TypeBool, false, ""),
+		"bool": schema.NewField(schema.TypeBool, false, ""),
 	}, nil)
 	schemaTextField := schema.New(map[string]schema.Field{
-		"text": schema.NewField("text", schema.TypeText, false, "analyzer"),
+		"text": schema.NewField(schema.TypeText, false, "analyzer"),
 	}, map[string]schema.FieldAnalyzer{
 		"analyzer": {Analyzers: []schema.Analyzer{{Type: schema.TokenizerWhitespace}}},
 	})

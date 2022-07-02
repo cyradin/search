@@ -11,8 +11,8 @@ func Test_index(t *testing.T) {
 	t.Run("can create new index", func(t *testing.T) {
 
 		s := schema.New(map[string]schema.Field{
-			"bool": {Name: "bool", Type: schema.TypeBool},
-			"text": {Name: "text", Type: schema.TypeText, Analyzer: "analyzer"},
+			"bool": {Type: schema.TypeBool},
+			"text": {Type: schema.TypeText, Analyzer: "analyzer"},
 		}, map[string]schema.FieldAnalyzer{
 			"analyzer": {Analyzers: []schema.Analyzer{{Type: schema.TokenizerWhitespace}}},
 		})
@@ -26,8 +26,8 @@ func Test_index(t *testing.T) {
 
 	t.Run("can add document", func(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
-			"f1": {Name: "f1", Type: schema.TypeBool},
-			"f2": {Name: "f2", Type: schema.TypeBool},
+			"f1": {Type: schema.TypeBool},
+			"f2": {Type: schema.TypeBool},
 		}, nil)
 		index, err := NewIndex("name", s)
 		require.NoError(t, err)
@@ -53,8 +53,8 @@ func Test_index(t *testing.T) {
 
 	t.Run("can get all fields", func(t *testing.T) {
 		s := schema.New(map[string]schema.Field{
-			"f1": {Name: "f1", Type: schema.TypeBool},
-			"f2": {Name: "f2", Type: schema.TypeBool},
+			"f1": {Type: schema.TypeBool},
+			"f2": {Type: schema.TypeBool},
 		}, nil)
 		index, err := NewIndex("name", s)
 		require.NoError(t, err)
