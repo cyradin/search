@@ -67,9 +67,7 @@ func newBoolQuery(params queryParams) (*boolQuery, error) {
 func (q *boolQuery) exec() (*roaring.Bitmap, error) {
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
 		if ff, ok := q.params.fields[field.AllField]; ok {
-			if all, ok := ff.GetValue(true); ok {
-				return all, nil
-			}
+			return ff.GetValue(true), nil
 		}
 
 		return roaring.New(), nil

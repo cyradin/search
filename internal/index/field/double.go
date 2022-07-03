@@ -27,11 +27,11 @@ func (f *Double) AddValue(id uint32, value interface{}) {
 	f.inner.AddValue(id, value)
 }
 
-func (f *Double) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+func (f *Double) GetValue(value interface{}) *roaring.Bitmap {
 	return f.inner.getValue(value)
 }
 
-func (f *Double) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+func (f *Double) GetValuesOr(values []interface{}) *roaring.Bitmap {
 	return f.inner.getValuesOr(values)
 }
 
