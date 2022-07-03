@@ -56,8 +56,8 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 func (s *Index) Add(id uint32, source map[string]interface{}) {
 	for key, value := range source {
 		if f, ok := s.fields[key]; ok {
-			f.AddValue(id, value)
-			s.fields[AllField].AddValue(id, value)
+			f.Add(id, value)
+			s.fields[AllField].Add(id, value)
 		}
 	}
 }

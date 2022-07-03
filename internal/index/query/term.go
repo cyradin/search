@@ -32,7 +32,7 @@ func (q *termQuery) exec() (*roaring.Bitmap, error) {
 		return roaring.New(), nil
 	}
 
-	return field.GetValue(val), nil
+	return field.Get(val), nil
 }
 
 type termsQuery struct {
@@ -65,5 +65,5 @@ func (q *termsQuery) exec() (*roaring.Bitmap, error) {
 		return roaring.New(), nil
 	}
 
-	return field.GetValuesOr(values), nil
+	return field.GetOr(values), nil
 }

@@ -23,16 +23,16 @@ func (f *Long) Type() schema.Type {
 	return schema.TypeLong
 }
 
-func (f *Long) AddValue(id uint32, value interface{}) {
-	f.inner.AddValue(id, value)
+func (f *Long) Add(id uint32, value interface{}) {
+	f.inner.Add(id, value)
 }
 
-func (f *Long) GetValue(value interface{}) *roaring.Bitmap {
-	return f.inner.getValue(value)
+func (f *Long) Get(value interface{}) *roaring.Bitmap {
+	return f.inner.Get(value)
 }
 
-func (f *Long) GetValuesOr(values []interface{}) *roaring.Bitmap {
-	return f.inner.getValuesOr(values)
+func (f *Long) GetOr(values []interface{}) *roaring.Bitmap {
+	return f.inner.GetOr(values)
 }
 
 func (f *Long) MarshalBinary() ([]byte, error) {

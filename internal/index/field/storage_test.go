@@ -85,7 +85,7 @@ func Test_Storage(t *testing.T) {
 			require.NoError(t, err)
 
 			field := NewBool()
-			field.AddValue(1, true)
+			field.Add(1, true)
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)
 			err = os.WriteFile(path.Join(fieldsDir, "bool"+fieldFileExt), data, filePermissions)
@@ -96,7 +96,7 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			val := index.fields["bool"].GetValue(true)
+			val := index.fields["bool"].Get(true)
 			require.True(t, val.Contains(1))
 		})
 		t.Run("text field", func(t *testing.T) {
@@ -112,7 +112,7 @@ func Test_Storage(t *testing.T) {
 			scoring.data.AvgDocLen = 5
 
 			field := NewText(func(s []string) []string { return s }, scoring)
-			field.AddValue(1, "word")
+			field.Add(1, "word")
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)
 			err = os.WriteFile(path.Join(fieldsDir, "text"+fieldFileExt), data, filePermissions)
@@ -123,7 +123,7 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			val := index.fields["text"].GetValue("word")
+			val := index.fields["text"].Get("word")
 			require.True(t, val.Contains(1))
 		})
 	})
