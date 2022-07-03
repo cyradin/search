@@ -26,11 +26,11 @@ type Field interface {
 	// AddValue add document field value
 	AddValue(id uint32, value interface{})
 	// GetValue get bitmap clone by value
-	GetValue(value interface{}) (*roaring.Bitmap, bool)
+	GetValue(value interface{}) *roaring.Bitmap
 	// GetValuesOr compute the union between bitmaps of the passed values
-	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
+	GetValuesOr(values []interface{}) *roaring.Bitmap
 	// GetValuesAnd compute the intersection between bitmaps of the passed values
-	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
+	// GetValuesAnd(values []interface{}) *roaring.Bitmap
 }
 
 type FTS interface {
@@ -98,24 +98,24 @@ func (f *field[T]) UnmarshalBinary(data []byte) error {
 	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
-func (f *field[T]) getValue(v interface{}) (*roaring.Bitmap, bool) {
+func (f *field[T]) getValue(v interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	val, err := f.transform(v)
 	if err != nil {
-		return nil, false
+		return roaring.New()
 	}
 
 	vv, ok := f.data[val]
 	if !ok {
-		return nil, false
+		return roaring.New()
 	}
 
-	return vv.Clone(), true
+	return vv.Clone()
 }
 
-func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+func (f *field[T]) getValuesOr(values []interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -139,7 +139,11 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 		result.Or(bm)
 	}
 
-	return result, result != nil
+	if result == nil {
+		return roaring.New()
+	}
+
+	return result
 }
 
 func New(f FieldData) (Field, error) {

@@ -42,11 +42,11 @@ func (f *Text) AddValue(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+func (f *Text) GetValue(value interface{}) *roaring.Bitmap {
 	return f.inner.getValue(value)
 }
 
-func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+func (f *Text) GetValuesOr(values []interface{}) *roaring.Bitmap {
 	return f.inner.getValuesOr(values)
 }
 

@@ -33,11 +33,11 @@ func (f *All) AddValue(id uint32, value interface{}) {
 	f.inner.AddValue(id, true)
 }
 
-func (f *All) GetValue(value interface{}) (*roaring.Bitmap, bool) {
+func (f *All) GetValue(value interface{}) *roaring.Bitmap {
 	return f.inner.getValue(true)
 }
 
-func (f *All) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+func (f *All) GetValuesOr(values []interface{}) *roaring.Bitmap {
 	return f.GetValue(true)
 }
 
