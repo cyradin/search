@@ -94,7 +94,7 @@ func Test_termQuery_exec(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			f := field.NewKeyword()
-			f.AddValue(1, "1")
+			f.Add(1, "1")
 
 			fields := map[string]field.Field{
 				d.fieldName: f,
@@ -235,7 +235,7 @@ func Test_execTerms(t *testing.T) {
 
 			for v, ids := range d.fieldValues {
 				for _, id := range ids {
-					f.AddValue(id, v)
+					f.Add(id, v)
 				}
 			}
 			fields := map[string]field.Field{d.fieldName: f}

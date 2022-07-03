@@ -191,12 +191,12 @@ func Test_boolQuery_exec(t *testing.T) {
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
 			f1 := field.NewBool()
-			f1.AddValue(1, true)
-			f1.AddValue(2, false)
+			f1.Add(1, true)
+			f1.Add(2, false)
 
 			f2 := field.NewAll()
-			f2.AddValue(1, true)
-			f2.AddValue(2, false)
+			f2.Add(1, true)
+			f2.Add(2, false)
 
 			data, err := decodeQuery(d.query)
 			require.NoError(t, err)
