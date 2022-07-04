@@ -1,8 +1,11 @@
 package query
 
 import (
+	"fmt"
+
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/field"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 var _ Query = (*boolQuery)(nil)
@@ -18,6 +21,33 @@ type boolQuery struct {
 }
 
 func newBoolQuery(req Req, fields Fields, path string) (*boolQuery, error) {
+	err := validation.Validate(req, validation.Map(
+		validation.Key(string(queryBoolMust), validation.By(func(value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return validation.NewError("query_array_required", fmt.Sprintf("%q must be an array", queryBoolMust))
+			}
+			return nil
+		})).Optional(),
+		validation.Key(string(queryBoolShould), validation.By(func(value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return validation.NewError("query_array_required", fmt.Sprintf("%q must be an array", queryBoolShould))
+			}
+			return nil
+		})).Optional(),
+		validation.Key(string(queryBoolFilter), validation.By(func(value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return validation.NewError("query_array_required", fmt.Sprintf("%q must be an array", queryBoolFilter))
+			}
+			return nil
+		})).Optional(),
+	))
+	if err != nil {
+		return nil, err
+	}
+
 	result := &boolQuery{
 		query:  req,
 		fields: fields,
@@ -27,18 +57,7 @@ func newBoolQuery(req Req, fields Fields, path string) (*boolQuery, error) {
 	for key, value := range req {
 		path := pathJoin(path, key)
 
-		values, err := interfaceToSlice[map[string]interface{}](value)
-		if err != nil {
-			return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
-		}
-
-		qType := queryType(key)
-		if qType != queryBoolShould && qType != queryBoolMust && qType != queryBoolFilter {
-			return nil, NewErrSyntax(
-				errMsgOneOf([]string{string(queryBoolShould), string(queryBoolMust), string(queryBoolFilter)}, key),
-				path,
-			)
-		}
+		values, _ := interfaceToSlice[map[string]interface{}](value)
 
 		children := make([]Query, len(values))
 		for i, v := range values {
@@ -49,7 +68,7 @@ func newBoolQuery(req Req, fields Fields, path string) (*boolQuery, error) {
 			children[i] = child
 		}
 
-		switch qType {
+		switch queryType(key) {
 		case queryBoolShould:
 			result.should = children
 		case queryBoolMust:
