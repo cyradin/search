@@ -4,30 +4,34 @@ import (
 	"github.com/RoaringBitmap/roaring"
 )
 
-var _ query = (*termQuery)(nil)
-var _ query = (*termsQuery)(nil)
+var _ Query = (*termQuery)(nil)
+var _ Query = (*termsQuery)(nil)
 
 type termQuery struct {
-	params queryParams
+	query  Req
+	fields Fields
+	path   string
 }
 
-func newTermQuery(params queryParams) (*termQuery, error) {
-	if len(params.data) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
+func newTermQuery(req Req, fields Fields, path string) (*termQuery, error) {
+	if len(req) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
-	if len(params.data) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
+	if len(req) > 1 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
 	}
 
 	return &termQuery{
-		params: params,
+		query:  req,
+		fields: fields,
+		path:   path,
 	}, nil
 }
 
 func (q *termQuery) exec() (*roaring.Bitmap, error) {
-	key, val := firstVal(q.params.data)
+	key, val := firstVal(q.query)
 
-	field, ok := q.params.fields[key]
+	field, ok := q.fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}
@@ -36,31 +40,35 @@ func (q *termQuery) exec() (*roaring.Bitmap, error) {
 }
 
 type termsQuery struct {
-	params queryParams
+	query  Req
+	fields Fields
+	path   string
 }
 
-func newTermsQuery(params queryParams) (*termsQuery, error) {
-	if len(params.data) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
+func newTermsQuery(req Req, fields Fields, path string) (*termsQuery, error) {
+	if len(req) == 0 {
+		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
 	}
-	if len(params.data) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
+	if len(req) > 1 {
+		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
 	}
 
 	return &termsQuery{
-		params: params,
+		query:  req,
+		fields: fields,
+		path:   path,
 	}, nil
 }
 
 func (q *termsQuery) exec() (*roaring.Bitmap, error) {
-	key, val := firstVal(q.params.data)
+	key, val := firstVal(q.query)
 
 	values, err := interfaceToSlice[interface{}](val)
 	if err != nil {
-		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(q.params.path, key))
+		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(q.path, key))
 	}
 
-	field, ok := q.params.fields[key]
+	field, ok := q.fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}

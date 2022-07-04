@@ -11,17 +11,17 @@ import (
 func Test_newTermQuery(t *testing.T) {
 	data := []struct {
 		name      string
-		data      map[string]interface{}
+		req       map[string]interface{}
 		erroneous bool
 	}{
 		{
 			name:      "empty",
-			data:      map[string]interface{}{},
+			req:       map[string]interface{}{},
 			erroneous: true,
 		},
 		{
 			name: "multiple_fields",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": "1", "f2": "2",
 			},
 			erroneous: true,
@@ -29,7 +29,7 @@ func Test_newTermQuery(t *testing.T) {
 
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": "1",
 			},
 			erroneous: false,
@@ -38,7 +38,7 @@ func Test_newTermQuery(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			tq, err := newTermQuery(queryParams{data: d.data})
+			tq, err := newTermQuery(d.req, nil, "")
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, tq)
@@ -57,14 +57,14 @@ func Test_termQuery_exec(t *testing.T) {
 
 	data := []struct {
 		name      string
-		data      map[string]interface{}
+		req       map[string]interface{}
 		fieldName string
 		erroneous bool
 		expected  *roaring.Bitmap
 	}{
 		{
 			name: "field_not_found",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f2": "1",
 			},
 			fieldName: "f1",
@@ -73,7 +73,7 @@ func Test_termQuery_exec(t *testing.T) {
 		},
 		{
 			name: "value_not_found",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": "2",
 			},
 			fieldName: "f1",
@@ -82,7 +82,7 @@ func Test_termQuery_exec(t *testing.T) {
 		},
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": "1",
 			},
 			fieldName: "f1",
@@ -100,10 +100,7 @@ func Test_termQuery_exec(t *testing.T) {
 				d.fieldName: f,
 			}
 
-			tq, err := newTermQuery(queryParams{
-				data:   d.data,
-				fields: fields,
-			})
+			tq, err := newTermQuery(d.req, fields, "")
 			require.NoError(t, err)
 
 			bm, err := tq.exec()
@@ -122,24 +119,24 @@ func Test_termQuery_exec(t *testing.T) {
 func Test_newTermsQuery(t *testing.T) {
 	data := []struct {
 		name      string
-		data      map[string]interface{}
+		req       map[string]interface{}
 		erroneous bool
 	}{
 		{
 			name:      "empty",
-			data:      map[string]interface{}{},
+			req:       map[string]interface{}{},
 			erroneous: true,
 		},
 		{
 			name: "multiple_fields",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": []string{"1"}, "f2": []string{"2"},
 			},
 			erroneous: true,
 		},
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": []string{"1"},
 			},
 			erroneous: false,
@@ -148,7 +145,7 @@ func Test_newTermsQuery(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			tq, err := newTermsQuery(queryParams{data: d.data})
+			tq, err := newTermsQuery(d.req, nil, "")
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, tq)
@@ -169,7 +166,7 @@ func Test_execTerms(t *testing.T) {
 
 	data := []struct {
 		name        string
-		data        map[string]interface{}
+		req         map[string]interface{}
 		fieldName   string
 		fieldValues map[string][]uint32
 		erroneous   bool
@@ -177,7 +174,7 @@ func Test_execTerms(t *testing.T) {
 	}{
 		{
 			name: "values_not_an_array",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"val1": "1",
 			},
 			fieldName: "f1",
@@ -190,7 +187,7 @@ func Test_execTerms(t *testing.T) {
 
 		{
 			name: "field_not_found",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f2": []string{"1"},
 			},
 			fieldName: "f1",
@@ -203,7 +200,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "values_not_found",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": []string{"3", "4"},
 			},
 			fieldName: "f1",
@@ -216,7 +213,7 @@ func Test_execTerms(t *testing.T) {
 		},
 		{
 			name: "ok",
-			data: map[string]interface{}{
+			req: map[string]interface{}{
 				"f1": []string{"1", "2"},
 			},
 			fieldName: "f1",
@@ -240,7 +237,7 @@ func Test_execTerms(t *testing.T) {
 			}
 			fields := map[string]field.Field{d.fieldName: f}
 
-			tq, err := newTermsQuery(queryParams{data: d.data, fields: fields})
+			tq, err := newTermsQuery(d.req, fields, "")
 			require.NoError(t, err)
 
 			bm, err := tq.exec()

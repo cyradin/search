@@ -5,23 +5,27 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 )
 
-var _ query = (*boolQuery)(nil)
+var _ Query = (*boolQuery)(nil)
 
 type boolQuery struct {
-	params queryParams
+	query  Req
+	fields Fields
+	path   string
 
-	must   []query
-	should []query
-	filter []query
+	must   []Query
+	should []Query
+	filter []Query
 }
 
-func newBoolQuery(params queryParams) (*boolQuery, error) {
+func newBoolQuery(req Req, fields Fields, path string) (*boolQuery, error) {
 	result := &boolQuery{
-		params: params,
+		query:  req,
+		fields: fields,
+		path:   path,
 	}
 
-	for key, value := range params.data {
-		path := pathJoin(params.path, key)
+	for key, value := range req {
+		path := pathJoin(path, key)
 
 		values, err := interfaceToSlice[map[string]interface{}](value)
 		if err != nil {
@@ -32,19 +36,13 @@ func newBoolQuery(params queryParams) (*boolQuery, error) {
 		if qType != queryBoolShould && qType != queryBoolMust && qType != queryBoolFilter {
 			return nil, NewErrSyntax(
 				errMsgOneOf([]string{string(queryBoolShould), string(queryBoolMust), string(queryBoolFilter)}, key),
-				params.path,
+				path,
 			)
 		}
 
-		children := make([]query, len(values))
+		children := make([]Query, len(values))
 		for i, v := range values {
-			params := queryParams{
-				fields: params.fields,
-				data:   v,
-				path:   path,
-			}
-
-			child, err := build(params)
+			child, err := build(v, fields, path)
 			if err != nil {
 				return nil, err
 			}
@@ -66,7 +64,7 @@ func newBoolQuery(params queryParams) (*boolQuery, error) {
 
 func (q *boolQuery) exec() (*roaring.Bitmap, error) {
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
-		if ff, ok := q.params.fields[field.AllField]; ok {
+		if ff, ok := q.fields[field.AllField]; ok {
 			return ff.Get(true), nil
 		}
 
