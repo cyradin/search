@@ -60,11 +60,11 @@ func Test_Exec(t *testing.T) {
 			f := field.NewBool()
 			f.Add(1, true)
 
-			query, err := decodeQuery(d.query)
+			req, err := decodeQuery(d.query)
 			require.NoError(t, err)
 			require.NoError(t, err)
 
-			result, err := Exec(query, map[string]field.Field{"field": f})
+			result, err := Exec(req, map[string]field.Field{"field": f})
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, result)
@@ -162,11 +162,7 @@ func Test_build(t *testing.T) {
 			query, err := decodeQuery(d.query)
 			require.NoError(t, err)
 
-			result, err := build(queryParams{
-				data:   query,
-				fields: map[string]field.Field{"field": f1},
-				path:   "query",
-			})
+			result, err := build(query, map[string]field.Field{"field": f1}, "query")
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, result)

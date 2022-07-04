@@ -10,7 +10,7 @@ import (
 func Test_newBoolQuery(t *testing.T) {
 	data := []struct {
 		name      string
-		query     string
+		req       string
 		erroneous bool
 		shouldCnt int
 		mustCnt   int
@@ -18,12 +18,12 @@ func Test_newBoolQuery(t *testing.T) {
 	}{
 		{
 			name:      "empty_query_return_all",
-			query:     `{}`,
+			req:       `{}`,
 			erroneous: false,
 		},
 		{
 			name: "error_array_required",
-			query: `
+			req: `
 			{
 				"should": {
 					"term": {
@@ -36,7 +36,7 @@ func Test_newBoolQuery(t *testing.T) {
 		},
 		{
 			name: "error_unknown_bool_query_type",
-			query: `
+			req: `
 			{
 				"invalid": [
 					{
@@ -51,7 +51,7 @@ func Test_newBoolQuery(t *testing.T) {
 		},
 		{
 			name: "ok",
-			query: `
+			req: `
 			{
 				"should": [
 					{
@@ -90,12 +90,10 @@ func Test_newBoolQuery(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			query, err := decodeQuery(d.query)
+			req, err := decodeQuery(d.req)
 			require.NoError(t, err)
 
-			bq, err := newBoolQuery(queryParams{
-				data: query,
-			})
+			bq, err := newBoolQuery(req, nil, "")
 			if d.erroneous {
 				require.Error(t, err)
 				return
@@ -198,14 +196,11 @@ func Test_boolQuery_exec(t *testing.T) {
 			f2.Add(1, true)
 			f2.Add(2, false)
 
-			data, err := decodeQuery(d.query)
+			req, err := decodeQuery(d.query)
 			require.NoError(t, err)
 			require.NoError(t, err)
 
-			bq, err := newBoolQuery(queryParams{
-				data:   data,
-				fields: map[string]field.Field{"field": f1, field.AllField: f2},
-			})
+			bq, err := newBoolQuery(req, map[string]field.Field{"field": f1, field.AllField: f2}, "")
 			require.NoError(t, err)
 
 			result, err := bq.exec()
