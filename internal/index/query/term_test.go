@@ -238,14 +238,14 @@ func Test_execTerms(t *testing.T) {
 			fields := map[string]field.Field{d.fieldName: f}
 
 			tq, err := newTermsQuery(d.req, fields, "")
-			require.NoError(t, err)
-
-			bm, err := tq.exec()
 			if d.erroneous {
 				require.Error(t, err)
-				require.Nil(t, bm)
+				require.Nil(t, tq)
 				return
 			}
+
+			bm, err := tq.exec()
+			require.NoError(t, err)
 
 			require.NoError(t, err)
 			require.Equal(t, d.expected.GetCardinality(), bm.GetCardinality())

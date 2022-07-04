@@ -1,7 +1,10 @@
 package query
 
 import (
+	"fmt"
+
 	"github.com/RoaringBitmap/roaring"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 var _ Query = (*termQuery)(nil)
@@ -14,11 +17,8 @@ type termQuery struct {
 }
 
 func newTermQuery(req Req, fields Fields, path string) (*termQuery, error) {
-	if len(req) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
-	}
-	if len(req) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	if err := validation.Validate(req, validation.Required, validation.Length(1, 1)); err != nil {
+		return nil, err
 	}
 
 	return &termQuery{
@@ -46,11 +46,20 @@ type termsQuery struct {
 }
 
 func newTermsQuery(req Req, fields Fields, path string) (*termsQuery, error) {
-	if len(req) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
-	}
-	if len(req) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+	err := validation.Validate(req,
+		validation.Required,
+		validation.Length(1, 1),
+		validation.By(func(value interface{}) error {
+			key, val := firstVal(req)
+			_, err := interfaceToSlice[interface{}](val)
+			if err != nil {
+				return validation.NewError("query_array_required", fmt.Sprintf("%q must be an array", key))
+			}
+			return nil
+		}),
+	)
+	if err != nil {
+		return nil, err
 	}
 
 	return &termsQuery{
@@ -62,11 +71,7 @@ func newTermsQuery(req Req, fields Fields, path string) (*termsQuery, error) {
 
 func (q *termsQuery) exec() (*roaring.Bitmap, error) {
 	key, val := firstVal(q.query)
-
-	values, err := interfaceToSlice[interface{}](val)
-	if err != nil {
-		return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(q.path, key))
-	}
+	values, _ := interfaceToSlice[interface{}](val)
 
 	field, ok := q.fields[key]
 	if !ok {

@@ -6,6 +6,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/field"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type SearchHit struct {
@@ -32,15 +33,6 @@ func queryTypes() []queryType {
 	}
 }
 
-func queryTypesString() []string {
-	types := queryTypes()
-	result := make([]string, len(types))
-	for i, qt := range types {
-		result[i] = string(qt)
-	}
-	return result
-}
-
 type Query interface {
 	exec() (*roaring.Bitmap, error)
 }
@@ -48,8 +40,8 @@ type Query interface {
 type Req map[string]interface{}
 type Fields map[string]field.Field
 
-func Exec(data Req, fields Fields) ([]SearchHit, error) {
-	q, err := build(data, fields, "query")
+func Exec(req Req, fields Fields) ([]SearchHit, error) {
+	q, err := build(req, fields, "query")
 	if err != nil {
 		return nil, err
 	}
@@ -70,35 +62,47 @@ func Exec(data Req, fields Fields) ([]SearchHit, error) {
 	return hits, nil
 }
 
-func build(query Req, fields Fields, path string) (Query, error) {
-	if len(query) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), path)
-	}
-	if len(query) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), path)
+func build(req Req, fields Fields, path string) (Query, error) {
+	err := validation.Validate(req, validation.Required, validation.Length(1, 1), validation.By(func(value interface{}) error {
+		key, val := firstVal(req)
+		var querytypeValid bool
+		for _, qt := range queryTypes() {
+			if key == string(qt) {
+				querytypeValid = true
+				break
+			}
+		}
+		if !querytypeValid {
+			return validation.NewError("query_unknown_type", fmt.Sprintf("unknown query type %q", key))
+		}
+
+		_, ok := val.(map[string]interface{})
+		if !ok {
+			return validation.NewError("query_object_required", fmt.Sprintf("%q value must be an object", key))
+		}
+
+		return nil
+	}))
+	if err != nil {
+		return nil, err
 	}
 
-	key, value := firstVal(query)
-
-	val, ok := value.(map[string]interface{})
-	if !ok {
-		return nil, NewErrSyntax(errMsgObjectValueRequired(), path)
-	}
-
-	query = val
+	key, value := firstVal(req)
+	req = value.(map[string]interface{})
 	path = pathJoin(path, key)
 
 	qType := queryType(key)
 	switch qType {
 	case queryTerm:
-		return newTermQuery(query, fields, path)
+		return newTermQuery(req, fields, path)
 	case queryTerms:
-		return newTermsQuery(query, fields, path)
+		return newTermsQuery(req, fields, path)
 	case queryBool:
-		return newBoolQuery(query, fields, path)
+		return newBoolQuery(req, fields, path)
 	}
 
-	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), path)
+	// must not be executed because of validation made earlier
+	panic(fmt.Errorf("unknown query type %q", key))
 }
 
 func firstVal(m map[string]interface{}) (string, interface{}) {
