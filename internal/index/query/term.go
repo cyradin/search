@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/errs"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -16,8 +17,8 @@ type termQuery struct {
 
 func newTermQuery(ctx context.Context, req Req) (*termQuery, error) {
 	err := validation.Validate(req,
-		validation.Required.ErrorObject(errorRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(errorSingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(errs.Required(ctx)),
+		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 	)
 	if err != nil {
 		return nil, err
@@ -45,13 +46,13 @@ type termsQuery struct {
 
 func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 	err := validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(errorRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(errorSingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(errs.Required(ctx)),
+		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(req)
 			_, err := interfaceToSlice[interface{}](val)
 			if err != nil {
-				return errorArrayRequired(ctx, key)
+				return errs.ArrayRequired(ctx, key)
 			}
 			return nil
 		}),

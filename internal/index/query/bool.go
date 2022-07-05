@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -23,21 +24,21 @@ func newBoolQuery(ctx context.Context, req Req) (*boolQuery, error) {
 		validation.Key(string(queryBoolMust), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errorArrayRequired(ctx, string(queryBoolMust))
+				return errs.ArrayRequired(ctx, string(queryBoolMust))
 			}
 			return nil
 		})).Optional(),
 		validation.Key(string(queryBoolShould), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errorArrayRequired(ctx, string(queryBoolShould))
+				return errs.ArrayRequired(ctx, string(queryBoolShould))
 			}
 			return nil
 		})).Optional(),
 		validation.Key(string(queryBoolFilter), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errorArrayRequired(ctx, string(queryBoolFilter))
+				return errs.ArrayRequired(ctx, string(queryBoolFilter))
 			}
 			return nil
 		})).Optional(),
@@ -55,7 +56,7 @@ func newBoolQuery(ctx context.Context, req Req) (*boolQuery, error) {
 
 		children := make([]Query, len(values))
 		for i, v := range values {
-			ctx := withPath(ctx, path(ctx), key)
+			ctx := errs.WithPath(ctx, errs.Path(ctx), key)
 			child, err := build(ctx, v)
 			if err != nil {
 				return nil, err

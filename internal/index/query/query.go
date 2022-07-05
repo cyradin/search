@@ -6,6 +6,7 @@ import (
 	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -43,7 +44,7 @@ type Fields map[string]field.Field
 
 func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
 	ctx = withFields(ctx, fields)
-	ctx = withPath(ctx, "query")
+	ctx = errs.WithPath(ctx, "query")
 	q, err := build(ctx, req)
 	if err != nil {
 		return nil, err
@@ -67,8 +68,8 @@ func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
 
 func build(ctx context.Context, req Req) (Query, error) {
 	err := validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(errorRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(errorSingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(errs.Required(ctx)),
+		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(req)
 			var querytypeValid bool
@@ -79,12 +80,12 @@ func build(ctx context.Context, req Req) (Query, error) {
 				}
 			}
 			if !querytypeValid {
-				return errorUnknownQueryType(ctx, key)
+				return errs.UnknownValue(ctx, key)
 			}
 
 			_, ok := val.(map[string]interface{})
 			if !ok {
-				return errorObjectRequired(ctx, key)
+				return errs.ObjectRequired(ctx, key)
 			}
 
 			return nil
@@ -95,7 +96,7 @@ func build(ctx context.Context, req Req) (Query, error) {
 
 	key, value := firstVal(req)
 	req = value.(map[string]interface{})
-	ctx = withPath(ctx, path(ctx), key)
+	ctx = errs.WithPath(ctx, errs.Path(ctx), key)
 
 	qType := queryType(key)
 	switch qType {
