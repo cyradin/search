@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"testing"
 
 	"github.com/RoaringBitmap/roaring"
@@ -38,7 +39,7 @@ func Test_newTermQuery(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			tq, err := newTermQuery(d.req, nil, "")
+			tq, err := newTermQuery(context.Background(), d.req)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, tq)
@@ -96,14 +97,16 @@ func Test_termQuery_exec(t *testing.T) {
 			f := field.NewKeyword()
 			f.Add(1, "1")
 
-			fields := map[string]field.Field{
-				d.fieldName: f,
-			}
+			ctx := withFields(context.Background(),
+				map[string]field.Field{
+					d.fieldName: f,
+				},
+			)
 
-			tq, err := newTermQuery(d.req, fields, "")
+			tq, err := newTermQuery(ctx, d.req)
 			require.NoError(t, err)
 
-			bm, err := tq.exec()
+			bm, err := tq.exec(ctx)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, bm)
@@ -145,7 +148,7 @@ func Test_newTermsQuery(t *testing.T) {
 
 	for _, d := range data {
 		t.Run(d.name, func(t *testing.T) {
-			tq, err := newTermsQuery(d.req, nil, "")
+			tq, err := newTermsQuery(context.Background(), d.req)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, tq)
@@ -235,16 +238,16 @@ func Test_execTerms(t *testing.T) {
 					f.Add(id, v)
 				}
 			}
-			fields := map[string]field.Field{d.fieldName: f}
+			ctx := withFields(context.Background(), map[string]field.Field{d.fieldName: f})
 
-			tq, err := newTermsQuery(d.req, fields, "")
+			tq, err := newTermsQuery(ctx, d.req)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, tq)
 				return
 			}
 
-			bm, err := tq.exec()
+			bm, err := tq.exec(ctx)
 			require.NoError(t, err)
 
 			require.NoError(t, err)

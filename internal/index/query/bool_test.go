@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
@@ -93,7 +94,7 @@ func Test_newBoolQuery(t *testing.T) {
 			req, err := decodeQuery(d.req)
 			require.NoError(t, err)
 
-			bq, err := newBoolQuery(req, nil, "")
+			bq, err := newBoolQuery(context.Background(), req)
 			if d.erroneous {
 				require.Error(t, err)
 				return
@@ -200,10 +201,11 @@ func Test_boolQuery_exec(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, err)
 
-			bq, err := newBoolQuery(req, map[string]field.Field{"field": f1, field.AllField: f2}, "")
+			ctx := withFields(context.Background(), map[string]field.Field{"field": f1, field.AllField: f2})
+			bq, err := newBoolQuery(ctx, req)
 			require.NoError(t, err)
 
-			result, err := bq.exec()
+			result, err := bq.exec(ctx)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, result)

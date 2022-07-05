@@ -95,6 +95,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 
 func (c *DocumentController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
@@ -115,7 +116,7 @@ func (c *DocumentController) SearchAction() http.HandlerFunc {
 			return
 		}
 
-		result, err := c.docs.Search(i, query)
+		result, err := c.docs.Search(ctx, i, query)
 		if err != nil {
 			handleErr(w, r, err)
 			return

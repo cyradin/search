@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"strings"
 	"testing"
 
@@ -64,7 +65,7 @@ func Test_Exec(t *testing.T) {
 			require.NoError(t, err)
 			require.NoError(t, err)
 
-			result, err := Exec(req, map[string]field.Field{"field": f})
+			result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, result)
@@ -162,7 +163,8 @@ func Test_build(t *testing.T) {
 			query, err := decodeQuery(d.query)
 			require.NoError(t, err)
 
-			result, err := build(query, map[string]field.Field{"field": f1}, "query")
+			ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+			result, err := build(ctx, query)
 			if d.erroneous {
 				require.Error(t, err)
 				require.Nil(t, result)
