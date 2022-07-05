@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/cyradin/search/internal/errs"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -124,7 +125,7 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 		for k, v := range validationErrors {
 			vErr := v.(validation.ErrorObject)
 			path := k
-			if p, ok := vErr.Params()["path"].(string); ok && p != "" {
+			if p, ok := vErr.Params()[errs.PathParam].(string); ok && p != "" {
 				path = p
 			}
 
