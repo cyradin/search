@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/cyradin/search/internal/index/query"
+	"github.com/cyradin/search/internal/errs"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -22,6 +22,7 @@ type Error struct {
 
 type ErrorDetail struct {
 	Field string `json:"field"`
+	Code  string `json:"code"`
 	Msg   string `json:"msg"`
 }
 
@@ -101,22 +102,37 @@ type APIError interface {
 
 func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	fmt.Println(err)
-	var validationErr validation.Errors
-	var syntaxErr *query.ErrSyntax
+	var validationErrors validation.Errors
+	var validationError validation.ErrorObject
 
 	switch true {
 	case errors.Is(err, errJsonUnmarshal):
 		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 		SendErrResponse(rw, r, status, resp)
-	case errors.As(err, &syntaxErr):
-		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
+	case errors.As(err, &validationError):
+		path, _ := validationError.Params()["path"].(string)
+		errDetails := []ErrorDetail{
+			{
+				Field: path,
+				Code:  validationError.Code(),
+				Msg:   validationError.Error(),
+			},
+		}
+		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))
 		SendErrResponse(rw, r, status, resp)
-	case errors.As(err, &validationErr):
-		errDetails := make([]ErrorDetail, 0, len(validationErr))
-		for k, v := range validationErr {
+	case errors.As(err, &validationErrors):
+		errDetails := make([]ErrorDetail, 0, len(validationErrors))
+		for k, v := range validationErrors {
+			vErr := v.(validation.ErrorObject)
+			path := k
+			if p, ok := vErr.Params()[errs.PathParam].(string); ok && p != "" {
+				path = p
+			}
+
 			errDetails = append(errDetails, ErrorDetail{
-				Field: k,
-				Msg:   v.Error(),
+				Field: path,
+				Code:  vErr.Code(),
+				Msg:   vErr.Error(),
 			})
 		}
 

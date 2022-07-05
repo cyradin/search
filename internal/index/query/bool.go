@@ -1,57 +1,70 @@
 package query
 
 import (
+	"context"
+
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-var _ query = (*boolQuery)(nil)
+var _ Query = (*boolQuery)(nil)
 
 type boolQuery struct {
-	params queryParams
+	query Req
 
-	must   []query
-	should []query
-	filter []query
+	must   []Query
+	should []Query
+	filter []Query
 }
 
-func newBoolQuery(params queryParams) (*boolQuery, error) {
-	result := &boolQuery{
-		params: params,
+func newBoolQuery(ctx context.Context, req Req) (*boolQuery, error) {
+	err := validation.ValidateWithContext(ctx, req, validation.Map(
+		validation.Key(string(queryBoolMust), validation.WithContext(func(ctx context.Context, value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return errs.ArrayRequired(ctx, string(queryBoolMust))
+			}
+			return nil
+		})).Optional(),
+		validation.Key(string(queryBoolShould), validation.WithContext(func(ctx context.Context, value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return errs.ArrayRequired(ctx, string(queryBoolShould))
+			}
+			return nil
+		})).Optional(),
+		validation.Key(string(queryBoolFilter), validation.WithContext(func(ctx context.Context, value interface{}) error {
+			_, err := interfaceToSlice[map[string]interface{}](value)
+			if err != nil {
+				return errs.ArrayRequired(ctx, string(queryBoolFilter))
+			}
+			return nil
+		})).Optional(),
+	))
+	if err != nil {
+		return nil, err
 	}
 
-	for key, value := range params.data {
-		path := pathJoin(params.path, key)
+	result := &boolQuery{
+		query: req,
+	}
 
-		values, err := interfaceToSlice[map[string]interface{}](value)
-		if err != nil {
-			return nil, NewErrSyntax(errMsgArrayValueRequired(), pathJoin(path, key))
-		}
+	for key, value := range req {
+		values, _ := interfaceToSlice[map[string]interface{}](value)
 
-		qType := queryType(key)
-		if qType != queryBoolShould && qType != queryBoolMust && qType != queryBoolFilter {
-			return nil, NewErrSyntax(
-				errMsgOneOf([]string{string(queryBoolShould), string(queryBoolMust), string(queryBoolFilter)}, key),
-				params.path,
-			)
-		}
-
-		children := make([]query, len(values))
+		children := make([]Query, len(values))
 		for i, v := range values {
-			params := queryParams{
-				fields: params.fields,
-				data:   v,
-				path:   path,
-			}
-
-			child, err := build(params)
+			ctx := errs.WithPath(ctx, errs.Path(ctx), key)
+			child, err := build(ctx, v)
 			if err != nil {
 				return nil, err
 			}
 			children[i] = child
 		}
 
-		switch qType {
+		switch queryType(key) {
 		case queryBoolShould:
 			result.should = children
 		case queryBoolMust:
@@ -64,12 +77,12 @@ func newBoolQuery(params queryParams) (*boolQuery, error) {
 	return result, nil
 }
 
-func (q *boolQuery) exec() (*roaring.Bitmap, error) {
+func (q *boolQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
+	fields := fields(ctx)
+
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
-		if ff, ok := q.params.fields[field.AllField]; ok {
-			if all, ok := ff.GetValue(true); ok {
-				return all, nil
-			}
+		if ff, ok := fields[field.AllField]; ok {
+			return ff.Get(true), nil
 		}
 
 		return roaring.New(), nil
@@ -78,7 +91,7 @@ func (q *boolQuery) exec() (*roaring.Bitmap, error) {
 	var result *roaring.Bitmap
 
 	for _, cq := range q.should {
-		bm, err := cq.exec()
+		bm, err := cq.exec(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -92,7 +105,7 @@ func (q *boolQuery) exec() (*roaring.Bitmap, error) {
 	}
 
 	for _, cq := range q.must {
-		bm, err := cq.exec()
+		bm, err := cq.exec(ctx)
 		if err != nil {
 			return nil, err
 		}
@@ -106,7 +119,7 @@ func (q *boolQuery) exec() (*roaring.Bitmap, error) {
 	}
 
 	for _, cq := range q.filter {
-		bm, err := cq.exec()
+		bm, err := cq.exec(ctx)
 		if err != nil {
 			return nil, err
 		}

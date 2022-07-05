@@ -6,12 +6,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Keyword_AddValue(t *testing.T) {
+func Test_Keyword_Add(t *testing.T) {
 	t.Run("string", func(t *testing.T) {
 		value := "qwe"
 		field := NewKeyword()
 
-		field.AddValue(1, value)
+		field.Add(1, value)
 		bm, ok := field.inner.data[value]
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
@@ -21,7 +21,7 @@ func Test_Keyword_AddValue(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
 		field := NewKeyword()
 
-		field.AddValue(1, true)
+		field.Add(1, true)
 		bm, ok := field.inner.data["true"]
 
 		require.True(t, ok)

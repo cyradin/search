@@ -23,16 +23,16 @@ func (f *Keyword) Type() schema.Type {
 	return schema.TypeKeyword
 }
 
-func (f *Keyword) AddValue(id uint32, value interface{}) {
-	f.inner.AddValue(id, value)
+func (f *Keyword) Add(id uint32, value interface{}) {
+	f.inner.Add(id, value)
 }
 
-func (f *Keyword) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value)
+func (f *Keyword) Get(value interface{}) *roaring.Bitmap {
+	return f.inner.Get(value)
 }
 
-func (f *Keyword) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values)
+func (f *Keyword) GetOr(values []interface{}) *roaring.Bitmap {
+	return f.inner.GetOr(values)
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

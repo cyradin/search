@@ -1,11 +1,14 @@
 package query
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 type SearchHit struct {
@@ -32,36 +35,22 @@ func queryTypes() []queryType {
 	}
 }
 
-func queryTypesString() []string {
-	types := queryTypes()
-	result := make([]string, len(types))
-	for i, qt := range types {
-		result[i] = string(qt)
-	}
-	return result
+type Query interface {
+	exec(ctx context.Context) (*roaring.Bitmap, error)
 }
 
-type query interface {
-	exec() (*roaring.Bitmap, error)
-}
+type Req map[string]interface{}
+type Fields map[string]field.Field
 
-type queryParams struct {
-	data   map[string]interface{}
-	fields map[string]field.Field
-	path   string
-}
-
-func Exec(data map[string]interface{}, fields map[string]field.Field) ([]SearchHit, error) {
-	q, err := build(queryParams{
-		data:   data,
-		fields: fields,
-		path:   "query",
-	})
+func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
+	ctx = withFields(ctx, fields)
+	ctx = errs.WithPath(ctx, "query")
+	q, err := build(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	bm, err := q.exec()
+	bm, err := q.exec(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -77,35 +66,50 @@ func Exec(data map[string]interface{}, fields map[string]field.Field) ([]SearchH
 	return hits, nil
 }
 
-func build(params queryParams) (query, error) {
-	if len(params.data) == 0 {
-		return nil, NewErrSyntax(errMsgCantBeEmpty(), params.path)
-	}
-	if len(params.data) > 1 {
-		return nil, NewErrSyntax(errMsgCantHaveMultipleFields(), params.path)
+func build(ctx context.Context, req Req) (Query, error) {
+	err := validation.ValidateWithContext(ctx, req,
+		validation.Required.ErrorObject(errs.Required(ctx)),
+		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.WithContext(func(ctx context.Context, value interface{}) error {
+			key, val := firstVal(req)
+			var querytypeValid bool
+			for _, qt := range queryTypes() {
+				if key == string(qt) {
+					querytypeValid = true
+					break
+				}
+			}
+			if !querytypeValid {
+				return errs.UnknownValue(ctx, key)
+			}
+
+			_, ok := val.(map[string]interface{})
+			if !ok {
+				return errs.ObjectRequired(ctx, key)
+			}
+
+			return nil
+		}))
+	if err != nil {
+		return nil, err
 	}
 
-	key, value := firstVal(params.data)
-
-	val, ok := value.(map[string]interface{})
-	if !ok {
-		return nil, NewErrSyntax(errMsgObjectValueRequired(), params.path)
-	}
-
-	params.data = val
-	params.path = pathJoin(params.path, key)
+	key, value := firstVal(req)
+	req = value.(map[string]interface{})
+	ctx = errs.WithPath(ctx, errs.Path(ctx), key)
 
 	qType := queryType(key)
 	switch qType {
 	case queryTerm:
-		return newTermQuery(params)
+		return newTermQuery(ctx, req)
 	case queryTerms:
-		return newTermsQuery(params)
+		return newTermsQuery(ctx, req)
 	case queryBool:
-		return newBoolQuery(params)
+		return newBoolQuery(ctx, req)
 	}
 
-	return nil, NewErrSyntax(errMsgOneOf(queryTypesString(), key), params.path)
+	// must not be executed because of validation made earlier
+	panic(fmt.Errorf("unknown query type %q", key))
 }
 
 func firstVal(m map[string]interface{}) (string, interface{}) {
@@ -114,10 +118,6 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 	}
 
 	return "", nil
-}
-
-func pathJoin(path string, value string) string {
-	return path + "." + value
 }
 
 func interfaceToSlice[T any](value interface{}) ([]T, error) {

@@ -23,19 +23,21 @@ type Field interface {
 
 	// Type returns field type
 	Type() schema.Type
-	// AddValue add document field value
-	AddValue(id uint32, value interface{})
-	// GetValue get bitmap clone by value
-	GetValue(value interface{}) (*roaring.Bitmap, bool)
-	// GetValuesOr compute the union between bitmaps of the passed values
-	GetValuesOr(values []interface{}) (*roaring.Bitmap, bool)
-	// GetValuesAnd compute the intersection between bitmaps of the passed values
-	// GetValuesAnd(values []interface{}) (*roaring.Bitmap, bool)
+	// Add add document field value
+	Add(id uint32, value interface{})
+	// Get get bitmap clone by value
+	Get(value interface{}) *roaring.Bitmap
+	// GetOr compute the union between bitmaps of the passed values
+	GetOr(values []interface{}) *roaring.Bitmap
+	// GetsAnd compute the intersection between bitmaps of the passed values
+	// GetsAnd(values []interface{}) *roaring.Bitmap
 }
 
 type FTS interface {
-	// Scores calculate doc scores
-	Scores(value interface{}, bm *roaring.Bitmap) Scores
+	// GetOrAnalyzed apply field analyzer to the value and return union between results
+	GetOrAnalyzed(value interface{}) *roaring.Bitmap
+	// GetAndAnalyzed apply field analyzer to the value and return intersection between results
+	GetAndAnalyzed(value interface{}) *roaring.Bitmap
 }
 
 type Score struct {
@@ -60,7 +62,7 @@ func newField[T comparable](transformer func(interface{}) (T, error)) *field[T] 
 	return result
 }
 
-func (f *field[T]) AddValue(id uint32, value interface{}) {
+func (f *field[T]) Add(id uint32, value interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	val, err := f.transform(value)
@@ -98,24 +100,24 @@ func (f *field[T]) UnmarshalBinary(data []byte) error {
 	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
-func (f *field[T]) getValue(v interface{}) (*roaring.Bitmap, bool) {
+func (f *field[T]) Get(v interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	val, err := f.transform(v)
 	if err != nil {
-		return nil, false
+		return roaring.New()
 	}
 
 	vv, ok := f.data[val]
 	if !ok {
-		return nil, false
+		return roaring.New()
 	}
 
-	return vv.Clone(), true
+	return vv.Clone()
 }
 
-func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
+func (f *field[T]) GetOr(values []interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -139,7 +141,42 @@ func (f *field[T]) getValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
 		result.Or(bm)
 	}
 
-	return result, result != nil
+	if result == nil {
+		return roaring.New()
+	}
+
+	return result
+}
+
+func (f *field[T]) GetAnd(values []interface{}) *roaring.Bitmap {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+
+	var result *roaring.Bitmap
+	for _, v := range values {
+		val, err := f.transform(v)
+		if err != nil {
+			continue
+		}
+
+		bm, ok := f.data[val]
+		if !ok {
+			continue
+		}
+
+		if result == nil {
+			result = bm.Clone()
+			continue
+		}
+
+		result.And(bm)
+	}
+
+	if result == nil {
+		return roaring.New()
+	}
+
+	return result
 }
 
 func New(f FieldData) (Field, error) {

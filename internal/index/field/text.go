@@ -16,6 +16,7 @@ type Text struct {
 }
 
 var _ Field = (*Text)(nil)
+var _ FTS = (*Text)(nil)
 
 func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	gf := newField[string](cast.ToStringE)
@@ -31,23 +32,47 @@ func (f *Text) Type() schema.Type {
 	return schema.TypeText
 }
 
-func (f *Text) AddValue(id uint32, value interface{}) {
+func (f *Text) Add(id uint32, value interface{}) {
 	val, err := f.inner.transform(value)
 	if err != nil {
 		return
 	}
 
 	for _, vv := range f.analyzer([]string{val}) {
-		f.inner.AddValue(id, vv)
+		f.inner.Add(id, vv)
 	}
 }
 
-func (f *Text) GetValue(value interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValue(value)
+func (f *Text) Get(value interface{}) *roaring.Bitmap {
+	return f.inner.Get(value)
 }
 
-func (f *Text) GetValuesOr(values []interface{}) (*roaring.Bitmap, bool) {
-	return f.inner.getValuesOr(values)
+func (f *Text) GetOr(values []interface{}) *roaring.Bitmap {
+	return f.inner.GetOr(values)
+}
+
+func (f *Text) GetOrAnalyzed(value interface{}) *roaring.Bitmap {
+	v, err := f.inner.transform(value)
+	if err != nil {
+		return roaring.New()
+	}
+	if v == "" {
+		return roaring.New()
+	}
+
+	return f.inner.GetOr(sliceToInterfaceSlice[string](f.analyzer([]string{v})))
+}
+
+func (f *Text) GetAndAnalyzed(value interface{}) *roaring.Bitmap {
+	v, err := f.inner.transform(value)
+	if err != nil {
+		return roaring.New()
+	}
+	if v == "" {
+		return roaring.New()
+	}
+
+	return f.inner.GetAnd(sliceToInterfaceSlice[string](f.analyzer([]string{v})))
 }
 
 type textData struct {
@@ -90,4 +115,12 @@ func (f *Text) UnmarshalBinary(data []byte) error {
 	}
 
 	return nil
+}
+
+func sliceToInterfaceSlice[T comparable](data []T) []interface{} {
+	result := make([]interface{}, len(data))
+	for i, v := range data {
+		result[i] = v
+	}
+	return result
 }
