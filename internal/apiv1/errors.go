@@ -21,6 +21,7 @@ type Error struct {
 
 type ErrorDetail struct {
 	Field string `json:"field"`
+	Code  string `json:"code"`
 	Msg   string `json:"msg"`
 }
 
@@ -112,6 +113,7 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 		errDetails := []ErrorDetail{
 			{
 				Field: path,
+				Code:  validationError.Code(),
 				Msg:   validationError.Error(),
 			},
 		}
@@ -120,9 +122,16 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	case errors.As(err, &validationErrors):
 		errDetails := make([]ErrorDetail, 0, len(validationErrors))
 		for k, v := range validationErrors {
+			vErr := v.(validation.ErrorObject)
+			path := k
+			if p, ok := vErr.Params()["path"].(string); ok && p != "" {
+				path = p
+			}
+
 			errDetails = append(errDetails, ErrorDetail{
-				Field: k,
-				Msg:   v.Error(),
+				Field: path,
+				Code:  vErr.Code(),
+				Msg:   vErr.Error(),
 			})
 		}
 

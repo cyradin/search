@@ -1,6 +1,7 @@
 package query
 
 import (
+	"context"
 	"fmt"
 	"reflect"
 
@@ -34,19 +35,21 @@ func queryTypes() []queryType {
 }
 
 type Query interface {
-	exec() (*roaring.Bitmap, error)
+	exec(ctx context.Context) (*roaring.Bitmap, error)
 }
 
 type Req map[string]interface{}
 type Fields map[string]field.Field
 
-func Exec(req Req, fields Fields) ([]SearchHit, error) {
-	q, err := build(req, fields, "query")
+func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
+	ctx = withFields(ctx, fields)
+	ctx = withPath(ctx, "query")
+	q, err := build(ctx, req)
 	if err != nil {
 		return nil, err
 	}
 
-	bm, err := q.exec()
+	bm, err := q.exec(ctx)
 	if err != nil {
 		return nil, err
 	}
@@ -62,43 +65,46 @@ func Exec(req Req, fields Fields) ([]SearchHit, error) {
 	return hits, nil
 }
 
-func build(req Req, fields Fields, path string) (Query, error) {
-	err := validation.Validate(req, validation.Required, validation.Length(1, 1), validation.By(func(value interface{}) error {
-		key, val := firstVal(req)
-		var querytypeValid bool
-		for _, qt := range queryTypes() {
-			if key == string(qt) {
-				querytypeValid = true
-				break
+func build(ctx context.Context, req Req) (Query, error) {
+	err := validation.ValidateWithContext(ctx, req,
+		validation.Required.ErrorObject(errorRequired(ctx)),
+		validation.Length(1, 1).ErrorObject(errorSingleKeyRequired(ctx)),
+		validation.WithContext(func(ctx context.Context, value interface{}) error {
+			key, val := firstVal(req)
+			var querytypeValid bool
+			for _, qt := range queryTypes() {
+				if key == string(qt) {
+					querytypeValid = true
+					break
+				}
 			}
-		}
-		if !querytypeValid {
-			return validation.NewError("query_unknown_type", fmt.Sprintf("unknown query type %q", key))
-		}
+			if !querytypeValid {
+				return errorUnknownQueryType(ctx, key)
+			}
 
-		_, ok := val.(map[string]interface{})
-		if !ok {
-			return validation.NewError("query_object_required", fmt.Sprintf("%q value must be an object", key))
-		}
+			_, ok := val.(map[string]interface{})
+			if !ok {
+				return errorObjectRequired(ctx, key)
+			}
 
-		return nil
-	}))
+			return nil
+		}))
 	if err != nil {
 		return nil, err
 	}
 
 	key, value := firstVal(req)
 	req = value.(map[string]interface{})
-	path = pathJoin(path, key)
+	ctx = withPath(ctx, path(ctx), key)
 
 	qType := queryType(key)
 	switch qType {
 	case queryTerm:
-		return newTermQuery(req, fields, path)
+		return newTermQuery(ctx, req)
 	case queryTerms:
-		return newTermsQuery(req, fields, path)
+		return newTermsQuery(ctx, req)
 	case queryBool:
-		return newBoolQuery(req, fields, path)
+		return newBoolQuery(ctx, req)
 	}
 
 	// must not be executed because of validation made earlier
@@ -111,10 +117,6 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 	}
 
 	return "", nil
-}
-
-func pathJoin(path string, value string) string {
-	return path + "." + value
 }
 
 func interfaceToSlice[T any](value interface{}) ([]T, error) {

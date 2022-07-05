@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/cyradin/search/internal/index/field"
@@ -86,13 +87,13 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 	return doc.Source, err
 }
 
-func (d *Documents) Search(index Index, q Search) (SearchResult, error) {
+func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
 	_, fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	hits, err := query.Exec(q.Query, fieldIndex.Fields())
+	hits, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
 	if err != nil {
 		return SearchResult{}, err
 	}
