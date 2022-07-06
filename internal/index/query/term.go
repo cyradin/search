@@ -49,7 +49,7 @@ func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(req)
+			key, val := firstVal(value.(Req))
 			_, err := interfaceToSlice[interface{}](val)
 			if err != nil {
 				return errs.ArrayRequired(ctx, key)
