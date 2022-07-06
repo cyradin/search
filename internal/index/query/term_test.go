@@ -9,114 +9,130 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_newTermQuery(t *testing.T) {
-	data := []struct {
-		name      string
-		req       map[string]interface{}
-		erroneous bool
-	}{
-		{
-			name:      "empty",
-			req:       map[string]interface{}{},
-			erroneous: true,
-		},
-		{
-			name: "multiple_fields",
-			req: map[string]interface{}{
-				"f1": "1", "f2": "2",
-			},
-			erroneous: true,
-		},
-
-		{
-			name: "ok",
-			req: map[string]interface{}{
-				"f1": "1",
-			},
-			erroneous: false,
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			tq, err := newTermQuery(context.Background(), d.req)
-			if d.erroneous {
-				require.Error(t, err)
-				require.Nil(t, tq)
-				return
-			}
-
+func Test_termQuery(t *testing.T) {
+	t.Run("newTermQuery", func(t *testing.T) {
+		t.Run("must return error if request is an empty object", func(t *testing.T) {
+			query := "{}"
+			req, err := decodeQuery(query)
 			require.NoError(t, err)
-			require.NotNil(t, tq)
+
+			q, err := newTermQuery(context.Background(), req)
+			require.Error(t, err)
+			require.Nil(t, q)
 		})
-	}
-}
-
-func Test_termQuery_exec(t *testing.T) {
-	bm := roaring.New()
-	bm.Add(1)
-
-	data := []struct {
-		name      string
-		req       map[string]interface{}
-		fieldName string
-		erroneous bool
-		expected  *roaring.Bitmap
-	}{
-		{
-			name: "field_not_found",
-			req: map[string]interface{}{
-				"f2": "1",
-			},
-			fieldName: "f1",
-			erroneous: false,
-			expected:  roaring.New(),
-		},
-		{
-			name: "value_not_found",
-			req: map[string]interface{}{
-				"f1": "2",
-			},
-			fieldName: "f1",
-			erroneous: false,
-			expected:  roaring.New(),
-		},
-		{
-			name: "ok",
-			req: map[string]interface{}{
-				"f1": "1",
-			},
-			fieldName: "f1",
-			erroneous: false,
-			expected:  bm,
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f := field.NewKeyword()
-			f.Add(1, "1")
-
-			ctx := withFields(context.Background(),
-				map[string]field.Field{
-					d.fieldName: f,
-				},
-			)
-
-			tq, err := newTermQuery(ctx, d.req)
+		t.Run("must return error if request contains multiple keys", func(t *testing.T) {
+			query := `{
+				"field1": {},
+				"field2": {}
+			}`
+			req, err := decodeQuery(query)
 			require.NoError(t, err)
 
-			bm, err := tq.exec(ctx)
-			if d.erroneous {
-				require.Error(t, err)
-				require.Nil(t, bm)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, d.expected, bm)
+			q, err := newTermQuery(context.Background(), req)
+			require.Error(t, err)
+			require.Nil(t, q)
 		})
-	}
+		t.Run("must return error if request field is empty", func(t *testing.T) {
+			query := `{
+				"field1": {}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			q, err := newTermQuery(context.Background(), req)
+			require.Error(t, err)
+			require.Nil(t, q)
+		})
+		t.Run("must return error if request field contains extra keys", func(t *testing.T) {
+			query := `{
+				"field1": {
+					"query": "hello",
+					"qwerty": "hello"
+				}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			q, err := newTermQuery(context.Background(), req)
+			require.Error(t, err)
+			require.Nil(t, q)
+		})
+		t.Run("must not return error if request is a valid query", func(t *testing.T) {
+			query := `{
+				"field1": {
+					"query": "hello"
+				}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			q, err := newTermQuery(context.Background(), req)
+			require.NoError(t, err)
+			require.NotNil(t, q)
+		})
+	})
+
+	t.Run("exec", func(t *testing.T) {
+		f := field.NewKeyword()
+		f.Add(1, "value")
+		ctx := withFields(context.Background(),
+			map[string]field.Field{
+				"field": f,
+			},
+		)
+
+		t.Run("must return empty result if field not found", func(t *testing.T) {
+			query := `{
+				"field1": {
+					"query": "value"
+				}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			tq, err := newTermQuery(ctx, req)
+			require.NoError(t, err)
+
+			result, err := tq.exec(ctx)
+			require.NoError(t, err)
+			require.True(t, result.IsEmpty())
+		})
+
+		t.Run("must return empty result if value not found", func(t *testing.T) {
+			query := `{
+				"field": {
+					"query": "value1"
+				}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			tq, err := newTermQuery(ctx, req)
+			require.NoError(t, err)
+
+			result, err := tq.exec(ctx)
+			require.NoError(t, err)
+			require.True(t, result.IsEmpty())
+		})
+
+		t.Run("must return non-empty result if value is found", func(t *testing.T) {
+			query := `{
+				"field": {
+					"query": "value"
+				}
+			}`
+			req, err := decodeQuery(query)
+			require.NoError(t, err)
+
+			tq, err := newTermQuery(ctx, req)
+			require.NoError(t, err)
+
+			result, err := tq.exec(ctx)
+			require.NoError(t, err)
+			require.False(t, result.IsEmpty())
+			require.ElementsMatch(t, []uint32{1}, result.ToArray())
+		})
+	})
 }
 
 func Test_newTermsQuery(t *testing.T) {
