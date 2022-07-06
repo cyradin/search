@@ -27,7 +27,7 @@ func newMatchQuery(ctx context.Context, req Req) (*matchQuery, error) {
 				return errs.ObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.Required),
+				validation.Key("query", validation.NotNil.ErrorObject(errs.Required(ctx))),
 			))
 		}),
 	)
