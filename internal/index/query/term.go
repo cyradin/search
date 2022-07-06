@@ -63,11 +63,21 @@ func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(value.(Req))
-			_, err := interfaceToSlice[interface{}](val)
-			if err != nil {
-				return errs.ArrayRequired(ctx, key)
+			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+
+			v, ok := val.(map[string]interface{})
+			if !ok {
+				return errs.ObjectRequired(ctx, key)
 			}
-			return nil
+			return validation.ValidateWithContext(ctx, v, validation.Map(
+				validation.Key("query", validation.Required, validation.WithContext(func(ctx context.Context, value interface{}) error {
+					_, err := interfaceToSlice[interface{}](value)
+					if err != nil {
+						return errs.ArrayRequired(ctx, key)
+					}
+					return nil
+				})),
+			))
 		}),
 	)
 	if err != nil {
@@ -81,12 +91,12 @@ func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 
 func (q *termsQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
 	key, val := firstVal(q.query)
-	values, _ := interfaceToSlice[interface{}](val)
 	fields := fields(ctx)
 	field, ok := fields[key]
 	if !ok {
 		return roaring.New(), nil
 	}
+	v, _ := interfaceToSlice[interface{}](val.(map[string]interface{})["query"])
 
-	return field.GetOr(values), nil
+	return field.GetOr(v), nil
 }
