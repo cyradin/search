@@ -28,7 +28,7 @@ func newTermQuery(ctx context.Context, req Req) (*termQuery, error) {
 				return errs.ObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.Required),
+				validation.Key("query", validation.NotNil.ErrorObject(errs.Required(ctx))),
 			))
 		}),
 	)
@@ -70,13 +70,17 @@ func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 				return errs.ObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.Required, validation.WithContext(func(ctx context.Context, value interface{}) error {
-					_, err := interfaceToSlice[interface{}](value)
-					if err != nil {
-						return errs.ArrayRequired(ctx, key)
-					}
-					return nil
-				})),
+				validation.Key(
+					"query",
+					validation.NotNil.ErrorObject(errs.Required(ctx)),
+					validation.WithContext(func(ctx context.Context, value interface{}) error {
+						_, err := interfaceToSlice[interface{}](value)
+						if err != nil {
+							return errs.ArrayRequired(ctx, key)
+						}
+						return nil
+					}),
+				),
 			))
 		}),
 	)
