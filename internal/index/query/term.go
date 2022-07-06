@@ -16,9 +16,21 @@ type termQuery struct {
 }
 
 func newTermQuery(ctx context.Context, req Req) (*termQuery, error) {
-	err := validation.Validate(req,
+	err := validation.ValidateWithContext(ctx, req,
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.WithContext(func(ctx context.Context, value interface{}) error {
+			key, val := firstVal(value.(Req))
+			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+
+			v, ok := val.(map[string]interface{})
+			if !ok {
+				return errs.ObjectRequired(ctx, key)
+			}
+			return validation.ValidateWithContext(ctx, v, validation.Map(
+				validation.Key("query", validation.Required),
+			))
+		}),
 	)
 	if err != nil {
 		return nil, err
@@ -36,8 +48,9 @@ func (q *termQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
 	if !ok {
 		return roaring.New(), nil
 	}
+	v := val.(map[string]interface{})["query"]
 
-	return field.Get(val), nil
+	return field.Get(v), nil
 }
 
 type termsQuery struct {
