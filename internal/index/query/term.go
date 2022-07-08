@@ -8,19 +8,19 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-var _ Query = (*termQuery)(nil)
-var _ Query = (*termsQuery)(nil)
+var _ internalQuery = (*termQuery)(nil)
+var _ internalQuery = (*termsQuery)(nil)
 
 type termQuery struct {
-	query Req
+	query Query
 }
 
-func newTermQuery(ctx context.Context, req Req) (*termQuery, error) {
-	err := validation.ValidateWithContext(ctx, req,
+func newTermQuery(ctx context.Context, query Query) (*termQuery, error) {
+	err := validation.ValidateWithContext(ctx, query,
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Req))
+			key, val := firstVal(value.(Query))
 			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
 
 			v, ok := val.(map[string]interface{})
@@ -37,7 +37,7 @@ func newTermQuery(ctx context.Context, req Req) (*termQuery, error) {
 	}
 
 	return &termQuery{
-		query: req,
+		query: query,
 	}, nil
 }
 
@@ -54,15 +54,15 @@ func (q *termQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
 }
 
 type termsQuery struct {
-	query Req
+	query Query
 }
 
-func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
-	err := validation.ValidateWithContext(ctx, req,
+func newTermsQuery(ctx context.Context, query Query) (*termsQuery, error) {
+	err := validation.ValidateWithContext(ctx, query,
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Req))
+			key, val := firstVal(value.(Query))
 			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
 
 			v, ok := val.(map[string]interface{})
@@ -89,7 +89,7 @@ func newTermsQuery(ctx context.Context, req Req) (*termsQuery, error) {
 	}
 
 	return &termsQuery{
-		query: req,
+		query: query,
 	}, nil
 }
 
