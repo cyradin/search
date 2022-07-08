@@ -25,6 +25,8 @@ const (
 	queryBoolShould queryType = "should"
 	queryBoolMust   queryType = "must"
 	queryBoolFilter queryType = "filter"
+
+	queryMatch queryType = "match"
 )
 
 func queryTypes() []queryType {
@@ -35,17 +37,21 @@ func queryTypes() []queryType {
 	}
 }
 
-type Query interface {
+type internalQuery interface {
 	exec(ctx context.Context) (*roaring.Bitmap, error)
 }
 
-type Req map[string]interface{}
+type Result struct {
+	*roaring.Bitmap
+}
+
+type Query map[string]interface{}
 type Fields map[string]field.Field
 
-func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
+func Exec(ctx context.Context, query Query, fields Fields) ([]SearchHit, error) {
 	ctx = withFields(ctx, fields)
 	ctx = errs.WithPath(ctx, "query")
-	q, err := build(ctx, req)
+	q, err := build(ctx, query)
 	if err != nil {
 		return nil, err
 	}
@@ -66,7 +72,7 @@ func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
 	return hits, nil
 }
 
-func build(ctx context.Context, req Req) (Query, error) {
+func build(ctx context.Context, req Query) (internalQuery, error) {
 	err := validation.ValidateWithContext(ctx, req,
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
@@ -106,6 +112,8 @@ func build(ctx context.Context, req Req) (Query, error) {
 		return newTermsQuery(ctx, req)
 	case queryBool:
 		return newBoolQuery(ctx, req)
+	case queryMatch:
+		return newMatchQuery(ctx, req)
 	}
 
 	// must not be executed because of validation made earlier
