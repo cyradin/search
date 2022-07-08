@@ -275,127 +275,194 @@ func Test_boolQuery(t *testing.T) {
 			require.ElementsMatch(t, []uint32{1}, result.ToArray())
 		})
 	})
-}
 
-func Test_boolQuery_exec(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-		expected  []uint32
-	}{
-		{
-			name:      "empty_query_return_all",
-			query:     `{}`,
-			erroneous: false,
-			expected:  []uint32{1, 2},
-		},
-		{
-			name: "ok_bool_should",
-			query: `
+	t.Run("exec", func(t *testing.T) {
+		f1 := field.NewInteger()
+		f1.Add(1, 1)
+		f1.Add(1, 3)
+		f1.Add(2, 2)
+
+		f2 := field.NewAll()
+		f2.Add(1, 1)
+		f2.Add(2, 2)
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1, field.AllField: f2})
+
+		t.Run("must return all docs for empty query", func(t *testing.T) {
+			req, err := decodeQuery(`{}`)
+			require.NoError(t, err)
+			require.NoError(t, err)
+
+			bq, err := newBoolQuery(ctx, req)
+			require.NoError(t, err)
+
+			result, err := bq.exec(ctx)
+			require.NoError(t, err)
+
+			require.EqualValues(t, []uint32{1, 2}, result.ToArray())
+		})
+		t.Run("must return union of should queries", func(t *testing.T) {
+			req, err := decodeQuery(`
 			{
 				"should": [
 					{
 						"term": {
 							"field": {
-								"query": true
+								"query": 1
 							}
 						}
 					},
 					{
 						"term": {
 							"field": {
-								"query": false
+								"query": 2
 							}
 						}
 					}
 				]
 			}
-			`,
-			erroneous: false,
-			expected:  []uint32{1, 2},
-		},
-		{
-			name: "ok_bool_must",
-			query: `
-			{
-				"must": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`,
-			erroneous: false,
-			expected:  []uint32{},
-		},
-		{
-			name: "ok_bool_filter",
-			query: `
-			{
-				"filter": [
-					{
-						"term": {
-							"field": true
-						}
-					},
-					{
-						"term": {
-							"field": true
-						}
-					}
-				]
-			}
-			`,
-			erroneous: false,
-			expected:  []uint32{1},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewBool()
-			f1.Add(1, true)
-			f1.Add(2, false)
-
-			f2 := field.NewAll()
-			f2.Add(1, true)
-			f2.Add(2, false)
-
-			req, err := decodeQuery(d.query)
+			`)
 			require.NoError(t, err)
 			require.NoError(t, err)
 
-			ctx := withFields(context.Background(), map[string]field.Field{"field": f1, field.AllField: f2})
 			bq, err := newBoolQuery(ctx, req)
 			require.NoError(t, err)
 
 			result, err := bq.exec(ctx)
-			if d.erroneous {
-				require.Error(t, err)
-				require.Nil(t, result)
-				return
-			}
-
 			require.NoError(t, err)
 
-			vals := make([]uint32, 0)
-			result.Iterate(func(x uint32) bool {
-				vals = append(vals, x)
-				return true
-			})
-			require.EqualValues(t, d.expected, vals)
+			require.EqualValues(t, []uint32{1, 2}, result.ToArray())
 		})
-	}
+		t.Run("must return intersection of must queries", func(t *testing.T) {
+			t.Run("empty intersection", func(t *testing.T) {
+				req, err := decodeQuery(`
+				{
+					"must": [
+						{
+							"term": {
+								"field": {
+									"query": 1
+								}
+							}
+						},
+						{
+							"term": {
+								"field": {
+									"query": 2
+								}
+							}
+						}
+					]
+				}
+				`)
+				require.NoError(t, err)
+				require.NoError(t, err)
+
+				bq, err := newBoolQuery(ctx, req)
+				require.NoError(t, err)
+
+				result, err := bq.exec(ctx)
+				require.NoError(t, err)
+
+				require.EqualValues(t, []uint32{}, result.ToArray())
+			})
+			t.Run("not empty intersection", func(t *testing.T) {
+				req, err := decodeQuery(`
+				{
+					"must": [
+						{
+							"term": {
+								"field": {
+									"query": 1
+								}
+							}
+						},
+						{
+							"term": {
+								"field": {
+									"query": 3
+								}
+							}
+						}
+					]
+				}
+				`)
+				require.NoError(t, err)
+				require.NoError(t, err)
+
+				bq, err := newBoolQuery(ctx, req)
+				require.NoError(t, err)
+
+				result, err := bq.exec(ctx)
+				require.NoError(t, err)
+
+				require.EqualValues(t, []uint32{1}, result.ToArray())
+			})
+		})
+		t.Run("must return intersection of filter queries", func(t *testing.T) {
+			t.Run("empty intersection", func(t *testing.T) {
+				req, err := decodeQuery(`
+				{
+					"filter": [
+						{
+							"term": {
+								"field": {
+									"query": 1
+								}
+							}
+						},
+						{
+							"term": {
+								"field": {
+									"query": 2
+								}
+							}
+						}
+					]
+				}
+				`)
+				require.NoError(t, err)
+				require.NoError(t, err)
+
+				bq, err := newBoolQuery(ctx, req)
+				require.NoError(t, err)
+
+				result, err := bq.exec(ctx)
+				require.NoError(t, err)
+
+				require.EqualValues(t, []uint32{}, result.ToArray())
+			})
+			t.Run("not empty intersection", func(t *testing.T) {
+				req, err := decodeQuery(`
+				{
+					"filter": [
+						{
+							"term": {
+								"field": {
+									"query": 1
+								}
+							}
+						},
+						{
+							"term": {
+								"field": {
+									"query": 3
+								}
+							}
+						}
+					]
+				}
+				`)
+				require.NoError(t, err)
+				require.NoError(t, err)
+
+				bq, err := newBoolQuery(ctx, req)
+				require.NoError(t, err)
+
+				result, err := bq.exec(ctx)
+				require.NoError(t, err)
+
+				require.EqualValues(t, []uint32{1}, result.ToArray())
+			})
+		})
+	})
 }
