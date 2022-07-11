@@ -109,7 +109,7 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 }
 
 func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
-	_, fieldIndex, err := d.getIndexes(index.Name)
+	srcIndex, fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
 		return SearchResult{}, err
 	}
@@ -127,6 +127,10 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 			ID:    item.ID,
 			Score: item.Score,
 		}
+	}
+	err = d.loadDocSources(ctx, srcIndex, hits)
+	if err != nil {
+		return SearchResult{}, err
 	}
 
 	return SearchResult{
@@ -153,4 +157,27 @@ func (d *Documents) getIndexes(
 		return
 	}
 	return
+}
+
+func (d *Documents) loadDocSources(ctx context.Context, srcIndex *source.Index, hits []SearchHit) error {
+	if len(hits) == 0 {
+		return nil
+	}
+
+	hitmap := make(map[uint32]*SearchHit, len(hits))
+	ids := make([]uint32, 0, len(hits))
+	for i := range hits {
+		hitmap[hits[i].ID] = &hits[i]
+		ids = append(ids, hits[i].ID)
+	}
+
+	sources, err := srcIndex.Multi(ids...)
+	if err != nil {
+		return fmt.Errorf("load doc sources err: %w", err)
+	}
+	for _, s := range sources {
+		hitmap[s.ID].Source = s.Source
+	}
+
+	return nil
 }
