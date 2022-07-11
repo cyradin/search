@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
@@ -18,7 +19,27 @@ type Search struct {
 	Offset int                    `json:"offset"`
 }
 
-type SearchResult struct{}
+type SearchResult struct {
+	Took int        `json:"took"`
+	Hits SearchHits `json:"hits"`
+}
+
+type SearchHits struct {
+	Total    SearchTotal `json:"total"`
+	Hits     []SearchHit `json:"hits"`
+	MaxScore float64     `json:"maxScore"`
+}
+
+type SearchTotal struct {
+	Value    int    `json:"value"`
+	Relation string `json:"relation"`
+}
+
+type SearchHit struct {
+	ID     uint32      `json:"id"`
+	Score  float64     `json:"score"`
+	Source interface{} `json:"source"`
+}
 
 type Documents struct {
 	sources *source.Storage
@@ -93,14 +114,31 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 		return SearchResult{}, err
 	}
 
-	hits, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
+	t := time.Now()
+	result, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
+	took := time.Since(t).Microseconds()
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	fmt.Println(hits) // @todo make search result
+	hits := make([]SearchHit, len(result.Hits))
+	for i, item := range result.Hits {
+		hits[i] = SearchHit{
+			ID:    item.ID,
+			Score: item.Score,
+		}
+	}
 
-	return SearchResult{}, nil
+	return SearchResult{
+		Hits: SearchHits{
+			Total: SearchTotal{
+				Value:    result.Total.Value,
+				Relation: result.Total.Relation,
+			},
+			Hits: hits,
+		},
+		Took: int(took),
+	}, nil
 }
 
 func (d *Documents) getIndexes(
