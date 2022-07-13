@@ -94,7 +94,9 @@ func Test_termQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.True(t, result.IsEmpty())
+			require.True(t, result.bm.IsEmpty())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 
 		t.Run("must return empty result if value not found", func(t *testing.T) {
@@ -111,7 +113,9 @@ func Test_termQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.True(t, result.IsEmpty())
+			require.True(t, result.bm.IsEmpty())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 
 		t.Run("must return non-empty result if value is found", func(t *testing.T) {
@@ -128,8 +132,11 @@ func Test_termQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.False(t, result.IsEmpty())
-			require.ElementsMatch(t, []uint32{1}, result.ToArray())
+
+			require.False(t, result.bm.IsEmpty())
+			require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 	})
 }
@@ -233,7 +240,9 @@ func Test_termsQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.True(t, result.IsEmpty())
+			require.True(t, result.bm.IsEmpty())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 
 		t.Run("must return empty result if value not found", func(t *testing.T) {
@@ -250,7 +259,9 @@ func Test_termsQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.True(t, result.IsEmpty())
+			require.True(t, result.bm.IsEmpty())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 
 		t.Run("must return non-empty result if value is found", func(t *testing.T) {
@@ -267,8 +278,10 @@ func Test_termsQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.False(t, result.IsEmpty())
-			require.ElementsMatch(t, []uint32{1}, result.ToArray())
+			require.False(t, result.bm.IsEmpty())
+			require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
+			require.NotNil(t, result.scores)
+			require.Empty(t, result.scores)
 		})
 	})
 }

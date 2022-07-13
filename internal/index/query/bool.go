@@ -77,60 +77,40 @@ func newBoolQuery(ctx context.Context, query Query) (*boolQuery, error) {
 	return result, nil
 }
 
-func (q *boolQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
+func (q *boolQuery) exec(ctx context.Context) (queryResult, error) {
 	fields := fields(ctx)
 
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
 		if ff, ok := fields[field.AllField]; ok {
-			return ff.Get(true), nil
+			return newNoScoreResult(ff.Get(true)), nil
 		}
 
-		return roaring.New(), nil
+		return newEmptyResult(), nil
 	}
 
-	var result *roaring.Bitmap
+	var v *roaring.Bitmap
+	for _, data := range []struct {
+		queries []internalQuery
+		apply   func(src *roaring.Bitmap, bm *roaring.Bitmap)
+	}{
+		{queries: q.filter, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.And(bm) }},
+		{queries: q.must, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.And(bm) }},
+		{queries: q.should, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.Or(bm) }},
+	} {
+		for _, q := range data.queries {
+			r, err := q.exec(ctx)
+			if err != nil {
+				return newEmptyResult(), err
+			}
 
-	for _, cq := range q.should {
-		bm, err := cq.exec(ctx)
-		if err != nil {
-			return nil, err
+			if v == nil {
+				v = r.bm
+				continue
+			}
+
+			data.apply(v, r.bm)
 		}
-
-		if result == nil {
-			result = bm
-			continue
-		}
-
-		result.Or(bm)
 	}
 
-	for _, cq := range q.must {
-		bm, err := cq.exec(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if result == nil {
-			result = bm
-			continue
-		}
-
-		result.And(bm)
-	}
-
-	for _, cq := range q.filter {
-		bm, err := cq.exec(ctx)
-		if err != nil {
-			return nil, err
-		}
-
-		if result == nil {
-			result = bm
-			continue
-		}
-
-		result.And(bm)
-	}
-
-	return result, nil
+	return newNoScoreResult(v), nil
 }

@@ -7,25 +7,8 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
-	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
-
-type Result struct {
-	Hits     []Hit
-	Total    Total
-	MaxScore float64
-}
-
-type Total struct {
-	Value    int
-	Relation string
-}
-
-type Hit struct {
-	ID    uint32
-	Score float64
-}
 
 type queryType string
 
@@ -49,43 +32,34 @@ func queryTypes() []queryType {
 	}
 }
 
-type internalQuery interface {
-	exec(ctx context.Context) (*roaring.Bitmap, error)
+type queryResult struct {
+	bm     *roaring.Bitmap
+	scores map[uint32]float64
 }
 
-type Query map[string]interface{}
-type Fields map[string]field.Field
-
-func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
-	ctx = withFields(ctx, fields)
-	ctx = errs.WithPath(ctx, "query")
-	q, err := build(ctx, query)
-	if err != nil {
-		return Result{}, err
+func newEmptyResult() queryResult {
+	return queryResult{
+		bm:     roaring.New(),
+		scores: make(map[uint32]float64),
 	}
+}
 
-	bm, err := q.exec(ctx)
-	if err != nil {
-		return Result{}, err
+func newNoScoreResult(bm *roaring.Bitmap) queryResult {
+	return queryResult{
+		bm:     bm,
+		scores: make(map[uint32]float64),
 	}
+}
 
-	hits := make([]Hit, 0, bm.GetCardinality())
-	bm.Iterate(func(x uint32) bool {
-		hits = append(hits, Hit{
-			ID:    x,
-			Score: 0, // @todo
-		})
-		return true
-	})
+func newResult(bm *roaring.Bitmap, scores map[uint32]float64) queryResult {
+	return queryResult{
+		bm:     bm,
+		scores: scores,
+	}
+}
 
-	return Result{
-		Total: Total{
-			Value:    int(bm.GetCardinality()),
-			Relation: "eq",
-		},
-		Hits:     hits,
-		MaxScore: 0, // @todo
-	}, nil
+type internalQuery interface {
+	exec(ctx context.Context) (queryResult, error)
 }
 
 func build(ctx context.Context, req Query) (internalQuery, error) {
