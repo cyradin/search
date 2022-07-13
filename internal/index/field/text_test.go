@@ -49,26 +49,40 @@ func Test_Text(t *testing.T) {
 	})
 	t.Run("GetOrAnalyzed", func(t *testing.T) {
 		t.Run("can return union if both values found", func(t *testing.T) {
-			f := NewText(testAnalyzer2, NewScoring())
+			scoring := NewScoring()
+			scoring.Add(1, []string{"foo"})
+			scoring.Add(2, []string{"bar"})
+			f := NewText(testAnalyzer2, scoring)
 			f.Add(1, "foo")
 			f.Add(2, "bar")
 
-			result := f.GetOrAnalyzed("foo bar")
+			result, scores := f.GetOrAnalyzed("foo bar")
 			require.Equal(t, uint64(2), result.GetCardinality())
 			require.True(t, result.Contains(1))
 			require.True(t, result.Contains(2))
+			require.NotNil(t, scores)
+			require.Len(t, scores, 2)
+			require.Greater(t, scores[1], 0.0)
+			require.Greater(t, scores[2], 0.0)
 		})
 	})
 	t.Run("GetAndAnalyzed", func(t *testing.T) {
 		t.Run("can return intersection if both values found", func(t *testing.T) {
-			f := NewText(testAnalyzer2, NewScoring())
+			scoring := NewScoring()
+			scoring.Add(1, []string{"foo", "bar"})
+			scoring.Add(2, []string{"bar"})
+
+			f := NewText(testAnalyzer2, scoring)
 			f.Add(1, "foo")
 			f.Add(1, "bar")
 			f.Add(2, "bar")
 
-			result := f.GetAndAnalyzed("foo bar")
+			result, scores := f.GetAndAnalyzed("foo bar")
 			require.Equal(t, uint64(1), result.GetCardinality())
 			require.True(t, result.Contains(1))
+			require.NotNil(t, scores)
+			require.Len(t, scores, 1)
+			require.Greater(t, scores[1], 0.0)
 		})
 	})
 }
