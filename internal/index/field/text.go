@@ -6,7 +6,6 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/spf13/cast"
 )
 
 type Text struct {
@@ -19,7 +18,7 @@ var _ Field = (*Text)(nil)
 var _ FTS = (*Text)(nil)
 
 func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
-	gf := newField[string](cast.ToStringE)
+	gf := newField[string]()
 
 	return &Text{
 		inner:    gf,
@@ -33,7 +32,7 @@ func (f *Text) Type() schema.Type {
 }
 
 func (f *Text) Add(id uint32, value interface{}) {
-	val, err := f.inner.transform(value)
+	val, err := castE[string](value)
 	if err != nil {
 		return
 	}
@@ -44,15 +43,20 @@ func (f *Text) Add(id uint32, value interface{}) {
 }
 
 func (f *Text) Get(value interface{}) *roaring.Bitmap {
-	return f.inner.Get(value)
+	val, err := castE[string](value)
+	if err != nil {
+		return roaring.New()
+	}
+
+	return f.inner.Get(val)
 }
 
 func (f *Text) GetOr(values []interface{}) *roaring.Bitmap {
-	return f.inner.GetOr(values)
+	return f.inner.GetOr(castSlice[string](values))
 }
 
 func (f *Text) GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
-	v, err := f.inner.transform(value)
+	v, err := castE[string](value)
 	if err != nil {
 		return roaring.New(), make(map[uint32]float64)
 	}
@@ -61,13 +65,13 @@ func (f *Text) GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]flo
 	}
 
 	tokens := f.analyzer([]string{v})
-	bm := f.inner.GetOr(sliceToInterfaceSlice[string](tokens))
+	bm := f.inner.GetOr(tokens)
 
 	return bm, f.scores(bm, tokens)
 }
 
 func (f *Text) GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
-	v, err := f.inner.transform(value)
+	v, err := castE[string](value)
 	if err != nil {
 		return roaring.New(), make(map[uint32]float64)
 	}
@@ -76,7 +80,7 @@ func (f *Text) GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]fl
 	}
 
 	tokens := f.analyzer([]string{v})
-	bm := f.inner.GetAnd(sliceToInterfaceSlice[string](tokens))
+	bm := f.inner.GetAnd(tokens)
 
 	return bm, f.scores(bm, tokens)
 }

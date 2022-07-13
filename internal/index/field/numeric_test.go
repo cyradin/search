@@ -10,7 +10,7 @@ func Test_numericField(t *testing.T) {
 	t.Run("Add", func(t *testing.T) {
 		t.Run("1", func(t *testing.T) {
 			var value int64 = 1
-			field := newNumericField[int64]()
+			field := NewNumeric[int64]()
 
 			field.Add(1, value)
 			bm, ok := field.data[value]
@@ -20,7 +20,7 @@ func Test_numericField(t *testing.T) {
 		})
 
 		t.Run("string", func(t *testing.T) {
-			field := newNumericField[int64]()
+			field := NewNumeric[int64]()
 
 			field.Add(1, "qwe")
 			_, ok := field.data[0]

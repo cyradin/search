@@ -4,14 +4,13 @@ import (
 	"testing"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/spf13/cast"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_genericField(t *testing.T) {
 	t.Run("Add", func(t *testing.T) {
 		t.Run("can add one value", func(t *testing.T) {
-			field := newField[bool](cast.ToBoolE)
+			field := newField[bool]()
 			field.Add(1, true)
 			bm, ok := field.data[true]
 			require.True(t, ok)
@@ -19,7 +18,7 @@ func Test_genericField(t *testing.T) {
 			require.Equal(t, uint64(1), bm.GetCardinality())
 		})
 		t.Run("can add two two different ids with different values", func(t *testing.T) {
-			field := newField[bool](cast.ToBoolE)
+			field := newField[bool]()
 			field.Add(1, true)
 			field.Add(2, false)
 			bm, ok := field.data[true]
@@ -33,7 +32,7 @@ func Test_genericField(t *testing.T) {
 			require.Equal(t, uint64(1), bm.GetCardinality())
 		})
 		t.Run("can add two two different ids with same value", func(t *testing.T) {
-			field := newField[bool](cast.ToBoolE)
+			field := newField[bool]()
 			field.Add(1, true)
 			field.Add(2, true)
 			bm, ok := field.data[true]
@@ -43,7 +42,7 @@ func Test_genericField(t *testing.T) {
 			require.Equal(t, uint64(2), bm.GetCardinality())
 		})
 		t.Run("can overwrite value", func(t *testing.T) {
-			field := newField[bool](cast.ToBoolE)
+			field := newField[bool]()
 			field.Add(1, true)
 			field.Add(1, true)
 			bm, ok := field.data[true]
@@ -55,7 +54,7 @@ func Test_genericField(t *testing.T) {
 
 	t.Run("Get", func(t *testing.T) {
 		t.Run("can return value if found", func(t *testing.T) {
-			f := newField[bool](cast.ToBoolE)
+			f := newField[bool]()
 			f.data = map[bool]*roaring.Bitmap{
 				true: roaring.New(),
 			}
@@ -66,24 +65,13 @@ func Test_genericField(t *testing.T) {
 			require.Equal(t, uint64(1), result.GetCardinality())
 		})
 		t.Run("can return empty bitmap if not found", func(t *testing.T) {
-			f := newField[bool](cast.ToBoolE)
+			f := newField[bool]()
 			f.data = map[bool]*roaring.Bitmap{
 				true: roaring.New(),
 			}
 			f.data[true].Add(1)
 
 			result := f.Get(false)
-			require.False(t, result.Contains(1))
-			require.Equal(t, uint64(0), result.GetCardinality())
-		})
-		t.Run("can return empty bitmap if invalid value provided", func(t *testing.T) {
-			f := newField[bool](cast.ToBoolE)
-			f.data = map[bool]*roaring.Bitmap{
-				true: roaring.New(),
-			}
-			f.data[true].Add(1)
-
-			result := f.Get("qwerty")
 			require.False(t, result.Contains(1))
 			require.Equal(t, uint64(0), result.GetCardinality())
 		})
@@ -105,10 +93,10 @@ func Test_genericField(t *testing.T) {
 		}
 
 		t.Run("can return union if both values found", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetOr([]interface{}{0, 1})
+			result := f.GetOr([]int{0, 1})
 			require.Equal(t, uint64(4), result.GetCardinality())
 			require.True(t, result.Contains(1))
 			require.True(t, result.Contains(2))
@@ -116,19 +104,19 @@ func Test_genericField(t *testing.T) {
 			require.True(t, result.Contains(4))
 		})
 		t.Run("can return non-empty result if at least one value found", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetOr([]interface{}{0, "qwe"})
+			result := f.GetOr([]int{0, 100})
 			require.Equal(t, uint64(2), result.GetCardinality())
 			require.True(t, result.Contains(1))
 			require.True(t, result.Contains(2))
 		})
 		t.Run("can return empty result if nothing found", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetOr([]interface{}{"qwe"})
+			result := f.GetOr([]int{100})
 			require.Equal(t, uint64(0), result.GetCardinality())
 		})
 	})
@@ -153,25 +141,25 @@ func Test_genericField(t *testing.T) {
 		}
 
 		t.Run("can return intersection if both values found", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetAnd([]interface{}{0, 1})
+			result := f.GetAnd([]int{0, 1})
 			require.Equal(t, uint64(1), result.GetCardinality())
 			require.True(t, result.Contains(2))
 		})
 		t.Run("can return empty result if no intersection exists between values", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetAnd([]interface{}{1, 2})
+			result := f.GetAnd([]int{1, 2})
 			require.Equal(t, uint64(0), result.GetCardinality())
 		})
 		t.Run("can return empty result if nothing found", func(t *testing.T) {
-			f := newField[int](cast.ToIntE)
+			f := newField[int]()
 			f.data = data
 
-			result := f.GetAnd([]interface{}{"qwe"})
+			result := f.GetAnd([]int{100})
 			require.Equal(t, uint64(0), result.GetCardinality())
 		})
 	})

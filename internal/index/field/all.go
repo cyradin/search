@@ -3,7 +3,6 @@ package field
 import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/spf13/cast"
 )
 
 const (
@@ -19,7 +18,7 @@ type All struct {
 }
 
 func NewAll() *All {
-	gf := newField[bool](cast.ToBoolE)
+	gf := newField[bool]()
 	return &All{
 		inner: gf,
 	}
