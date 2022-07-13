@@ -48,32 +48,26 @@ type Score struct {
 type Scores []Score
 
 type field[T comparable] struct {
-	mtx       sync.Mutex
-	data      map[T]*roaring.Bitmap
-	transform func(interface{}) (T, error)
+	mtx  sync.Mutex
+	data map[T]*roaring.Bitmap
 }
 
-func newField[T comparable](transformer func(interface{}) (T, error)) *field[T] {
+func newField[T comparable]() *field[T] {
 	result := &field[T]{
-		data:      make(map[T]*roaring.Bitmap),
-		transform: transformer,
+		data: make(map[T]*roaring.Bitmap),
 	}
 
 	return result
 }
 
-func (f *field[T]) Add(id uint32, value interface{}) {
+func (f *field[T]) Add(id uint32, value T) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-	val, err := f.transform(value)
-	if err != nil {
-		return
-	}
 
-	m, ok := f.data[val]
+	m, ok := f.data[value]
 	if !ok {
 		m = roaring.New()
-		f.data[val] = m
+		f.data[value] = m
 	}
 
 	m.Add(id)
@@ -100,16 +94,11 @@ func (f *field[T]) UnmarshalBinary(data []byte) error {
 	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
-func (f *field[T]) Get(v interface{}) *roaring.Bitmap {
+func (f *field[T]) Get(value T) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	val, err := f.transform(v)
-	if err != nil {
-		return roaring.New()
-	}
-
-	vv, ok := f.data[val]
+	vv, ok := f.data[value]
 	if !ok {
 		return roaring.New()
 	}
@@ -117,18 +106,13 @@ func (f *field[T]) Get(v interface{}) *roaring.Bitmap {
 	return vv.Clone()
 }
 
-func (f *field[T]) GetOr(values []interface{}) *roaring.Bitmap {
+func (f *field[T]) GetOr(values []T) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	var result *roaring.Bitmap
-	for _, v := range values {
-		val, err := f.transform(v)
-		if err != nil {
-			continue
-		}
-
-		bm, ok := f.data[val]
+	for _, value := range values {
+		bm, ok := f.data[value]
 		if !ok {
 			continue
 		}
@@ -148,18 +132,13 @@ func (f *field[T]) GetOr(values []interface{}) *roaring.Bitmap {
 	return result
 }
 
-func (f *field[T]) GetAnd(values []interface{}) *roaring.Bitmap {
+func (f *field[T]) GetAnd(values []T) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	var result *roaring.Bitmap
-	for _, v := range values {
-		val, err := f.transform(v)
-		if err != nil {
-			continue
-		}
-
-		bm, ok := f.data[val]
+	for _, value := range values {
+		bm, ok := f.data[value]
 		if !ok {
 			continue
 		}
@@ -201,19 +180,19 @@ func New(f FieldData) (Field, error) {
 	// case schema.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap()
 	case schema.TypeUnsignedLong:
-		field = newNumericField[uint64]()
+		field = NewNumeric[uint64]()
 	case schema.TypeLong:
-		field = newNumericField[int64]()
+		field = NewNumeric[int64]()
 	case schema.TypeInteger:
-		field = newNumericField[int32]()
+		field = NewNumeric[int32]()
 	case schema.TypeShort:
-		field = newNumericField[int16]()
+		field = NewNumeric[int16]()
 	case schema.TypeByte:
-		field = newNumericField[int8]()
+		field = NewNumeric[int8]()
 	case schema.TypeDouble:
-		field = newNumericField[float64]()
+		field = NewNumeric[float64]()
 	case schema.TypeFloat:
-		field = newNumericField[float32]()
+		field = NewNumeric[float32]()
 	default:
 		return nil, fmt.Errorf("invalid field type %q", f.Type)
 	}

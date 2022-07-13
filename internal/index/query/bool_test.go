@@ -289,7 +289,7 @@ func Test_boolQuery(t *testing.T) {
 	})
 
 	t.Run("exec", func(t *testing.T) {
-		f1 := field.NewInteger()
+		f1 := field.NewNumeric[int32]()
 		f1.Add(1, 1)
 		f1.Add(1, 3)
 		f1.Add(2, 2)

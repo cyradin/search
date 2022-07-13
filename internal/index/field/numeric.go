@@ -10,24 +10,24 @@ import (
 	"github.com/spf13/cast"
 )
 
-type numeric interface {
+type NumericConstraint interface {
 	int8 | int16 | int32 | int64 | uint64 | float32 | float64
 }
 
-type numericField[T numeric] struct {
+type Numeric[T NumericConstraint] struct {
 	mtx  sync.Mutex
 	data map[T]*roaring.Bitmap
 }
 
-func newNumericField[T numeric]() *numericField[T] {
-	result := &numericField[T]{
+func NewNumeric[T NumericConstraint]() *Numeric[T] {
+	result := &Numeric[T]{
 		data: make(map[T]*roaring.Bitmap),
 	}
 
 	return result
 }
 
-func (f *numericField[T]) Type() schema.Type {
+func (f *Numeric[T]) Type() schema.Type {
 	var k T
 	var result schema.Type
 	switch any(k).(type) {
@@ -50,7 +50,7 @@ func (f *numericField[T]) Type() schema.Type {
 	return result
 }
 
-func (f *numericField[T]) Add(id uint32, value interface{}) {
+func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 	val, err := castE[T](value)
@@ -69,7 +69,7 @@ func (f *numericField[T]) Add(id uint32, value interface{}) {
 	return
 }
 
-func (f *numericField[T]) MarshalBinary() ([]byte, error) {
+func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -79,7 +79,7 @@ func (f *numericField[T]) MarshalBinary() ([]byte, error) {
 	return buf.Bytes(), err
 }
 
-func (f *numericField[T]) UnmarshalBinary(data []byte) error {
+func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -88,7 +88,7 @@ func (f *numericField[T]) UnmarshalBinary(data []byte) error {
 	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
-func (f *numericField[T]) Get(v interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) Get(v interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -105,7 +105,7 @@ func (f *numericField[T]) Get(v interface{}) *roaring.Bitmap {
 	return vv.Clone()
 }
 
-func (f *numericField[T]) GetOr(values []interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) GetOr(values []interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -136,7 +136,7 @@ func (f *numericField[T]) GetOr(values []interface{}) *roaring.Bitmap {
 	return result
 }
 
-func (f *numericField[T]) GetAnd(values []interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) GetAnd(values []interface{}) *roaring.Bitmap {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -164,6 +164,18 @@ func (f *numericField[T]) GetAnd(values []interface{}) *roaring.Bitmap {
 		return roaring.New()
 	}
 
+	return result
+}
+
+func castSlice[T comparable](values []interface{}) []T {
+	result := make([]T, 0, len(values))
+	for _, value := range values {
+		v, err := castE[T](value)
+		if err != nil {
+			continue
+		}
+		result = append(result, v)
+	}
 	return result
 }
 
