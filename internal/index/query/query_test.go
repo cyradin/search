@@ -36,27 +36,6 @@ func decodeQuerySlice(query string) ([]map[string]interface{}, error) {
 	return result, nil
 }
 
-func Test_Exec(t *testing.T) {
-	t.Run("must return matching doc ids", func(t *testing.T) {
-		f := field.NewBool()
-		f.Add(1, true)
-
-		req, err := decodeQuery(`{
-			"term": {
-				"field": {
-					"query": 1
-				}
-			}
-		}`)
-		require.NoError(t, err)
-		require.NoError(t, err)
-
-		result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
-		require.NoError(t, err)
-		require.EqualValues(t, Result{Hits: []Hit{{ID: 1}}, Total: Total{Value: 1, Relation: "eq"}}, result)
-	})
-}
-
 func Test_build(t *testing.T) {
 	t.Run("must return error if query is empty", func(t *testing.T) {
 		f1 := field.NewBool()

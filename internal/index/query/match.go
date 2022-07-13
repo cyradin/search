@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -41,18 +40,19 @@ func newMatchQuery(ctx context.Context, query Query) (*matchQuery, error) {
 	}, nil
 }
 
-func (q *matchQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
+func (q *matchQuery) exec(ctx context.Context) (queryResult, error) {
 	key, val := firstVal(q.query)
 	fields := fields(ctx)
 	f, ok := fields[key]
 	if !ok {
-		return roaring.New(), nil
+		return newEmptyResult(), nil
 	}
 
 	v := val.(map[string]interface{})["query"]
 	if fts, ok := f.(field.FTS); ok {
-		return fts.GetOrAnalyzed(v), nil
+		bm, scores := fts.GetOrAnalyzed(v)
+		return newResult(bm, scores), nil
 	}
 
-	return f.Get(v), nil
+	return newNoScoreResult(f.Get(v)), nil
 }

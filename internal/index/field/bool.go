@@ -3,7 +3,6 @@ package field
 import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/spf13/cast"
 )
 
 var _ Field = (*Bool)(nil)
@@ -13,7 +12,7 @@ type Bool struct {
 }
 
 func NewBool() *Bool {
-	gf := newField[bool](cast.ToBoolE)
+	gf := newField[bool]()
 	return &Bool{
 		inner: gf,
 	}
@@ -24,15 +23,25 @@ func (f *Bool) Type() schema.Type {
 }
 
 func (f *Bool) Add(id uint32, value interface{}) {
-	f.inner.Add(id, value)
+	v, err := castE[bool](value)
+	if err != nil {
+		return
+	}
+
+	f.inner.Add(id, v)
 }
 
 func (f *Bool) Get(value interface{}) *roaring.Bitmap {
-	return f.inner.Get(value)
+	v, err := castE[bool](value)
+	if err != nil {
+		return roaring.New()
+	}
+
+	return f.inner.Get(v)
 }
 
 func (f *Bool) GetOr(values []interface{}) *roaring.Bitmap {
-	return f.inner.GetOr(values)
+	return f.inner.GetOr(castSlice[bool](values))
 }
 
 func (f *Bool) MarshalBinary() ([]byte, error) {
