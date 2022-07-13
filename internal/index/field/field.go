@@ -201,19 +201,19 @@ func New(f FieldData) (Field, error) {
 	// case schema.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap()
 	case schema.TypeUnsignedLong:
-		field = NewUnsignedLong()
+		field = newNumericField[uint64]()
 	case schema.TypeLong:
-		field = NewLong()
+		field = newNumericField[int64]()
 	case schema.TypeInteger:
-		field = NewInteger()
+		field = newNumericField[int32]()
 	case schema.TypeShort:
-		field = NewShort()
+		field = newNumericField[int16]()
 	case schema.TypeByte:
-		field = NewByte()
+		field = newNumericField[int8]()
 	case schema.TypeDouble:
-		field = NewDouble()
+		field = newNumericField[float64]()
 	case schema.TypeFloat:
-		field = NewFloat()
+		field = newNumericField[float32]()
 	default:
 		return nil, fmt.Errorf("invalid field type %q", f.Type)
 	}
