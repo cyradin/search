@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -41,16 +40,16 @@ func newTermQuery(ctx context.Context, query Query) (*termQuery, error) {
 	}, nil
 }
 
-func (q *termQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
+func (q *termQuery) exec(ctx context.Context) (queryResult, error) {
 	key, val := firstVal(q.query)
 	fields := fields(ctx)
 	field, ok := fields[key]
 	if !ok {
-		return roaring.New(), nil
+		return newEmptyResult(), nil
 	}
 	v := val.(map[string]interface{})["query"]
 
-	return field.Get(v), nil
+	return newNoScoreResult(field.Get(v)), nil
 }
 
 type termsQuery struct {
@@ -93,14 +92,14 @@ func newTermsQuery(ctx context.Context, query Query) (*termsQuery, error) {
 	}, nil
 }
 
-func (q *termsQuery) exec(ctx context.Context) (*roaring.Bitmap, error) {
+func (q *termsQuery) exec(ctx context.Context) (queryResult, error) {
 	key, val := firstVal(q.query)
 	fields := fields(ctx)
 	field, ok := fields[key]
 	if !ok {
-		return roaring.New(), nil
+		return newEmptyResult(), nil
 	}
 	v, _ := interfaceToSlice[interface{}](val.(map[string]interface{})["query"])
 
-	return field.GetOr(v), nil
+	return newNoScoreResult(field.GetOr(v)), nil
 }
