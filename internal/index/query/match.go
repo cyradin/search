@@ -50,7 +50,8 @@ func (q *matchQuery) exec(ctx context.Context) (queryResult, error) {
 
 	v := val.(map[string]interface{})["query"]
 	if fts, ok := f.(field.FTS); ok {
-		return newNoScoreResult(fts.GetOrAnalyzed(v)), nil
+		bm, scores := fts.GetOrAnalyzed(v)
+		return newResult(bm, scores), nil
 	}
 
 	return newNoScoreResult(f.Get(v)), nil

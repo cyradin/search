@@ -35,9 +35,9 @@ type Field interface {
 
 type FTS interface {
 	// GetOrAnalyzed apply field analyzer to the value and return union between results
-	GetOrAnalyzed(value interface{}) *roaring.Bitmap
+	GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64)
 	// GetAndAnalyzed apply field analyzer to the value and return intersection between results
-	GetAndAnalyzed(value interface{}) *roaring.Bitmap
+	GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64)
 }
 
 type Score struct {

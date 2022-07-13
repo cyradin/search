@@ -51,28 +51,47 @@ func (f *Text) GetOr(values []interface{}) *roaring.Bitmap {
 	return f.inner.GetOr(values)
 }
 
-func (f *Text) GetOrAnalyzed(value interface{}) *roaring.Bitmap {
+func (f *Text) GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
 	v, err := f.inner.transform(value)
 	if err != nil {
-		return roaring.New()
+		return roaring.New(), make(map[uint32]float64)
 	}
 	if v == "" {
-		return roaring.New()
+		return roaring.New(), make(map[uint32]float64)
 	}
 
-	return f.inner.GetOr(sliceToInterfaceSlice[string](f.analyzer([]string{v})))
+	tokens := f.analyzer([]string{v})
+	bm := f.inner.GetOr(sliceToInterfaceSlice[string](tokens))
+
+	return bm, f.scores(bm, tokens)
 }
 
-func (f *Text) GetAndAnalyzed(value interface{}) *roaring.Bitmap {
+func (f *Text) GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
 	v, err := f.inner.transform(value)
 	if err != nil {
-		return roaring.New()
+		return roaring.New(), make(map[uint32]float64)
 	}
 	if v == "" {
-		return roaring.New()
+		return roaring.New(), make(map[uint32]float64)
 	}
 
-	return f.inner.GetAnd(sliceToInterfaceSlice[string](f.analyzer([]string{v})))
+	tokens := f.analyzer([]string{v})
+	bm := f.inner.GetAnd(sliceToInterfaceSlice[string](tokens))
+
+	return bm, f.scores(bm, tokens)
+}
+
+func (f *Text) scores(bm *roaring.Bitmap, tokens []string) map[uint32]float64 {
+	result := make(map[uint32]float64)
+	bm.Iterate(func(x uint32) bool {
+		score := 0.0
+		for _, t := range tokens {
+			score += f.scoring.BM25(x, 2, 0.75, t)
+		}
+		result[x] = score
+		return true
+	})
+	return result
 }
 
 type textData struct {
