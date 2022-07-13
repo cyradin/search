@@ -6,6 +6,11 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+type testFieldValue struct {
+	id    uint32
+	value interface{}
+}
+
 func Test_All_Add(t *testing.T) {
 	t.Run("true", func(t *testing.T) {
 		field := NewAll()
