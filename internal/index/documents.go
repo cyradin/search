@@ -3,6 +3,7 @@ package index
 import (
 	"context"
 	"fmt"
+	"time"
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
@@ -18,7 +19,27 @@ type Search struct {
 	Offset int                    `json:"offset"`
 }
 
-type SearchResult struct{}
+type SearchResult struct {
+	Took int        `json:"took"`
+	Hits SearchHits `json:"hits"`
+}
+
+type SearchHits struct {
+	Total    SearchTotal `json:"total"`
+	Hits     []SearchHit `json:"hits"`
+	MaxScore float64     `json:"maxScore"`
+}
+
+type SearchTotal struct {
+	Value    int    `json:"value"`
+	Relation string `json:"relation"`
+}
+
+type SearchHit struct {
+	ID     uint32      `json:"id"`
+	Score  float64     `json:"score"`
+	Source interface{} `json:"source"`
+}
 
 type Documents struct {
 	sources *source.Storage
@@ -88,19 +109,40 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 }
 
 func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
-	_, fieldIndex, err := d.getIndexes(index.Name)
+	srcIndex, fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	hits, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
+	t := time.Now()
+	result, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
+	took := time.Since(t).Microseconds()
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	fmt.Println(hits) // @todo make search result
+	hits := make([]SearchHit, len(result.Hits))
+	for i, item := range result.Hits {
+		hits[i] = SearchHit{
+			ID:    item.ID,
+			Score: item.Score,
+		}
+	}
+	err = d.loadDocSources(ctx, srcIndex, hits)
+	if err != nil {
+		return SearchResult{}, err
+	}
 
-	return SearchResult{}, nil
+	return SearchResult{
+		Hits: SearchHits{
+			Total: SearchTotal{
+				Value:    result.Total.Value,
+				Relation: result.Total.Relation,
+			},
+			Hits: hits,
+		},
+		Took: int(took),
+	}, nil
 }
 
 func (d *Documents) getIndexes(
@@ -115,4 +157,27 @@ func (d *Documents) getIndexes(
 		return
 	}
 	return
+}
+
+func (d *Documents) loadDocSources(ctx context.Context, srcIndex *source.Index, hits []SearchHit) error {
+	if len(hits) == 0 {
+		return nil
+	}
+
+	hitmap := make(map[uint32]*SearchHit, len(hits))
+	ids := make([]uint32, 0, len(hits))
+	for i := range hits {
+		hitmap[hits[i].ID] = &hits[i]
+		ids = append(ids, hits[i].ID)
+	}
+
+	sources, err := srcIndex.Multi(ids...)
+	if err != nil {
+		return fmt.Errorf("load doc sources err: %w", err)
+	}
+	for _, s := range sources {
+		hitmap[s.ID].Source = s.Source
+	}
+
+	return nil
 }

@@ -37,142 +37,141 @@ func decodeQuerySlice(query string) ([]map[string]interface{}, error) {
 }
 
 func Test_Exec(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-		expected  []SearchHit
-	}{
-		{
-			name:      "error",
-			query:     `{"term":{}}`,
-			erroneous: true,
-		},
-		{
-			name:      "ok",
-			query:     `{"term":{ "field": 1 }}`,
-			erroneous: false,
-			expected:  []SearchHit{{ID: 1}},
-		},
-	}
+	t.Run("must return matching doc ids", func(t *testing.T) {
+		f := field.NewBool()
+		f.Add(1, true)
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f := field.NewBool()
-			f.Add(1, true)
-
-			req, err := decodeQuery(d.query)
-			require.NoError(t, err)
-			require.NoError(t, err)
-
-			result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
-			if d.erroneous {
-				require.Error(t, err)
-				require.Nil(t, result)
-				return
+		req, err := decodeQuery(`{
+			"term": {
+				"field": {
+					"query": 1
+				}
 			}
+		}`)
+		require.NoError(t, err)
+		require.NoError(t, err)
 
-			require.NoError(t, err)
-			require.EqualValues(t, d.expected, result)
-		})
-	}
+		result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
+		require.NoError(t, err)
+		require.EqualValues(t, Result{Hits: []Hit{{ID: 1}}, Total: Total{Value: 1, Relation: "eq"}}, result)
+	})
 }
 
 func Test_build(t *testing.T) {
-	data := []struct {
-		name      string
-		query     string
-		erroneous bool
-	}{
-		{
-			name:      "error_empty_query",
-			query:     `{}`,
-			erroneous: true,
-		},
-		{
-			name:      "error_multi_query",
-			query:     `{"term":{ "field": 1 }, "terms":{ "field": [1] }}`,
-			erroneous: true,
-		},
-		{
-			name:      "error_invalid_query",
-			query:     `{"term":1 }`,
-			erroneous: true,
-		},
-		{
-			name:      "error_unknown_query",
-			query:     `{"invalid": { "field": 1 }}`,
-			erroneous: true,
-		},
-		{
-			name:      "ok_term",
-			query:     `{"term":{ "field": true }}`,
-			erroneous: false,
-		},
-		{
-			name:      "ok_terms",
-			query:     `{"terms":{ "field": [true,false] }}`,
-			erroneous: false,
-		},
-		{
-			name: "ok_bool",
-			query: `
-					{
-						"bool": {
-							"should": [
-								{
-									"terms": {
-										"field": [
-											true,
-											false
-										]
-									}
-								}
-							]
-						}
-					}
-					`,
-			erroneous: false,
-		},
-		{
-			name: "err_bool_subquery",
-			query: `
-					{
-						"bool": {
-							"should": [
-								{
-									"invalid": {
-										"field": [
-											true,
-											false
-										]
-									}
-								}
-							]
-						}
-					}
-					`,
-			erroneous: true,
-		},
-	}
+	t.Run("must return error if query is empty", func(t *testing.T) {
+		f1 := field.NewBool()
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			f1 := field.NewBool()
+		query, err := decodeQuery(`{}`)
+		require.NoError(t, err)
 
-			query, err := decodeQuery(d.query)
-			require.NoError(t, err)
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
+	t.Run("must return error if query contains multiple root fields", func(t *testing.T) {
+		f1 := field.NewBool()
 
-			ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-			result, err := build(ctx, query)
-			if d.erroneous {
-				require.Error(t, err)
-				require.Nil(t, result)
-				return
+		query, err := decodeQuery(`{
+			"term": {
+				"field": 1
+			},
+			"terms": {
+				"field": [1]
 			}
+		}`)
+		require.NoError(t, err)
 
-			require.NoError(t, err)
-			require.NotNil(t, result)
-		})
-	}
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
+	t.Run("must return error if query is invalid", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"term": {
+				"field": 1
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
+	t.Run("must return error if query type is unknown", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"invalid": {
+				"field": 1
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
+	t.Run("must not return error if query a valid term query", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"term": {
+				"field": {
+					"query": "value"
+				}
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
+	t.Run("must not return error if query a valid terms query", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"terms": {
+				"field": {
+					"query": ["value"]
+				}
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
+	t.Run("must not return error if query a valid bool query", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"bool": {
+				"should": [
+					{
+						"terms": {
+							"field": {
+								"query": ["value"]
+							}
+						}
+					}
+				]
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
 }

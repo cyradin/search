@@ -11,8 +11,20 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-type SearchHit struct {
-	ID uint32
+type Result struct {
+	Hits     []Hit
+	Total    Total
+	MaxScore float64
+}
+
+type Total struct {
+	Value    int
+	Relation string
+}
+
+type Hit struct {
+	ID    uint32
+	Score float64
 }
 
 type queryType string
@@ -25,6 +37,8 @@ const (
 	queryBoolShould queryType = "should"
 	queryBoolMust   queryType = "must"
 	queryBoolFilter queryType = "filter"
+
+	queryMatch queryType = "match"
 )
 
 func queryTypes() []queryType {
@@ -35,38 +49,46 @@ func queryTypes() []queryType {
 	}
 }
 
-type Query interface {
+type internalQuery interface {
 	exec(ctx context.Context) (*roaring.Bitmap, error)
 }
 
-type Req map[string]interface{}
+type Query map[string]interface{}
 type Fields map[string]field.Field
 
-func Exec(ctx context.Context, req Req, fields Fields) ([]SearchHit, error) {
+func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
 	ctx = withFields(ctx, fields)
 	ctx = errs.WithPath(ctx, "query")
-	q, err := build(ctx, req)
+	q, err := build(ctx, query)
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 
 	bm, err := q.exec(ctx)
 	if err != nil {
-		return nil, err
+		return Result{}, err
 	}
 
-	hits := make([]SearchHit, 0, bm.GetCardinality())
+	hits := make([]Hit, 0, bm.GetCardinality())
 	bm.Iterate(func(x uint32) bool {
-		hits = append(hits, SearchHit{
-			ID: x,
+		hits = append(hits, Hit{
+			ID:    x,
+			Score: 0, // @todo
 		})
 		return true
 	})
 
-	return hits, nil
+	return Result{
+		Total: Total{
+			Value:    int(bm.GetCardinality()),
+			Relation: "eq",
+		},
+		Hits:     hits,
+		MaxScore: 0, // @todo
+	}, nil
 }
 
-func build(ctx context.Context, req Req) (Query, error) {
+func build(ctx context.Context, req Query) (internalQuery, error) {
 	err := validation.ValidateWithContext(ctx, req,
 		validation.Required.ErrorObject(errs.Required(ctx)),
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
@@ -106,6 +128,8 @@ func build(ctx context.Context, req Req) (Query, error) {
 		return newTermsQuery(ctx, req)
 	case queryBool:
 		return newBoolQuery(ctx, req)
+	case queryMatch:
+		return newMatchQuery(ctx, req)
 	}
 
 	// must not be executed because of validation made earlier

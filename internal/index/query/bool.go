@@ -9,18 +9,18 @@ import (
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-var _ Query = (*boolQuery)(nil)
+var _ internalQuery = (*boolQuery)(nil)
 
 type boolQuery struct {
-	query Req
+	query Query
 
-	must   []Query
-	should []Query
-	filter []Query
+	must   []internalQuery
+	should []internalQuery
+	filter []internalQuery
 }
 
-func newBoolQuery(ctx context.Context, req Req) (*boolQuery, error) {
-	err := validation.ValidateWithContext(ctx, req, validation.Map(
+func newBoolQuery(ctx context.Context, query Query) (*boolQuery, error) {
+	err := validation.ValidateWithContext(ctx, query, validation.Map(
 		validation.Key(string(queryBoolMust), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
@@ -48,13 +48,13 @@ func newBoolQuery(ctx context.Context, req Req) (*boolQuery, error) {
 	}
 
 	result := &boolQuery{
-		query: req,
+		query: query,
 	}
 
-	for key, value := range req {
+	for key, value := range query {
 		values, _ := interfaceToSlice[map[string]interface{}](value)
 
-		children := make([]Query, len(values))
+		children := make([]internalQuery, len(values))
 		for i, v := range values {
 			ctx := errs.WithPath(ctx, errs.Path(ctx), key)
 			child, err := build(ctx, v)
