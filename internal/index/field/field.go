@@ -29,8 +29,8 @@ type Field interface {
 	Get(value interface{}) *roaring.Bitmap
 	// GetOr compute the union between bitmaps of the passed values
 	GetOr(values []interface{}) *roaring.Bitmap
-	// GetsAnd compute the intersection between bitmaps of the passed values
-	// GetsAnd(values []interface{}) *roaring.Bitmap
+	// GetAnd compute the intersection between bitmaps of the passed values
+	GetAnd(values []interface{}) *roaring.Bitmap
 }
 
 type FTS interface {

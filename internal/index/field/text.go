@@ -55,6 +55,10 @@ func (f *Text) GetOr(values []interface{}) *roaring.Bitmap {
 	return f.inner.GetOr(castSlice[string](values))
 }
 
+func (f *Text) GetAnd(values []interface{}) *roaring.Bitmap {
+	return f.inner.GetAnd(castSlice[string](values))
+}
+
 func (f *Text) GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
 	v, err := castE[string](value)
 	if err != nil {

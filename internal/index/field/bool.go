@@ -44,6 +44,10 @@ func (f *Bool) GetOr(values []interface{}) *roaring.Bitmap {
 	return f.inner.GetOr(castSlice[bool](values))
 }
 
+func (f *Bool) GetAnd(values []interface{}) *roaring.Bitmap {
+	return f.inner.GetAnd(castSlice[bool](values))
+}
+
 func (f *Bool) MarshalBinary() ([]byte, error) {
 	return f.inner.MarshalBinary()
 }
