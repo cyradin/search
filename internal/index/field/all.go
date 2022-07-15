@@ -40,6 +40,10 @@ func (f *All) GetOr(values []interface{}) *roaring.Bitmap {
 	return f.Get(true)
 }
 
+func (f *All) GetAnd(values []interface{}) *roaring.Bitmap {
+	return f.Get(true)
+}
+
 func (f *All) MarshalBinary() ([]byte, error) {
 	return f.inner.MarshalBinary()
 }
