@@ -1,6 +1,7 @@
 package field
 
 import (
+	"context"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/schema"
@@ -25,6 +26,8 @@ func Test_index(t *testing.T) {
 	})
 
 	t.Run("can add document", func(t *testing.T) {
+		ctx := context.Background()
+
 		s := schema.New(map[string]schema.Field{
 			"f1": {Type: schema.TypeBool},
 			"f2": {Type: schema.TypeBool},
@@ -35,17 +38,17 @@ func Test_index(t *testing.T) {
 		index.Add(1, map[string]interface{}{"f1": true})
 		index.Add(2, map[string]interface{}{"f2": true})
 
-		f1 := index.fields["f1"].Get(true)
-		require.True(t, f1.Contains(1))
-		require.False(t, f1.Contains(2))
+		result1 := index.fields["f1"].Get(ctx, true)
+		require.True(t, result1.Docs().Contains(1))
+		require.False(t, result1.Docs().Contains(2))
 
-		f2 := index.fields["f2"].Get(true)
-		require.False(t, f2.Contains(1))
-		require.True(t, f2.Contains(2))
+		result2 := index.fields["f2"].Get(ctx, true)
+		require.False(t, result2.Docs().Contains(1))
+		require.True(t, result2.Docs().Contains(2))
 
-		all := index.fields[AllField].Get(true)
-		require.True(t, all.Contains(1))
-		require.True(t, all.Contains(2))
+		result3 := index.fields[AllField].Get(ctx, true)
+		require.True(t, result3.Docs().Contains(1))
+		require.True(t, result3.Docs().Contains(2))
 	})
 
 	t.Run("can get all fields", func(t *testing.T) {

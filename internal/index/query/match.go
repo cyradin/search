@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/cyradin/search/internal/errs"
-	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -49,10 +48,6 @@ func (q *matchQuery) exec(ctx context.Context) (queryResult, error) {
 	}
 
 	v := val.(map[string]interface{})["query"]
-	if fts, ok := f.(field.FTS); ok {
-		bm, scores := fts.GetOrAnalyzed(v)
-		return newResult(bm, scores), nil
-	}
-
-	return newNoScoreResult(f.Get(v)), nil
+	bm, scores := f.GetOr(ctx, []interface{}{v})
+	return newResult(bm, scores), nil
 }

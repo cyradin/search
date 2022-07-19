@@ -2,6 +2,7 @@ package field
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 	"sync"
 
@@ -88,24 +89,24 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	return gob.NewDecoder(buf).Decode(&f.data)
 }
 
-func (f *Numeric[T]) Get(v interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) Get(ctx context.Context, v interface{}) *Result {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
 	val, err := castE[T](v)
 	if err != nil {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
 
 	vv, ok := f.data[val]
 	if !ok {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
 
-	return vv.Clone()
+	return NewResult(ctx, vv.Clone())
 }
 
-func (f *Numeric[T]) GetOr(values []interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -130,13 +131,13 @@ func (f *Numeric[T]) GetOr(values []interface{}) *roaring.Bitmap {
 	}
 
 	if result == nil {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
 
-	return result
+	return NewResult(ctx, result)
 }
 
-func (f *Numeric[T]) GetAnd(values []interface{}) *roaring.Bitmap {
+func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
@@ -161,10 +162,10 @@ func (f *Numeric[T]) GetAnd(values []interface{}) *roaring.Bitmap {
 	}
 
 	if result == nil {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
 
-	return result
+	return NewResult(ctx, result)
 }
 
 func castSlice[T comparable](values []interface{}) []T {
