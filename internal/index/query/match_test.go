@@ -106,9 +106,7 @@ func Test_matchQuery(t *testing.T) {
 
 			result, err := tq.exec(ctx)
 			require.NoError(t, err)
-			require.True(t, result.bm.IsEmpty())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.True(t, result.Docs().IsEmpty())
 		})
 
 		t.Run("must return empty result if value not found", func(t *testing.T) {
@@ -126,9 +124,7 @@ func Test_matchQuery(t *testing.T) {
 
 				result, err := tq.exec(ctx)
 				require.NoError(t, err)
-				require.True(t, result.bm.IsEmpty())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.True(t, result.Docs().IsEmpty())
 			})
 			t.Run("text", func(t *testing.T) {
 				query := `{
@@ -144,9 +140,7 @@ func Test_matchQuery(t *testing.T) {
 
 				result, err := tq.exec(ctx)
 				require.NoError(t, err)
-				require.True(t, result.bm.IsEmpty())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.True(t, result.Docs().IsEmpty())
 			})
 		})
 
@@ -165,10 +159,9 @@ func Test_matchQuery(t *testing.T) {
 
 				result, err := tq.exec(ctx)
 				require.NoError(t, err)
-				require.False(t, result.bm.IsEmpty())
-				require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.False(t, result.Docs().IsEmpty())
+				require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
+				require.Greater(t, result.Score(1), 0)
 			})
 			t.Run("text", func(t *testing.T) {
 				t.Run("two words, one found", func(t *testing.T) {
@@ -185,9 +178,9 @@ func Test_matchQuery(t *testing.T) {
 
 					result, err := tq.exec(ctx)
 					require.NoError(t, err)
-					require.False(t, result.bm.IsEmpty())
-					require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-					require.Len(t, result.scores, 1)
+					require.False(t, result.Docs().IsEmpty())
+					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
+					require.Greater(t, result.Score(1), 0)
 				})
 				t.Run("two words, both found", func(t *testing.T) {
 					query := `{
@@ -203,10 +196,9 @@ func Test_matchQuery(t *testing.T) {
 
 					result, err := tq.exec(ctx)
 					require.NoError(t, err)
-					require.False(t, result.bm.IsEmpty())
-					require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-					require.NotNil(t, result.scores)
-					require.Len(t, result.scores, 1)
+					require.False(t, result.Docs().IsEmpty())
+					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
+					require.Greater(t, result.Score(1), 0)
 				})
 				t.Run("one word", func(t *testing.T) {
 					query := `{
@@ -222,10 +214,9 @@ func Test_matchQuery(t *testing.T) {
 
 					result, err := tq.exec(ctx)
 					require.NoError(t, err)
-					require.False(t, result.bm.IsEmpty())
-					require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-					require.NotNil(t, result.scores)
-					require.Len(t, result.scores, 1)
+					require.False(t, result.Docs().IsEmpty())
+					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
+					require.Greater(t, result.Score(1), 0)
 				})
 			})
 		})
