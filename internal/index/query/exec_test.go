@@ -25,6 +25,6 @@ func Test_Exec(t *testing.T) {
 
 		result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
 		require.NoError(t, err)
-		require.EqualValues(t, Result{Hits: []Hit{{ID: 1}}, Total: Total{Value: 1, Relation: "eq"}}, result)
+		require.EqualValues(t, Result{Hits: []Hit{{ID: 1, Score: 1}}, Total: Total{Value: 1, Relation: "eq"}, MaxScore: 1}, result)
 	})
 }

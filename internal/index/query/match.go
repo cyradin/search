@@ -39,7 +39,7 @@ func newMatchQuery(ctx context.Context, query Query) (*matchQuery, error) {
 	}, nil
 }
 
-func (q *matchQuery) exec(ctx context.Context) (queryResult, error) {
+func (q *matchQuery) exec(ctx context.Context) (*queryResult, error) {
 	key, val := firstVal(q.query)
 	fields := fields(ctx)
 	f, ok := fields[key]
@@ -48,6 +48,6 @@ func (q *matchQuery) exec(ctx context.Context) (queryResult, error) {
 	}
 
 	v := val.(map[string]interface{})["query"]
-	bm, scores := f.GetOr(ctx, []interface{}{v})
-	return newResult(bm, scores), nil
+
+	return newResult(f.Get(ctx, v)), nil
 }
