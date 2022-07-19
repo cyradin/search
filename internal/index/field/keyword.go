@@ -1,6 +1,8 @@
 package field
 
 import (
+	"context"
+
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
 )
@@ -31,21 +33,21 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	f.inner.Add(id, v)
 }
 
-func (f *Keyword) Get(value interface{}) *roaring.Bitmap {
+func (f *Keyword) Get(ctx context.Context, value interface{}) *Result {
 	v, err := castE[string](value)
 	if err != nil {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
 
-	return f.inner.Get(v)
+	return NewResult(ctx, f.inner.Get(v))
 }
 
-func (f *Keyword) GetOr(values []interface{}) *roaring.Bitmap {
-	return f.inner.GetOr(castSlice[string](values))
+func (f *Keyword) GetOr(ctx context.Context, values []interface{}) *Result {
+	return NewResult(ctx, f.inner.GetOr(castSlice[string](values)))
 }
 
-func (f *Keyword) GetAnd(values []interface{}) *roaring.Bitmap {
-	return f.inner.GetAnd(castSlice[string](values))
+func (f *Keyword) GetAnd(ctx context.Context, values []interface{}) *Result {
+	return NewResult(ctx, f.inner.GetAnd(castSlice[string](values)))
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

@@ -37,6 +37,10 @@ type queryResult struct {
 	scores map[uint32]float64
 }
 
+type scoreResult interface {
+	Get(id uint32) float64
+}
+
 func newEmptyResult() queryResult {
 	return queryResult{
 		bm:     roaring.New(),

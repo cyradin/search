@@ -76,6 +76,8 @@ func Test_Storage(t *testing.T) {
 
 	t.Run("can load index from file", func(t *testing.T) {
 		t.Run("bool field", func(t *testing.T) {
+			ctx := context.Background()
+
 			dir := t.TempDir()
 			s := NewStorage(dir)
 
@@ -96,10 +98,12 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			val := index.fields["bool"].Get(true)
-			require.True(t, val.Contains(1))
+			result := index.fields["bool"].Get(ctx, true)
+			require.True(t, result.Docs().Contains(1))
 		})
 		t.Run("text field", func(t *testing.T) {
+			ctx := context.Background()
+
 			dir := t.TempDir()
 			s := NewStorage(dir)
 
@@ -123,8 +127,8 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			val := index.fields["text"].Get("word")
-			require.True(t, val.Contains(1))
+			result := index.fields["text"].Get(ctx, "word")
+			require.True(t, result.Docs().Contains(1))
 		})
 	})
 

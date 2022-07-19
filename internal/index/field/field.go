@@ -2,6 +2,7 @@ package field
 
 import (
 	"bytes"
+	"context"
 	"encoding"
 	"encoding/gob"
 	"fmt"
@@ -26,26 +27,17 @@ type Field interface {
 	// Add add document field value
 	Add(id uint32, value interface{})
 	// Get get bitmap clone by value
-	Get(value interface{}) *roaring.Bitmap
+	Get(ctx context.Context, value interface{}) *Result
 	// GetOr compute the union between bitmaps of the passed values
-	GetOr(values []interface{}) *roaring.Bitmap
+	GetOr(ctx context.Context, values []interface{}) *Result
 	// GetAnd compute the intersection between bitmaps of the passed values
-	GetAnd(values []interface{}) *roaring.Bitmap
-}
-
-type FTS interface {
-	// GetOrAnalyzed apply field analyzer to the value and return union between results
-	GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64)
-	// GetAndAnalyzed apply field analyzer to the value and return intersection between results
-	GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64)
+	GetAnd(ctx context.Context, values []interface{}) *Result
 }
 
 type Score struct {
 	ID    uint32
 	Value float64
 }
-
-type Scores []Score
 
 type field[T comparable] struct {
 	mtx  sync.Mutex
