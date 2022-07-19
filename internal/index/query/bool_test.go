@@ -127,9 +127,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{1, 2, 3}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
 		})
 		t.Run("must return documents for should query if documents match at least one query", func(t *testing.T) {
 			query, err := decodeQuery(`
@@ -158,9 +156,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{1, 2}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
 		})
 		t.Run("must return no documents for must query if no documents match all queries", func(t *testing.T) {
 			query, err := decodeQuery(`
@@ -189,9 +185,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
 		})
 		t.Run("must return documents for must query if some documents match all queries", func(t *testing.T) {
 			query, err := decodeQuery(`
@@ -220,9 +214,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
 		})
 		t.Run("must return no documents for filter query if no documents match all queries", func(t *testing.T) {
 			query, err := decodeQuery(`
@@ -251,9 +243,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
 		})
 		t.Run("must return documents for filter query if some documents match all queries", func(t *testing.T) {
 			query, err := decodeQuery(`
@@ -282,9 +272,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 			require.NotNil(t, result)
-			require.ElementsMatch(t, []uint32{1}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
 		})
 	})
 
@@ -310,9 +298,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 
-			require.EqualValues(t, []uint32{1, 2}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.EqualValues(t, []uint32{1, 2}, result.Docs().ToArray())
 		})
 		t.Run("must return union of should queries", func(t *testing.T) {
 			req, err := decodeQuery(`
@@ -344,9 +330,7 @@ func Test_boolQuery(t *testing.T) {
 			result, err := bq.exec(ctx)
 			require.NoError(t, err)
 
-			require.EqualValues(t, []uint32{1, 2}, result.bm.ToArray())
-			require.NotNil(t, result.scores)
-			require.Empty(t, result.scores)
+			require.EqualValues(t, []uint32{1, 2}, result.Docs().ToArray())
 		})
 		t.Run("must return intersection of must queries", func(t *testing.T) {
 			t.Run("empty intersection", func(t *testing.T) {
@@ -379,9 +363,7 @@ func Test_boolQuery(t *testing.T) {
 				result, err := bq.exec(ctx)
 				require.NoError(t, err)
 
-				require.EqualValues(t, []uint32{}, result.bm.ToArray())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.EqualValues(t, []uint32{}, result.Docs().ToArray())
 			})
 			t.Run("not empty intersection", func(t *testing.T) {
 				req, err := decodeQuery(`
@@ -413,9 +395,7 @@ func Test_boolQuery(t *testing.T) {
 				result, err := bq.exec(ctx)
 				require.NoError(t, err)
 
-				require.EqualValues(t, []uint32{1}, result.bm.ToArray())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.EqualValues(t, []uint32{1}, result.Docs().ToArray())
 			})
 		})
 		t.Run("must return intersection of filter queries", func(t *testing.T) {
@@ -449,9 +429,7 @@ func Test_boolQuery(t *testing.T) {
 				result, err := bq.exec(ctx)
 				require.NoError(t, err)
 
-				require.EqualValues(t, []uint32{}, result.bm.ToArray())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.EqualValues(t, []uint32{}, result.Docs().ToArray())
 			})
 			t.Run("not empty intersection", func(t *testing.T) {
 				req, err := decodeQuery(`
@@ -483,9 +461,7 @@ func Test_boolQuery(t *testing.T) {
 				result, err := bq.exec(ctx)
 				require.NoError(t, err)
 
-				require.EqualValues(t, []uint32{1}, result.bm.ToArray())
-				require.NotNil(t, result.scores)
-				require.Empty(t, result.scores)
+				require.EqualValues(t, []uint32{1}, result.Docs().ToArray())
 			})
 		})
 	})

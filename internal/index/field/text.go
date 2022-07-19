@@ -2,6 +2,7 @@ package field
 
 import (
 	"bytes"
+	"context"
 	"encoding/gob"
 
 	"github.com/RoaringBitmap/roaring"
@@ -15,7 +16,6 @@ type Text struct {
 }
 
 var _ Field = (*Text)(nil)
-var _ FTS = (*Text)(nil)
 
 func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	gf := newField[string]()
@@ -42,60 +42,22 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Get(value interface{}) *roaring.Bitmap {
+func (f *Text) Get(ctx context.Context, value interface{}) *Result {
 	val, err := castE[string](value)
 	if err != nil {
-		return roaring.New()
+		return NewResult(ctx, roaring.New())
 	}
+	tokens := f.analyzer([]string{val})
 
-	return f.inner.Get(val)
+	return NewResultWithScoring(ctx, f.inner.GetOr(tokens), f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) GetOr(values []interface{}) *roaring.Bitmap {
-	return f.inner.GetOr(castSlice[string](values))
+func (f *Text) GetOr(ctx context.Context, values []interface{}) *Result {
+	return NewResult(ctx, roaring.New()) // no implemented (yet?)
 }
 
-func (f *Text) GetOrAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
-	v, err := castE[string](value)
-	if err != nil {
-		return roaring.New(), make(map[uint32]float64)
-	}
-	if v == "" {
-		return roaring.New(), make(map[uint32]float64)
-	}
-
-	tokens := f.analyzer([]string{v})
-	bm := f.inner.GetOr(tokens)
-
-	return bm, f.scores(bm, tokens)
-}
-
-func (f *Text) GetAndAnalyzed(value interface{}) (*roaring.Bitmap, map[uint32]float64) {
-	v, err := castE[string](value)
-	if err != nil {
-		return roaring.New(), make(map[uint32]float64)
-	}
-	if v == "" {
-		return roaring.New(), make(map[uint32]float64)
-	}
-
-	tokens := f.analyzer([]string{v})
-	bm := f.inner.GetAnd(tokens)
-
-	return bm, f.scores(bm, tokens)
-}
-
-func (f *Text) scores(bm *roaring.Bitmap, tokens []string) map[uint32]float64 {
-	result := make(map[uint32]float64)
-	bm.Iterate(func(x uint32) bool {
-		score := 0.0
-		for _, t := range tokens {
-			score += f.scoring.BM25(x, 2, 0.75, t)
-		}
-		result[x] = score
-		return true
-	})
-	return result
+func (f *Text) GetAnd(ctx context.Context, values []interface{}) *Result {
+	return NewResult(ctx, roaring.New()) // no implemented (yet?)
 }
 
 type textData struct {

@@ -7,6 +7,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -33,33 +34,52 @@ func queryTypes() []queryType {
 }
 
 type queryResult struct {
-	bm     *roaring.Bitmap
-	scores map[uint32]float64
+	docs    *roaring.Bitmap
+	results []*field.Result
 }
 
-func newEmptyResult() queryResult {
-	return queryResult{
-		bm:     roaring.New(),
-		scores: make(map[uint32]float64),
+func newEmptyResult() *queryResult {
+	return &queryResult{
+		docs: roaring.New(),
 	}
 }
 
-func newNoScoreResult(bm *roaring.Bitmap) queryResult {
-	return queryResult{
-		bm:     bm,
-		scores: make(map[uint32]float64),
+func newResult(res *field.Result) *queryResult {
+	return &queryResult{
+		docs:    res.Docs(),
+		results: []*field.Result{res},
 	}
 }
 
-func newResult(bm *roaring.Bitmap, scores map[uint32]float64) queryResult {
-	return queryResult{
-		bm:     bm,
-		scores: scores,
+func (r *queryResult) And(res *queryResult) {
+	r.docs.And(res.Docs())
+	r.results = append(r.results, res.results...)
+}
+
+func (r *queryResult) Or(res *queryResult) {
+	r.docs.Or(res.Docs())
+	r.results = append(r.results, res.results...)
+}
+
+func (r *queryResult) Docs() *roaring.Bitmap {
+	return r.docs
+}
+
+func (r *queryResult) Score(id uint32) float64 {
+	if !r.docs.Contains(id) {
+		return 0
 	}
+
+	result := 0.0
+	for _, res := range r.results {
+		result += res.Score(id)
+	}
+
+	return result
 }
 
 type internalQuery interface {
-	exec(ctx context.Context) (queryResult, error)
+	exec(ctx context.Context) (*queryResult, error)
 }
 
 func build(ctx context.Context, req Query) (internalQuery, error) {

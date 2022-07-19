@@ -3,7 +3,6 @@ package query
 import (
 	"context"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -77,25 +76,25 @@ func newBoolQuery(ctx context.Context, query Query) (*boolQuery, error) {
 	return result, nil
 }
 
-func (q *boolQuery) exec(ctx context.Context) (queryResult, error) {
+func (q *boolQuery) exec(ctx context.Context) (*queryResult, error) {
 	fields := fields(ctx)
 
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
 		if ff, ok := fields[field.AllField]; ok {
-			return newNoScoreResult(ff.Get(true)), nil
+			return newResult(ff.Get(ctx, true)), nil
 		}
 
 		return newEmptyResult(), nil
 	}
 
-	var v *roaring.Bitmap
+	var result *queryResult
 	for _, data := range []struct {
 		queries []internalQuery
-		apply   func(src *roaring.Bitmap, bm *roaring.Bitmap)
+		apply   func(src *queryResult, dst *queryResult)
 	}{
-		{queries: q.filter, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.And(bm) }},
-		{queries: q.must, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.And(bm) }},
-		{queries: q.should, apply: func(src *roaring.Bitmap, bm *roaring.Bitmap) { src.Or(bm) }},
+		{queries: q.filter, apply: func(src *queryResult, dst *queryResult) { src.And(dst) }},
+		{queries: q.must, apply: func(src *queryResult, dst *queryResult) { src.And(dst) }},
+		{queries: q.should, apply: func(src *queryResult, dst *queryResult) { src.Or(dst) }},
 	} {
 		for _, q := range data.queries {
 			r, err := q.exec(ctx)
@@ -103,14 +102,14 @@ func (q *boolQuery) exec(ctx context.Context) (queryResult, error) {
 				return newEmptyResult(), err
 			}
 
-			if v == nil {
-				v = r.bm
+			if result == nil {
+				result = r
 				continue
 			}
 
-			data.apply(v, r.bm)
+			data.apply(result, r)
 		}
 	}
 
-	return newNoScoreResult(v), nil
+	return result, nil
 }

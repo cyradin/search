@@ -40,15 +40,15 @@ func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
 	}
 
 	maxScore := 0.0
-	hits := make([]Hit, 0, result.bm.GetCardinality())
-	result.bm.Iterate(func(id uint32) bool {
-		score := result.scores[id]
+	hits := make([]Hit, 0, result.docs.GetCardinality())
+	result.docs.Iterate(func(id uint32) bool {
+		score := result.Score(id)
 		if maxScore < score {
 			maxScore = score
 		}
 		hits = append(hits, Hit{
 			ID:    id,
-			Score: result.scores[id],
+			Score: score,
 		})
 
 		return true
@@ -56,7 +56,7 @@ func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
 
 	return Result{
 		Total: Total{
-			Value:    int(result.bm.GetCardinality()),
+			Value:    int(result.docs.GetCardinality()),
 			Relation: "eq",
 		},
 		Hits:     hits,
