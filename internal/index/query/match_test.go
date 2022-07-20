@@ -161,7 +161,7 @@ func Test_matchQuery(t *testing.T) {
 				require.NoError(t, err)
 				require.False(t, result.Docs().IsEmpty())
 				require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
-				require.Greater(t, result.Score(1), 0)
+				require.Greater(t, result.Score(1), 0.0)
 			})
 			t.Run("text", func(t *testing.T) {
 				t.Run("two words, one found", func(t *testing.T) {
@@ -180,7 +180,7 @@ func Test_matchQuery(t *testing.T) {
 					require.NoError(t, err)
 					require.False(t, result.Docs().IsEmpty())
 					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
-					require.Greater(t, result.Score(1), 0)
+					require.Greater(t, result.Score(1), 0.0)
 				})
 				t.Run("two words, both found", func(t *testing.T) {
 					query := `{
@@ -198,7 +198,7 @@ func Test_matchQuery(t *testing.T) {
 					require.NoError(t, err)
 					require.False(t, result.Docs().IsEmpty())
 					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
-					require.Greater(t, result.Score(1), 0)
+					require.Greater(t, result.Score(1), 0.0)
 				})
 				t.Run("one word", func(t *testing.T) {
 					query := `{
@@ -216,7 +216,7 @@ func Test_matchQuery(t *testing.T) {
 					require.NoError(t, err)
 					require.False(t, result.Docs().IsEmpty())
 					require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
-					require.Greater(t, result.Score(1), 0)
+					require.Greater(t, result.Score(1), 0.0)
 				})
 			})
 		})
