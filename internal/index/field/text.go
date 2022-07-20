@@ -37,7 +37,10 @@ func (f *Text) Add(id uint32, value interface{}) {
 		return
 	}
 
-	for _, vv := range f.analyzer([]string{val}) {
+	terms := f.analyzer([]string{val})
+	f.scoring.Add(id, terms)
+
+	for _, vv := range terms {
 		f.inner.Add(id, vv)
 	}
 }
