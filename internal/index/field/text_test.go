@@ -51,8 +51,6 @@ func Test_Text(t *testing.T) {
 	t.Run("Get", func(t *testing.T) {
 		t.Run("can return union if both values found", func(t *testing.T) {
 			scoring := NewScoring()
-			scoring.Add(1, []string{"foo"})
-			scoring.Add(2, []string{"bar"})
 			f := NewText(testAnalyzer2, scoring)
 			f.Add(1, "foo")
 			f.Add(2, "bar")
