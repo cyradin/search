@@ -93,6 +93,29 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 	}
 }
 
+func (c *DocumentController) DeleteAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, documentParam)
+		id64, err := strconv.ParseUint(idStr, 10, 32)
+		id := uint32(id64)
+
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
+			handleErr(w, r, err)
+			return
+		}
+
+		c.docs.Delete(i, id)
+		render.Status(r, http.StatusOK)
+	}
+}
+
 func (c *DocumentController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()

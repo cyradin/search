@@ -63,6 +63,12 @@ func (s *Index) Add(id uint32, source map[string]interface{}) {
 	}
 }
 
+func (s *Index) Delete(id uint32) {
+	for _, field := range s.fields {
+		field.Delete(id)
+	}
+}
+
 func (s *Index) Fields() map[string]Field {
 	result := make(map[string]Field)
 	for name, f := range s.fields {
