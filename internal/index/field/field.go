@@ -1,14 +1,10 @@
 package field
 
 import (
-	"bytes"
 	"context"
 	"encoding"
-	"encoding/gob"
 	"fmt"
-	"sync"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
 )
@@ -35,122 +31,6 @@ type Field interface {
 	GetAnd(ctx context.Context, values []interface{}) *Result
 	// Delete document field values
 	Delete(id uint32)
-}
-
-type Score struct {
-	ID    uint32
-	Value float64
-}
-
-type field[T comparable] struct {
-	mtx  sync.Mutex
-	data map[T]*roaring.Bitmap
-}
-
-func newField[T comparable]() *field[T] {
-	result := &field[T]{
-		data: make(map[T]*roaring.Bitmap),
-	}
-
-	return result
-}
-
-func (f *field[T]) Add(id uint32, value T) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	m, ok := f.data[value]
-	if !ok {
-		m = roaring.New()
-		f.data[value] = m
-	}
-
-	m.Add(id)
-
-	return
-}
-
-func (f *field[T]) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(f.data)
-
-	return buf.Bytes(), err
-}
-
-func (f *field[T]) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	buf := bytes.NewBuffer(data)
-
-	return gob.NewDecoder(buf).Decode(&f.data)
-}
-
-func (f *field[T]) Get(value T) *roaring.Bitmap {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	vv, ok := f.data[value]
-	if !ok {
-		return roaring.New()
-	}
-
-	return vv.Clone()
-}
-
-func (f *field[T]) GetOr(values []T) *roaring.Bitmap {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	var result *roaring.Bitmap
-	for _, value := range values {
-		bm, ok := f.data[value]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = bm.Clone()
-			continue
-		}
-
-		result.Or(bm)
-	}
-
-	if result == nil {
-		return roaring.New()
-	}
-
-	return result
-}
-
-func (f *field[T]) GetAnd(values []T) *roaring.Bitmap {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	var result *roaring.Bitmap
-	for _, value := range values {
-		bm, ok := f.data[value]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = bm.Clone()
-			continue
-		}
-
-		result.And(bm)
-	}
-
-	if result == nil {
-		return roaring.New()
-	}
-
-	return result
 }
 
 func New(f FieldData) (Field, error) {
@@ -240,12 +120,4 @@ func castE[T comparable](value interface{}) (T, error) {
 	}
 
 	return val.(T), err
-}
-
-func sliceToInterfaceSlice[T comparable](data []T) []interface{} {
-	result := make([]interface{}, len(data))
-	for i, v := range data {
-		result[i] = v
-	}
-	return result
 }
