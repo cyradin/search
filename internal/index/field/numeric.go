@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -15,7 +14,6 @@ type NumericConstraint interface {
 }
 
 type Numeric[T NumericConstraint] struct {
-	mtx    sync.RWMutex
 	data   map[T]*roaring.Bitmap
 	values map[uint32][]T
 }
@@ -51,8 +49,6 @@ func (f *Numeric[T]) Type() schema.Type {
 }
 
 func (f *Numeric[T]) Add(id uint32, value interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	v, err := castE[T](value)
 	if err != nil {
 		return
@@ -70,9 +66,6 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 }
 
 func (f *Numeric[T]) Get(ctx context.Context, value interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	v, err := castE[T](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -87,9 +80,6 @@ func (f *Numeric[T]) Get(ctx context.Context, value interface{}) *Result {
 }
 
 func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result *roaring.Bitmap
 	for _, value := range values {
 		v, err := castE[T](value)
@@ -117,9 +107,6 @@ func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result *roaring.Bitmap
 	for _, value := range values {
 		v, err := castE[T](value)
@@ -147,9 +134,6 @@ func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	vals, ok := f.values[id]
 	if !ok {
 		return
@@ -169,9 +153,6 @@ func (f *Numeric[T]) Delete(id uint32) {
 }
 
 func (f *Numeric[T]) Data(id uint32) []interface{} {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result []interface{}
 
 	for _, v := range f.values[id] {
@@ -193,9 +174,6 @@ type numericData[T NumericConstraint] struct {
 }
 
 func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(numericData[T]{Data: f.data, Values: f.values})
 
@@ -203,9 +181,6 @@ func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
 }
 
 func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	raw := numericData[T]{}
 	buf := bytes.NewBuffer(data)
 	err := gob.NewDecoder(buf).Decode(&raw)
