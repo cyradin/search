@@ -59,6 +59,12 @@ func (f *All) Delete(id uint32) {
 	f.data.Remove(id)
 }
 
+func (f *All) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return nil
+}
+
 func (f *All) MarshalBinary() ([]byte, error) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()

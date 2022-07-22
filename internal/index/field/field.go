@@ -31,6 +31,8 @@ type Field interface {
 	GetAnd(ctx context.Context, values []interface{}) *Result
 	// Delete document field values
 	Delete(id uint32)
+	// Data get stored field values
+	Data(id uint32) []interface{}
 }
 
 func New(f FieldData) (Field, error) {
