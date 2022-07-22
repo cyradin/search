@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding"
 	"fmt"
+	"sync"
 
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
@@ -33,6 +34,67 @@ type Field interface {
 	Delete(id uint32)
 	// Data get stored field values
 	Data(id uint32) []interface{}
+}
+
+type Sync struct {
+	mtx   sync.RWMutex
+	field Field
+}
+
+func NewSync(field Field) *Sync {
+	return &Sync{field: field}
+}
+
+func (f *Sync) Type() schema.Type {
+	return f.field.Type()
+}
+
+func (f *Sync) Add(id uint32, value interface{}) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.field.Add(id, value)
+}
+
+func (f *Sync) Get(ctx context.Context, value interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.Get(ctx, value)
+}
+
+func (f *Sync) GetOr(ctx context.Context, values []interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.GetOr(ctx, values)
+}
+
+func (f *Sync) GetAnd(ctx context.Context, values []interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.GetAnd(ctx, values)
+}
+
+func (f *Sync) Delete(id uint32) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	f.field.Delete(id)
+}
+
+func (f *Sync) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.Data(id)
+}
+
+func (f *Sync) MarshalBinary() ([]byte, error) {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	return f.field.MarshalBinary()
+}
+
+func (f *Sync) UnmarshalBinary(data []byte) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	return f.field.UnmarshalBinary(data)
 }
 
 func New(f FieldData) (Field, error) {
@@ -74,7 +136,7 @@ func New(f FieldData) (Field, error) {
 		return nil, fmt.Errorf("invalid field type %q", f.Type)
 	}
 
-	return field, nil
+	return NewSync(field), nil
 }
 
 func castSlice[T comparable](values []interface{}) []T {

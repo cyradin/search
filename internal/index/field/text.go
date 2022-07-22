@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -12,7 +11,6 @@ import (
 )
 
 type Text struct {
-	mtx      sync.RWMutex
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
@@ -35,9 +33,6 @@ func (f *Text) Type() schema.Type {
 }
 
 func (f *Text) Add(id uint32, value interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	v, err := cast.ToStringE(value)
 	if err != nil {
 		return
@@ -59,17 +54,11 @@ func (f *Text) Add(id uint32, value interface{}) {
 }
 
 func (f *Text) Get(ctx context.Context, value interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	val, err := castE[string](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
 	}
 	tokens := f.analyzer([]string{val})
-
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
 
 	var result *roaring.Bitmap
 	for _, value := range tokens {
@@ -106,9 +95,6 @@ func (f *Text) GetAnd(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Text) Delete(id uint32) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	vals, ok := f.values[id]
 	if !ok {
 		return
@@ -128,9 +114,6 @@ func (f *Text) Delete(id uint32) {
 }
 
 func (f *Text) Data(id uint32) []interface{} {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result []interface{}
 
 	for _, v := range f.values[id] {
@@ -153,9 +136,6 @@ type textData struct {
 }
 
 func (f *Text) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	scoringData, err := f.scoring.MarshalBinary()
 	if err != nil {
 		return nil, err
@@ -168,9 +148,6 @@ func (f *Text) MarshalBinary() ([]byte, error) {
 }
 
 func (f *Text) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	raw := textData{}
 	err := gob.NewDecoder(bytes.NewBuffer(data)).Decode(&raw)
 	if err != nil {

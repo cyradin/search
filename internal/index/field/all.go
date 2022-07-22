@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -19,7 +18,6 @@ var _ Field = (*All)(nil)
 // All contains every document in the index.
 // This field is necessary to execute queris like { "bool": {}} and {"match_all":{}}
 type All struct {
-	mtx  sync.RWMutex
 	data *roaring.Bitmap
 }
 
@@ -34,14 +32,10 @@ func (f *All) Type() schema.Type {
 }
 
 func (f *All) Add(id uint32, value interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	f.data.Add(id)
 }
 
 func (f *All) Get(ctx context.Context, value interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
 	return NewResult(ctx, f.data.Clone())
 }
 
@@ -54,21 +48,14 @@ func (f *All) GetAnd(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *All) Delete(id uint32) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
 	f.data.Remove(id)
 }
 
 func (f *All) Data(id uint32) []interface{} {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
 	return nil
 }
 
 func (f *All) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(f.data)
 
@@ -76,9 +63,6 @@ func (f *All) MarshalBinary() ([]byte, error) {
 }
 
 func (f *All) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	buf := bytes.NewBuffer(data)
 
 	return gob.NewDecoder(buf).Decode(&f.data)

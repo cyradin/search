@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -14,7 +13,6 @@ import (
 var _ Field = (*Bool)(nil)
 
 type Bool struct {
-	mtx       sync.RWMutex
 	dataTrue  *roaring.Bitmap
 	dataFalse *roaring.Bitmap
 }
@@ -31,9 +29,6 @@ func (f *Bool) Type() schema.Type {
 }
 
 func (f *Bool) Add(id uint32, value interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	v, err := cast.ToBoolE(value)
 	if err != nil {
 		return
@@ -47,9 +42,6 @@ func (f *Bool) Add(id uint32, value interface{}) {
 }
 
 func (f *Bool) Get(ctx context.Context, value interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	v, err := cast.ToBoolE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -59,9 +51,6 @@ func (f *Bool) Get(ctx context.Context, value interface{}) *Result {
 }
 
 func (f *Bool) GetOr(ctx context.Context, values []interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result *roaring.Bitmap
 	for _, value := range values {
 		v, err := cast.ToBoolE(value)
@@ -83,9 +72,6 @@ func (f *Bool) GetOr(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Bool) GetAnd(ctx context.Context, values []interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	var result *roaring.Bitmap
 	for _, value := range values {
 		v, err := cast.ToBoolE(value)
@@ -107,17 +93,11 @@ func (f *Bool) GetAnd(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Bool) Delete(id uint32) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	f.dataTrue.Remove(id)
 	f.dataFalse.Remove(id)
 }
 
 func (f *Bool) Data(id uint32) []interface{} {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-
 	result := make([]interface{}, 0, 2)
 
 	if f.dataTrue.Contains(id) {
@@ -144,9 +124,6 @@ type boolData struct {
 }
 
 func (f *Bool) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	var buf bytes.Buffer
 	err := gob.NewEncoder(&buf).Encode(boolData{f.dataTrue, f.dataFalse})
 
@@ -154,9 +131,6 @@ func (f *Bool) MarshalBinary() ([]byte, error) {
 }
 
 func (f *Bool) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	raw := boolData{}
 	buf := bytes.NewBuffer(data)
 	err := gob.NewDecoder(buf).Decode(&raw)
