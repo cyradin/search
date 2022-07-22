@@ -48,19 +48,13 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		id, err := c.docs.Add(i, req.ID, req.Source)
+		err = c.docs.Add(i, req.ID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
 		}
 
-		resp := struct {
-			ID uint32 `json:"id"`
-		}{
-			ID: id,
-		}
-		render.Status(r, http.StatusCreated)
-		render.Respond(w, r, resp)
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
