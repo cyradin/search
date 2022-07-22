@@ -94,6 +94,21 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 	return nil, nil // @todo
 }
 
+func (d *Documents) Delete(index Index, id uint32) error {
+	if id <= 0 {
+		return fmt.Errorf("doc id is required")
+	}
+
+	fieldIndex, err := d.getIndexes(index.Name)
+	if err != nil {
+		return err
+	}
+
+	fieldIndex.Delete(id)
+
+	return nil
+}
+
 func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
 	fieldIndex, err := d.getIndexes(index.Name)
 	if err != nil {
