@@ -53,6 +53,7 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 	return result, nil
 }
 
+// Add insert or replace document
 func (s *Index) Add(id uint32, source map[string]interface{}) {
 	for key, value := range source {
 		if f, ok := s.fields[key]; ok {
