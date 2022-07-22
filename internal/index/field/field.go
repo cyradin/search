@@ -10,6 +10,7 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/spf13/cast"
 )
 
 type FieldData struct {
@@ -32,6 +33,8 @@ type Field interface {
 	GetOr(ctx context.Context, values []interface{}) *Result
 	// GetAnd compute the intersection between bitmaps of the passed values
 	GetAnd(ctx context.Context, values []interface{}) *Result
+	// Delete document field values
+	Delete(id uint32)
 }
 
 type Score struct {
@@ -190,4 +193,59 @@ func New(f FieldData) (Field, error) {
 	}
 
 	return field, nil
+}
+
+func castSlice[T comparable](values []interface{}) []T {
+	result := make([]T, 0, len(values))
+	for _, value := range values {
+		v, err := castE[T](value)
+		if err != nil {
+			continue
+		}
+		result = append(result, v)
+	}
+	return result
+}
+
+func castE[T comparable](value interface{}) (T, error) {
+	var (
+		k   T
+		val interface{}
+		err error
+	)
+
+	switch any(k).(type) {
+	case bool:
+		val, err = cast.ToBoolE(value)
+	case int8:
+		val, err = cast.ToInt8E(value)
+	case int16:
+		val, err = cast.ToInt16E(value)
+	case int32:
+		val, err = cast.ToInt32E(value)
+	case int64:
+		val, err = cast.ToInt64E(value)
+	case uint64:
+		val, err = cast.ToUint64E(value)
+	case float32:
+		val, err = cast.ToFloat32E(value)
+	case float64:
+		val, err = cast.ToFloat64E(value)
+	case string:
+		val, err = cast.ToStringE(value)
+	}
+
+	if err != nil {
+		return k, err
+	}
+
+	return val.(T), err
+}
+
+func sliceToInterfaceSlice[T comparable](data []T) []interface{} {
+	result := make([]interface{}, len(data))
+	for i, v := range data {
+		result[i] = v
+	}
+	return result
 }

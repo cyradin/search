@@ -31,7 +31,7 @@ func Test_Text(t *testing.T) {
 			field := NewText(testAnalyzer, NewScoring())
 
 			field.Add(1, value)
-			bm, ok := field.inner.data["value_addition"]
+			bm, ok := field.data["value_addition"]
 			require.True(t, ok)
 			require.True(t, bm.Contains(1))
 			require.EqualValues(t, 1, bm.GetCardinality())
@@ -41,7 +41,7 @@ func Test_Text(t *testing.T) {
 			field := NewText(testAnalyzer, NewScoring())
 
 			field.Add(1, true)
-			bm, ok := field.inner.data["true_addition"]
+			bm, ok := field.data["true_addition"]
 
 			require.True(t, ok)
 			require.True(t, bm.Contains(1))
@@ -62,5 +62,43 @@ func Test_Text(t *testing.T) {
 			require.Greater(t, result.Score(1), 0.0)
 			require.Greater(t, result.Score(2), 0.0)
 		})
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		field := NewText(testAnalyzer2, NewScoring())
+		field.Add(1, "foo")
+		field.Add(1, "bar")
+		field.Add(2, "foo")
+
+		field.Delete(2)
+		require.EqualValues(t, 1, field.data["foo"].GetCardinality())
+		require.EqualValues(t, 1, field.data["bar"].GetCardinality())
+		require.ElementsMatch(t, []string{"foo", "bar"}, field.values[1])
+		require.Nil(t, field.values[2])
+
+		field.Delete(1)
+		require.Nil(t, field.data["foo"])
+		require.Nil(t, field.data["bar"])
+		require.Nil(t, field.values[1])
+	})
+
+	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
+		field := NewText(testAnalyzer2, NewScoring())
+		field.Add(1, "foo")
+		field.Add(1, "bar")
+		field.Add(2, "foo")
+
+		data, err := field.MarshalBinary()
+		require.NoError(t, err)
+
+		field2 := NewText(testAnalyzer2, NewScoring())
+		err = field2.UnmarshalBinary(data)
+		require.NoError(t, err)
+		require.True(t, field2.data["foo"].Contains(1))
+		require.True(t, field2.data["bar"].Contains(1))
+		require.ElementsMatch(t, []string{"foo", "bar"}, field.values[1])
+		require.True(t, field2.data["foo"].Contains(2))
+		require.ElementsMatch(t, []string{"foo"}, field.values[2])
+		require.Equal(t, field.scoring.data, field2.scoring.data)
 	})
 }
