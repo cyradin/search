@@ -4,7 +4,7 @@ import (
 	"context"
 	"net/http"
 
-	"github.com/cyradin/search/internal/apiv1"
+	"github.com/cyradin/search/internal/api"
 	"github.com/cyradin/search/internal/index"
 	"github.com/go-chi/chi/v5"
 )
@@ -19,7 +19,7 @@ func initServer(ctx context.Context, address string) *http.Server {
 	panicOnError(err)
 
 	mux := chi.NewMux()
-	mux.Route("/v1", apiv1.NewHandler(ctx, indexRepository, docRepository))
+	mux.Route("/", api.NewHandler(ctx, indexRepository, docRepository))
 
 	server := &http.Server{
 		Addr:    address,
