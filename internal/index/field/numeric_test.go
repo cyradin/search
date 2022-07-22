@@ -95,6 +95,19 @@ func test_numericField[T NumericConstraint](t *testing.T) {
 		require.Nil(t, field.values[1])
 	})
 
+	t.Run("Data", func(t *testing.T) {
+		field := NewNumeric[T]()
+		field.Add(1, 1)
+		field.Add(1, 2)
+		field.Add(2, 1)
+
+		result := field.Data(1)
+		require.EqualValues(t, []interface{}{T(1), T(2)}, result)
+
+		result = field.Data(2)
+		require.EqualValues(t, []interface{}{T(1)}, result)
+	})
+
 	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
 		field := NewNumeric[T]()
 		field.Add(1, 1)

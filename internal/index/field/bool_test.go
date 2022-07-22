@@ -83,6 +83,19 @@ func Test_Bool(t *testing.T) {
 		require.EqualValues(t, 0, field.dataFalse.GetCardinality())
 	})
 
+	t.Run("Data", func(t *testing.T) {
+		field := NewBool()
+		field.Add(1, true)
+		field.Add(1, false)
+		field.Add(2, false)
+
+		result := field.Data(1)
+		require.EqualValues(t, []interface{}{true, false}, result)
+
+		result = field.Data(2)
+		require.EqualValues(t, []interface{}{false}, result)
+	})
+
 	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
 		field := NewBool()
 		field.Add(1, true)

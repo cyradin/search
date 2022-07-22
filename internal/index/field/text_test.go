@@ -82,6 +82,19 @@ func Test_Text(t *testing.T) {
 		require.Nil(t, field.values[1])
 	})
 
+	t.Run("Data", func(t *testing.T) {
+		field := NewText(testAnalyzer, NewScoring())
+		field.Add(1, "foo")
+		field.Add(1, "bar")
+		field.Add(2, "foo")
+
+		result := field.Data(1)
+		require.EqualValues(t, []interface{}{"foo_addition", "bar_addition"}, result)
+
+		result = field.Data(2)
+		require.EqualValues(t, []interface{}{"foo_addition"}, result)
+	})
+
 	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
 		field := NewText(testAnalyzer2, NewScoring())
 		field.Add(1, "foo")

@@ -148,6 +148,25 @@ func (f *Keyword) Delete(id uint32) {
 	}
 }
 
+func (f *Keyword) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
+	var result []interface{}
+
+	for _, v := range f.values[id] {
+		m, ok := f.data[v]
+		if !ok {
+			continue
+		}
+		if m.Contains(id) {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
 type keywordData struct {
 	Data   map[string]*roaring.Bitmap
 	Values map[uint32][]string

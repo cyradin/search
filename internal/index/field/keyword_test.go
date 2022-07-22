@@ -86,6 +86,19 @@ func Test_Keyword_Add(t *testing.T) {
 		require.Nil(t, field.values[1])
 	})
 
+	t.Run("Data", func(t *testing.T) {
+		field := NewKeyword()
+		field.Add(1, "foo")
+		field.Add(1, "bar")
+		field.Add(2, "foo")
+
+		result := field.Data(1)
+		require.EqualValues(t, []interface{}{"foo", "bar"}, result)
+
+		result = field.Data(2)
+		require.EqualValues(t, []interface{}{"foo"}, result)
+	})
+
 	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
 		field := NewKeyword()
 		field.Add(1, "foo")

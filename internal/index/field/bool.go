@@ -114,6 +114,22 @@ func (f *Bool) Delete(id uint32) {
 	f.dataFalse.Remove(id)
 }
 
+func (f *Bool) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
+	result := make([]interface{}, 0, 2)
+
+	if f.dataTrue.Contains(id) {
+		result = append(result, true)
+	}
+	if f.dataFalse.Contains(id) {
+		result = append(result, false)
+	}
+
+	return result
+}
+
 func (f *Bool) get(value bool) *roaring.Bitmap {
 	if value {
 		return f.dataTrue.Clone()

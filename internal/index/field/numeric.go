@@ -168,6 +168,25 @@ func (f *Numeric[T]) Delete(id uint32) {
 	}
 }
 
+func (f *Numeric[T]) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
+	var result []interface{}
+
+	for _, v := range f.values[id] {
+		m, ok := f.data[v]
+		if !ok {
+			continue
+		}
+		if m.Contains(id) {
+			result = append(result, v)
+		}
+	}
+
+	return result
+}
+
 type numericData[T NumericConstraint] struct {
 	Data   map[T]*roaring.Bitmap
 	Values map[uint32][]T
