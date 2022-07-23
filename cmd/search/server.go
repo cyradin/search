@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"net"
 	"net/http"
 
 	"github.com/cyradin/search/internal/api"
@@ -24,6 +25,9 @@ func initServer(ctx context.Context, address string) *http.Server {
 	server := &http.Server{
 		Addr:    address,
 		Handler: mux,
+		BaseContext: func(net.Listener) context.Context {
+			return ctx
+		},
 	}
 
 	return server
