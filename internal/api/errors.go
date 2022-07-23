@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/cyradin/search/internal/errs"
-	"github.com/cyradin/search/internal/index"
 	"github.com/cyradin/search/internal/logger"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -111,9 +110,6 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	switch true {
 	case errors.Is(err, errJsonUnmarshal):
 		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
-		SendErrResponse(rw, r, status, resp)
-	case errors.Is(err, index.ErrDocNotFound):
-		resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 		SendErrResponse(rw, r, status, resp)
 	case errors.As(err, &validationError):
 		path, _ := validationError.Params()["path"].(string)
