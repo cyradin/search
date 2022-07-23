@@ -39,7 +39,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -67,7 +67,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -78,6 +78,13 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 
 		source, err := c.docs.Get(i, id)
 		if err != nil {
+			if errors.Is(err, index.ErrDocNotFound) {
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
+
 			handleErr(w, r, err)
 			return
 		}
@@ -96,7 +103,7 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -116,7 +123,7 @@ func (c *DocumentController) SearchAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
