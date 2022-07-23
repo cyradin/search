@@ -145,7 +145,7 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 			return
 		}
 
-		render.Status(r, http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
