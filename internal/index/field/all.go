@@ -52,7 +52,7 @@ func (f *All) Delete(id uint32) {
 }
 
 func (f *All) Data(id uint32) []interface{} {
-	return nil
+	return []interface{}{f.data.Contains(id)}
 }
 
 func (f *All) MarshalBinary() ([]byte, error) {

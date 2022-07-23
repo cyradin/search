@@ -76,14 +76,14 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		_, err = c.docs.Get(i, id)
+		source, err := c.docs.Get(i, id)
 		if err != nil {
 			handleErr(w, r, err)
 			return
 		}
 
 		render.Status(r, http.StatusOK)
-		render.Respond(w, r, Document{ID: id})
+		render.Respond(w, r, Document{ID: id, Source: source})
 	}
 }
 

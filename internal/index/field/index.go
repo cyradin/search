@@ -63,6 +63,21 @@ func (s *Index) Add(id uint32, source map[string]interface{}) {
 	}
 }
 
+func (s *Index) Get(id uint32) (map[string]interface{}, error) {
+	if res := s.fields[AllField].Data(id); res[0].(bool) != true {
+		return nil, fmt.Errorf("doc not found")
+	}
+
+	result := make(map[string]interface{})
+	for k, f := range s.fields {
+		if k == AllField {
+			continue
+		}
+		result[k] = f.Data(id)
+	}
+	return result, nil
+}
+
 func (s *Index) Delete(id uint32) {
 	for _, field := range s.fields {
 		field.Delete(id)
