@@ -2,9 +2,9 @@ package api
 
 import (
 	"context"
-	"fmt"
 	"net/http"
 
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index"
 	"github.com/cyradin/search/internal/logger"
 	"github.com/go-chi/chi/v5"
@@ -80,7 +80,7 @@ func decodeAndValidate(r *http.Request, data interface{}) error {
 	dec.UseNumber()
 	err := dec.Decode(data)
 	if err != nil {
-		return fmt.Errorf("%w: %s", errJsonUnmarshal, err.Error())
+		return errs.Errorf("%w: %s", errJsonUnmarshal, err.Error())
 	}
 
 	err = validation.Validate(data)

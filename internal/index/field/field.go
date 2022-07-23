@@ -3,9 +3,9 @@ package field
 import (
 	"context"
 	"encoding"
-	"fmt"
 	"sync"
 
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
 )
@@ -109,7 +109,7 @@ func New(f FieldData) (Field, error) {
 		field = NewKeyword()
 	case schema.TypeText:
 		if f.Scoring == nil {
-			return nil, fmt.Errorf("field scoring data required, but not provided")
+			return nil, errs.Errorf("field scoring data required, but not provided")
 		}
 		field = NewText(f.Analyzer, f.Scoring)
 	// @todo implement slice type
@@ -133,7 +133,7 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeFloat:
 		field = NewNumeric[float32]()
 	default:
-		return nil, fmt.Errorf("invalid field type %q", f.Type)
+		return nil, errs.Errorf("invalid field type %q", f.Type)
 	}
 
 	return NewSync(field), nil

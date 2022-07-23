@@ -7,6 +7,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
@@ -40,7 +41,7 @@ type Repository struct {
 func NewRepository(dataDir string, docs *Documents) (*Repository, error) {
 	storage, err := NewIndexStorage(dataDir)
 	if err != nil {
-		return nil, fmt.Errorf("index storage init err: %w", err)
+		return nil, errs.Errorf("index storage init err: %w", err)
 	}
 
 	return &Repository{
@@ -53,13 +54,13 @@ func NewRepository(dataDir string, docs *Documents) (*Repository, error) {
 func (r *Repository) Init(ctx context.Context) error {
 	indexes, err := r.All()
 	if err != nil {
-		return fmt.Errorf("index list load err: %w", err)
+		return errs.Errorf("index list load err: %w", err)
 	}
 
 	for _, index := range indexes {
 		err := r.docs.AddIndex(index)
 		if err != nil {
-			return fmt.Errorf("index data init err: %w", err)
+			return errs.Errorf("index data init err: %w", err)
 		}
 	}
 
@@ -94,7 +95,7 @@ func (r *Repository) All() ([]Index, error) {
 			result = append(result, doc.Source)
 		case err, ok := <-errors:
 			if ok {
-				return nil, fmt.Errorf("storage err: %w", err)
+				return nil, errs.Errorf("storage err: %w", err)
 			}
 		}
 	}
@@ -105,11 +106,11 @@ func (r *Repository) Add(ctx context.Context, index Index) error {
 	defer r.mtx.Unlock()
 
 	if err := validation.Validate(index.Schema); err != nil {
-		return fmt.Errorf("schema validation failed: %w", err)
+		return errs.Errorf("schema validation failed: %w", err)
 	}
 
 	if err := r.docs.AddIndex(index); err != nil {
-		return fmt.Errorf("docs index add err: %w", err)
+		return errs.Errorf("docs index add err: %w", err)
 	}
 
 	_, err := r.storage.Insert(index.Name, index)
@@ -125,7 +126,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 	defer r.mtx.Unlock()
 
 	if err := r.docs.DeleteIndex(name); err != nil {
-		return fmt.Errorf("docs index delete err: %w", err)
+		return errs.Errorf("docs index delete err: %w", err)
 	}
 
 	if err := r.storage.Delete(name); err != nil {
@@ -133,7 +134,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 			return nil
 		}
 
-		return fmt.Errorf("index delete err: %w", err)
+		return errs.Errorf("index delete err: %w", err)
 	}
 
 	return nil

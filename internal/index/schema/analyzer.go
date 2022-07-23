@@ -1,8 +1,6 @@
 package schema
 
-import (
-	"fmt"
-)
+import "github.com/cyradin/search/internal/errs"
 
 type AnalyzerFunc func([]string) []string
 type AnalyzerHandler func(next AnalyzerFunc) AnalyzerFunc
@@ -38,7 +36,7 @@ func (a Analyzer) GetFunc() (AnalyzerFunc, error) {
 		return TokenizerRegexpFunc(a.Settings)
 	}
 
-	return nil, fmt.Errorf("unknown type %q", a.Type)
+	return nil, errs.Errorf("unknown type %q", a.Type)
 }
 
 const (
@@ -51,7 +49,7 @@ const (
 // Chain build analyzer chain by their names
 func Chain(items []Analyzer) (AnalyzerFunc, error) {
 	if len(items) == 0 {
-		return nil, fmt.Errorf("chain cannot be empty")
+		return nil, errs.Errorf("chain cannot be empty")
 	}
 
 	var h AnalyzerFunc
