@@ -4,6 +4,7 @@ import (
 	"context"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 type ctxKey string
@@ -62,6 +63,10 @@ func FromCtx(ctx context.Context) *zap.Logger {
 	return noOpLogger
 }
 
+type TraceableErr interface {
+	StackTrace() []byte
+}
+
 func ExtractFields(ctx context.Context, fields ...zap.Field) []zap.Field {
 	if v := RequestMethod(ctx); v != "" {
 		fields = append(fields, zap.String(string(ctxKeyRequestMethod), v))
@@ -71,6 +76,14 @@ func ExtractFields(ctx context.Context, fields ...zap.Field) []zap.Field {
 	}
 	if v := RequestID(ctx); v != "" {
 		fields = append(fields, zap.String(string(ctxKeyRequestID), v))
+	}
+
+	for _, f := range fields {
+		if f.Type == zapcore.ErrorType {
+			if te, ok := f.Interface.(TraceableErr); ok {
+				fields = append(fields, zap.String("trace", string(te.StackTrace())))
+			}
+		}
 	}
 
 	return fields
