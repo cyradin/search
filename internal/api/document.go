@@ -116,37 +116,3 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
-
-func (c *DocumentController) SearchAction() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
-		if err != nil {
-			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
-				render.Status(r, status)
-				render.Respond(w, r, resp)
-				return
-			}
-			handleErr(w, r, err)
-			return
-		}
-
-		query := index.Search{}
-		if err := decodeAndValidate(r, &query); err != nil {
-			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
-			render.Status(r, status)
-			render.Respond(w, r, resp)
-			return
-		}
-
-		result, err := c.docs.Search(ctx, i, query)
-		if err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		render.Status(r, http.StatusOK)
-		render.Respond(w, r, result)
-	}
-}

@@ -27,21 +27,20 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository, docRepos
 
 		r.Route("/indexes", func(r chi.Router) {
 			ic := NewIndexController(indexRepository)
-			dc := NewDocumentController(indexRepository, docRepository)
 			r.Get("/", ic.ListAction())
 			r.Post("/", ic.AddAction())
+		})
 
-			r.Route("/{"+indexParam+"}", func(r chi.Router) {
-				r.Get("/", ic.GetAction())
-				r.Delete("/", ic.DeleteAction())
-				r.Post("/search", dc.SearchAction())
-				r.Route("/documents", func(r chi.Router) {
-					r.Post("/", dc.AddAction())
-					r.Get("/{"+documentParam+"}", dc.GetAction())
-					r.Delete("/{"+documentParam+"}", dc.DeleteAction())
-				})
-			})
+		r.Route("/docs/{"+indexParam+"}", func(r chi.Router) {
+			dc := NewDocumentController(indexRepository, docRepository)
+			r.Post("/", dc.AddAction())
+			r.Get("/{"+documentParam+"}", dc.GetAction())
+			r.Delete("/{"+documentParam+"}", dc.DeleteAction())
+		})
 
+		r.Route("/search/{"+indexParam+"}", func(r chi.Router) {
+			sc := NewSearchController(indexRepository, docRepository)
+			r.Post("/", sc.SearchAction())
 		})
 	}
 }
