@@ -106,7 +106,7 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 		}
 
 		c.docs.Delete(i, id)
-		render.Status(r, http.StatusOK)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }
 
