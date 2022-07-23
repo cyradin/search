@@ -12,7 +12,7 @@ import (
 
 type Document struct {
 	ID     uint32                 `json:"id"`
-	Source map[string]interface{} `json:"source"`
+	Source map[string]interface{} `json:"source,omitempty"`
 }
 
 type DocumentController struct {
@@ -54,7 +54,8 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		w.WriteHeader(http.StatusCreated)
+		render.Status(r, http.StatusCreated)
+		render.Respond(w, r, Document{ID: req.ID})
 	}
 }
 
