@@ -2,10 +2,10 @@ package schema
 
 import (
 	"encoding/json"
-	"fmt"
 	"math"
 	"strconv"
 
+	"github.com/cyradin/search/internal/errs"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -62,7 +62,7 @@ func validateBool() validation.RuleFunc {
 		}
 		_, ok := v.(bool)
 		if !ok {
-			return fmt.Errorf("required bool, got %#v", v)
+			return errs.Errorf("required bool, got %#v", v)
 		}
 
 		return nil
@@ -76,7 +76,7 @@ func validateKeyword() validation.RuleFunc {
 		}
 		_, ok := v.(string)
 		if !ok {
-			return fmt.Errorf("required string, got %#v", v)
+			return errs.Errorf("required string, got %#v", v)
 		}
 
 		return nil
@@ -90,7 +90,7 @@ func validateText() validation.RuleFunc {
 		}
 		_, ok := v.(string)
 		if !ok {
-			return fmt.Errorf("required string, got %#v", v)
+			return errs.Errorf("required string, got %#v", v)
 		}
 
 		return nil
@@ -104,19 +104,19 @@ func validateInt(min int64, max int64) validation.RuleFunc {
 		}
 		vv, ok := v.(json.Number)
 		if !ok {
-			return fmt.Errorf("required int, got %#v", v)
+			return errs.Errorf("required int, got %#v", v)
 		}
 		vvv, err := strconv.ParseInt(vv.String(), 10, 64)
 		if err != nil {
-			return fmt.Errorf("cannot parse %q as int", vv.String())
+			return errs.Errorf("cannot parse %q as int", vv.String())
 		}
 
 		if vvv > max {
-			return fmt.Errorf("must be <= than %d", max)
+			return errs.Errorf("must be <= than %d", max)
 		}
 
 		if vvv < min {
-			return fmt.Errorf("must be >= than %d", min)
+			return errs.Errorf("must be >= than %d", min)
 		}
 
 		return nil
@@ -130,19 +130,19 @@ func validateUint(min uint64, max uint64) validation.RuleFunc {
 		}
 		vv, ok := v.(json.Number)
 		if !ok {
-			return fmt.Errorf("required uint, got %#v", v)
+			return errs.Errorf("required uint, got %#v", v)
 		}
 		vvv, err := strconv.ParseUint(vv.String(), 10, 64)
 		if err != nil {
-			return fmt.Errorf("cannot parse %q as uint", vv.String())
+			return errs.Errorf("cannot parse %q as uint", vv.String())
 		}
 
 		if vvv > max {
-			return fmt.Errorf("must be <= %d", max)
+			return errs.Errorf("must be <= %d", max)
 		}
 
 		if vvv < min {
-			return fmt.Errorf("must be >= than %d", min)
+			return errs.Errorf("must be >= than %d", min)
 		}
 
 		return nil
@@ -156,19 +156,19 @@ func validateFloat(min float64, max float64) validation.RuleFunc {
 		}
 		vv, ok := v.(json.Number)
 		if !ok {
-			return fmt.Errorf("required float, got %#v", v)
+			return errs.Errorf("required float, got %#v", v)
 		}
 		vvv, err := strconv.ParseFloat(vv.String(), 64)
 		if err != nil {
-			return fmt.Errorf("cannot parse %q as float", vv.String())
+			return errs.Errorf("cannot parse %q as float", vv.String())
 		}
 
 		if vvv > max {
-			return fmt.Errorf("must be <= than %f", max)
+			return errs.Errorf("must be <= than %f", max)
 		}
 
 		if vvv < min {
-			return fmt.Errorf("must be >= than %f", min)
+			return errs.Errorf("must be >= than %f", min)
 		}
 
 		return nil

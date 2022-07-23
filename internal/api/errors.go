@@ -13,7 +13,7 @@ import (
 )
 
 var (
-	errJsonUnmarshal = fmt.Errorf("unmarshal err")
+	errJsonUnmarshal = errs.Errorf("unmarshal err")
 )
 
 type Error struct {

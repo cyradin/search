@@ -1,8 +1,7 @@
 package field
 
 import (
-	"fmt"
-
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 )
 
@@ -34,7 +33,7 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 		if f.Analyzer != "" {
 			a, err := s.Analyzers[f.Analyzer].Build()
 			if err != nil {
-				return nil, fmt.Errorf("analyzer build err: %w", err)
+				return nil, errs.Errorf("analyzer build err: %w", err)
 			}
 			fdata.Analyzer = a
 		}
@@ -45,7 +44,7 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 
 		field, err := New(fdata)
 		if err != nil {
-			return nil, fmt.Errorf("field build err: %w", err)
+			return nil, errs.Errorf("field build err: %w", err)
 		}
 		result.fields[name] = field
 	}
@@ -65,7 +64,7 @@ func (s *Index) Add(id uint32, source map[string]interface{}) {
 
 func (s *Index) Get(id uint32) (map[string]interface{}, error) {
 	if res := s.fields[AllField].Data(id); res[0].(bool) != true {
-		return nil, fmt.Errorf("doc not found")
+		return nil, errs.Errorf("doc not found")
 	}
 
 	result := make(map[string]interface{})

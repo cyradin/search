@@ -1,9 +1,10 @@
 package schema
 
 import (
-	"fmt"
 	"regexp"
 	"strings"
+
+	"github.com/cyradin/search/internal/errs"
 )
 
 // TokenizerWhitespaceFunc splits string by whitespace characters (see strings.Fields)
@@ -31,15 +32,15 @@ func TokenizerRegexpFunc(settings map[string]interface{}) (AnalyzerFunc, error) 
 	)
 	for k, v := range settings {
 		if k != "pattern" {
-			return nil, fmt.Errorf("key %q is not allowed", k)
+			return nil, errs.Errorf("key %q is not allowed", k)
 		}
 		expression, ok = v.(string)
 		if !ok {
-			return nil, fmt.Errorf("%q must be a string value", v)
+			return nil, errs.Errorf("%q must be a string value", v)
 		}
 	}
 	if expression == "" {
-		return nil, fmt.Errorf("%q key must be provided", "pattern")
+		return nil, errs.Errorf("%q key must be provided", "pattern")
 	}
 
 	exp, err := regexp.Compile(expression)
