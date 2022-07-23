@@ -24,7 +24,6 @@ func New(level zapcore.Level, traceLevel zapcore.Level, name string, version str
 
 	return zap.New(
 		zapcore.NewCore(encoder, os.Stdout, level),
-		zap.AddStacktrace(traceLevel),
 		zap.AddCaller(),
 		zap.AddCallerSkip(1),
 		zap.Fields(

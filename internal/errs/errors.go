@@ -19,7 +19,7 @@ func (e *Error) Unwrap() error {
 	return e.err
 }
 
-func (e *Error) Stack() []byte {
+func (e *Error) StackTrace() []byte {
 	return e.stack
 }
 
@@ -27,7 +27,7 @@ func Errorf(format string, a ...any) *Error {
 	var stack []byte
 	for _, item := range a {
 		if te, ok := item.(*Error); ok {
-			stack = te.Stack()
+			stack = te.StackTrace()
 		}
 	}
 

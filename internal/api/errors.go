@@ -6,8 +6,10 @@ import (
 	"net/http"
 
 	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/logger"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"go.uber.org/zap"
 )
 
 var (
@@ -139,6 +141,11 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))
 		SendErrResponse(rw, r, status, resp)
 	default:
+		ctx := r.Context()
+		l := logger.FromCtx(ctx)
+
+		l.Error("request err", logger.ExtractFields(ctx, zap.Error(err))...)
+
 		resp, status := NewErrResponse500()
 		SendErrResponse(rw, r, status, resp)
 	}
