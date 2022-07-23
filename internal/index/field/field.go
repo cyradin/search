@@ -1,15 +1,13 @@
 package field
 
 import (
-	"bytes"
 	"context"
 	"encoding"
-	"encoding/gob"
 	"fmt"
 	"sync"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/spf13/cast"
 )
 
 type FieldData struct {
@@ -32,122 +30,71 @@ type Field interface {
 	GetOr(ctx context.Context, values []interface{}) *Result
 	// GetAnd compute the intersection between bitmaps of the passed values
 	GetAnd(ctx context.Context, values []interface{}) *Result
+	// Delete document field values
+	Delete(id uint32)
+	// Data get stored field values
+	Data(id uint32) []interface{}
 }
 
-type Score struct {
-	ID    uint32
-	Value float64
+type Sync struct {
+	mtx   sync.RWMutex
+	field Field
 }
 
-type field[T comparable] struct {
-	mtx  sync.Mutex
-	data map[T]*roaring.Bitmap
+func NewSync(field Field) *Sync {
+	return &Sync{field: field}
 }
 
-func newField[T comparable]() *field[T] {
-	result := &field[T]{
-		data: make(map[T]*roaring.Bitmap),
-	}
-
-	return result
+func (f *Sync) Type() schema.Type {
+	return f.field.Type()
 }
 
-func (f *field[T]) Add(id uint32, value T) {
+func (f *Sync) Add(id uint32, value interface{}) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-
-	m, ok := f.data[value]
-	if !ok {
-		m = roaring.New()
-		f.data[value] = m
-	}
-
-	m.Add(id)
-
-	return
+	f.field.Add(id, value)
 }
 
-func (f *field[T]) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(f.data)
-
-	return buf.Bytes(), err
+func (f *Sync) Get(ctx context.Context, value interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.Get(ctx, value)
 }
 
-func (f *field[T]) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	buf := bytes.NewBuffer(data)
-
-	return gob.NewDecoder(buf).Decode(&f.data)
+func (f *Sync) GetOr(ctx context.Context, values []interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.GetOr(ctx, values)
 }
 
-func (f *field[T]) Get(value T) *roaring.Bitmap {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	vv, ok := f.data[value]
-	if !ok {
-		return roaring.New()
-	}
-
-	return vv.Clone()
+func (f *Sync) GetAnd(ctx context.Context, values []interface{}) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.GetAnd(ctx, values)
 }
 
-func (f *field[T]) GetOr(values []T) *roaring.Bitmap {
+func (f *Sync) Delete(id uint32) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
-
-	var result *roaring.Bitmap
-	for _, value := range values {
-		bm, ok := f.data[value]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = bm.Clone()
-			continue
-		}
-
-		result.Or(bm)
-	}
-
-	if result == nil {
-		return roaring.New()
-	}
-
-	return result
+	f.field.Delete(id)
 }
 
-func (f *field[T]) GetAnd(values []T) *roaring.Bitmap {
+func (f *Sync) Data(id uint32) []interface{} {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.Data(id)
+}
+
+func (f *Sync) MarshalBinary() ([]byte, error) {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
+	return f.field.MarshalBinary()
+}
 
-	var result *roaring.Bitmap
-	for _, value := range values {
-		bm, ok := f.data[value]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = bm.Clone()
-			continue
-		}
-
-		result.And(bm)
-	}
-
-	if result == nil {
-		return roaring.New()
-	}
-
-	return result
+func (f *Sync) UnmarshalBinary(data []byte) error {
+	f.mtx.Lock()
+	defer f.mtx.Unlock()
+	return f.field.UnmarshalBinary(data)
 }
 
 func New(f FieldData) (Field, error) {
@@ -189,5 +136,52 @@ func New(f FieldData) (Field, error) {
 		return nil, fmt.Errorf("invalid field type %q", f.Type)
 	}
 
-	return field, nil
+	return NewSync(field), nil
+}
+
+func castSlice[T comparable](values []interface{}) []T {
+	result := make([]T, 0, len(values))
+	for _, value := range values {
+		v, err := castE[T](value)
+		if err != nil {
+			continue
+		}
+		result = append(result, v)
+	}
+	return result
+}
+
+func castE[T comparable](value interface{}) (T, error) {
+	var (
+		k   T
+		val interface{}
+		err error
+	)
+
+	switch any(k).(type) {
+	case bool:
+		val, err = cast.ToBoolE(value)
+	case int8:
+		val, err = cast.ToInt8E(value)
+	case int16:
+		val, err = cast.ToInt16E(value)
+	case int32:
+		val, err = cast.ToInt32E(value)
+	case int64:
+		val, err = cast.ToInt64E(value)
+	case uint64:
+		val, err = cast.ToUint64E(value)
+	case float32:
+		val, err = cast.ToFloat32E(value)
+	case float64:
+		val, err = cast.ToFloat64E(value)
+	case string:
+		val, err = cast.ToStringE(value)
+	}
+
+	if err != nil {
+		return k, err
+	}
+
+	return val.(T), err
 }

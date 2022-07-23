@@ -1,4 +1,4 @@
-package apiv1
+package api
 
 import (
 	"context"
@@ -38,6 +38,7 @@ func NewHandler(ctx context.Context, indexRepository *index.Repository, docRepos
 				r.Route("/documents", func(r chi.Router) {
 					r.Post("/", dc.AddAction())
 					r.Get("/{"+documentParam+"}", dc.GetAction())
+					r.Delete("/{"+documentParam+"}", dc.DeleteAction())
 				})
 			})
 

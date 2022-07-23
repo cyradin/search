@@ -1,8 +1,11 @@
 package field
 
 import (
+	"bytes"
 	"context"
+	"encoding/gob"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
 )
 
@@ -15,26 +18,25 @@ var _ Field = (*All)(nil)
 // All contains every document in the index.
 // This field is necessary to execute queris like { "bool": {}} and {"match_all":{}}
 type All struct {
-	inner *field[bool]
+	data *roaring.Bitmap
 }
 
 func NewAll() *All {
-	gf := newField[bool]()
 	return &All{
-		inner: gf,
+		data: roaring.New(),
 	}
 }
 
 func (f *All) Type() schema.Type {
-	return schema.TypeBool
+	return schema.TypeAll
 }
 
 func (f *All) Add(id uint32, value interface{}) {
-	f.inner.Add(id, true)
+	f.data.Add(id)
 }
 
 func (f *All) Get(ctx context.Context, value interface{}) *Result {
-	return NewResult(ctx, f.inner.Get(true))
+	return NewResult(ctx, f.data.Clone())
 }
 
 func (f *All) GetOr(ctx context.Context, values []interface{}) *Result {
@@ -45,10 +47,23 @@ func (f *All) GetAnd(ctx context.Context, values []interface{}) *Result {
 	return f.Get(ctx, true)
 }
 
+func (f *All) Delete(id uint32) {
+	f.data.Remove(id)
+}
+
+func (f *All) Data(id uint32) []interface{} {
+	return []interface{}{f.data.Contains(id)}
+}
+
 func (f *All) MarshalBinary() ([]byte, error) {
-	return f.inner.MarshalBinary()
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(f.data)
+
+	return buf.Bytes(), err
 }
 
 func (f *All) UnmarshalBinary(data []byte) error {
-	return f.inner.UnmarshalBinary(data)
+	buf := bytes.NewBuffer(data)
+
+	return gob.NewDecoder(buf).Decode(&f.data)
 }

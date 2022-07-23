@@ -66,36 +66,51 @@ func (d *Documents) DeleteIndex(name string) error {
 	return nil
 }
 
-func (d *Documents) Add(index Index, id uint32, source DocSource) (uint32, error) {
+func (d *Documents) Add(index Index, id uint32, source DocSource) error {
 	if id <= 0 {
-		return id, fmt.Errorf("doc id is required")
+		return fmt.Errorf("doc id is required")
 	}
 
 	if err := schema.ValidateDoc(index.Schema, source); err != nil {
-		return 0, fmt.Errorf("doc validation err: %w", err)
+		return fmt.Errorf("doc validation err: %w", err)
 	}
 
-	fieldIndex, err := d.getIndexes(index.Name)
+	fieldIndex, err := d.fields.GetIndex(index.Name)
 	if err != nil {
-		return 0, err
+		return err
 	}
 
 	fieldIndex.Add(id, source)
 
-	return id, nil
+	return nil
 }
 
 func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
-	_, err := d.getIndexes(index.Name)
+	fieldIndex, err := d.fields.GetIndex(index.Name)
 	if err != nil {
 		return nil, err
 	}
 
-	return nil, nil // @todo
+	return fieldIndex.Get(id)
+}
+
+func (d *Documents) Delete(index Index, id uint32) error {
+	if id <= 0 {
+		return fmt.Errorf("doc id is required")
+	}
+
+	fieldIndex, err := d.fields.GetIndex(index.Name)
+	if err != nil {
+		return err
+	}
+
+	fieldIndex.Delete(id)
+
+	return nil
 }
 
 func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
-	fieldIndex, err := d.getIndexes(index.Name)
+	fieldIndex, err := d.fields.GetIndex(index.Name)
 	if err != nil {
 		return SearchResult{}, err
 	}
@@ -125,14 +140,4 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 		},
 		Took: int(took),
 	}, nil
-}
-
-func (d *Documents) getIndexes(
-	name string,
-) (fieldIndex *field.Index, err error) {
-	fieldIndex, err = d.fields.GetIndex(name)
-	if err != nil {
-		return
-	}
-	return
 }

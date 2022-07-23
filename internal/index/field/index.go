@@ -53,12 +53,34 @@ func NewIndex(name string, s schema.Schema) (*Index, error) {
 	return result, nil
 }
 
+// Add insert or replace document
 func (s *Index) Add(id uint32, source map[string]interface{}) {
 	for key, value := range source {
 		if f, ok := s.fields[key]; ok {
 			f.Add(id, value)
 			s.fields[AllField].Add(id, value)
 		}
+	}
+}
+
+func (s *Index) Get(id uint32) (map[string]interface{}, error) {
+	if res := s.fields[AllField].Data(id); res[0].(bool) != true {
+		return nil, fmt.Errorf("doc not found")
+	}
+
+	result := make(map[string]interface{})
+	for k, f := range s.fields {
+		if k == AllField {
+			continue
+		}
+		result[k] = f.Data(id)
+	}
+	return result, nil
+}
+
+func (s *Index) Delete(id uint32) {
+	for _, field := range s.fields {
+		field.Delete(id)
 	}
 }
 

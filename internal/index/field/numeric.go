@@ -4,11 +4,9 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
-	"github.com/spf13/cast"
 )
 
 type NumericConstraint interface {
@@ -16,16 +14,15 @@ type NumericConstraint interface {
 }
 
 type Numeric[T NumericConstraint] struct {
-	mtx  sync.Mutex
-	data map[T]*roaring.Bitmap
+	data   map[T]*roaring.Bitmap
+	values map[uint32][]T
 }
 
 func NewNumeric[T NumericConstraint]() *Numeric[T] {
-	result := &Numeric[T]{
-		data: make(map[T]*roaring.Bitmap),
+	return &Numeric[T]{
+		data:   make(map[T]*roaring.Bitmap),
+		values: make(map[uint32][]T),
 	}
-
-	return result
 }
 
 func (f *Numeric[T]) Type() schema.Type {
@@ -52,82 +49,54 @@ func (f *Numeric[T]) Type() schema.Type {
 }
 
 func (f *Numeric[T]) Add(id uint32, value interface{}) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-	val, err := castE[T](value)
+	v, err := castE[T](value)
 	if err != nil {
 		return
 	}
 
-	m, ok := f.data[val]
+	f.values[id] = append(f.values[id], v)
+
+	m, ok := f.data[v]
 	if !ok {
 		m = roaring.New()
-		f.data[val] = m
+		f.data[v] = m
 	}
 
 	m.Add(id)
-
-	return
 }
 
-func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(f.data)
-
-	return buf.Bytes(), err
-}
-
-func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	buf := bytes.NewBuffer(data)
-
-	return gob.NewDecoder(buf).Decode(&f.data)
-}
-
-func (f *Numeric[T]) Get(ctx context.Context, v interface{}) *Result {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
-	val, err := castE[T](v)
+func (f *Numeric[T]) Get(ctx context.Context, value interface{}) *Result {
+	v, err := castE[T](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
 	}
 
-	vv, ok := f.data[val]
+	m, ok := f.data[v]
 	if !ok {
 		return NewResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, vv.Clone())
+	return NewResult(ctx, m.Clone())
 }
 
 func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	var result *roaring.Bitmap
-	for _, v := range values {
-		val, err := castE[T](v)
+	for _, value := range values {
+		v, err := castE[T](value)
 		if err != nil {
 			continue
 		}
 
-		bm, ok := f.data[val]
+		m, ok := f.data[v]
 		if !ok {
 			continue
 		}
 
 		if result == nil {
-			result = bm.Clone()
-			continue
+			result = m.Clone()
+		} else {
+			result.Or(m)
 		}
-
-		result.Or(bm)
 	}
 
 	if result == nil {
@@ -138,27 +107,23 @@ func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
 }
 
 func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
-	f.mtx.Lock()
-	defer f.mtx.Unlock()
-
 	var result *roaring.Bitmap
-	for _, v := range values {
-		val, err := castE[T](v)
+	for _, value := range values {
+		v, err := castE[T](value)
 		if err != nil {
 			continue
 		}
 
-		bm, ok := f.data[val]
+		m, ok := f.data[v]
 		if !ok {
 			continue
 		}
 
 		if result == nil {
-			result = bm.Clone()
-			continue
+			result = m.Clone()
+		} else {
+			result.And(m)
 		}
-
-		result.And(bm)
 	}
 
 	if result == nil {
@@ -168,49 +133,62 @@ func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
 	return NewResult(ctx, result)
 }
 
-func castSlice[T comparable](values []interface{}) []T {
-	result := make([]T, 0, len(values))
-	for _, value := range values {
-		v, err := castE[T](value)
-		if err != nil {
+func (f *Numeric[T]) Delete(id uint32) {
+	vals, ok := f.values[id]
+	if !ok {
+		return
+	}
+	delete(f.values, id)
+
+	for _, v := range vals {
+		m, ok := f.data[v]
+		if !ok {
 			continue
 		}
-		result = append(result, v)
+		m.Remove(id)
+		if m.GetCardinality() == 0 {
+			delete(f.data, v)
+		}
 	}
+}
+
+func (f *Numeric[T]) Data(id uint32) []interface{} {
+	var result []interface{}
+
+	for _, v := range f.values[id] {
+		m, ok := f.data[v]
+		if !ok {
+			continue
+		}
+		if m.Contains(id) {
+			result = append(result, v)
+		}
+	}
+
 	return result
 }
 
-func castE[T comparable](value interface{}) (T, error) {
-	var (
-		k   T
-		val interface{}
-		err error
-	)
+type numericData[T NumericConstraint] struct {
+	Data   map[T]*roaring.Bitmap
+	Values map[uint32][]T
+}
 
-	switch any(k).(type) {
-	case bool:
-		val, err = cast.ToBoolE(value)
-	case int8:
-		val, err = cast.ToInt8E(value)
-	case int16:
-		val, err = cast.ToInt16E(value)
-	case int32:
-		val, err = cast.ToInt32E(value)
-	case int64:
-		val, err = cast.ToInt64E(value)
-	case uint64:
-		val, err = cast.ToUint64E(value)
-	case float32:
-		val, err = cast.ToFloat32E(value)
-	case float64:
-		val, err = cast.ToFloat64E(value)
-	case string:
-		val, err = cast.ToStringE(value)
-	}
+func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
+	var buf bytes.Buffer
+	err := gob.NewEncoder(&buf).Encode(numericData[T]{Data: f.data, Values: f.values})
 
+	return buf.Bytes(), err
+}
+
+func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
+	raw := numericData[T]{}
+	buf := bytes.NewBuffer(data)
+	err := gob.NewDecoder(buf).Decode(&raw)
 	if err != nil {
-		return k, err
+		return err
 	}
+	f.data = raw.Data
+	f.values = raw.Values
 
-	return val.(T), err
+	return nil
 }

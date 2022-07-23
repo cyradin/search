@@ -1,4 +1,4 @@
-package apiv1
+package api
 
 import (
 	"errors"
@@ -48,19 +48,13 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		id, err := c.docs.Add(i, req.ID, req.Source)
+		err = c.docs.Add(i, req.ID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
 		}
 
-		resp := struct {
-			ID uint32 `json:"id"`
-		}{
-			ID: id,
-		}
-		render.Status(r, http.StatusCreated)
-		render.Respond(w, r, resp)
+		w.WriteHeader(http.StatusCreated)
 	}
 }
 
@@ -82,14 +76,37 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		_, err = c.docs.Get(i, id)
+		source, err := c.docs.Get(i, id)
 		if err != nil {
 			handleErr(w, r, err)
 			return
 		}
 
 		render.Status(r, http.StatusOK)
-		render.Respond(w, r, Document{ID: id})
+		render.Respond(w, r, Document{ID: id, Source: source})
+	}
+}
+
+func (c *DocumentController) DeleteAction() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		idStr := chi.URLParam(r, documentParam)
+		id64, err := strconv.ParseUint(idStr, 10, 32)
+		id := uint32(id64)
+
+		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		if err != nil {
+			if errors.Is(err, index.ErrIndexNotFound) {
+				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
+			handleErr(w, r, err)
+			return
+		}
+
+		c.docs.Delete(i, id)
+		render.Status(r, http.StatusOK)
 	}
 }
 
