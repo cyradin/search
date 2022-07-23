@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/index"
 	"github.com/cyradin/search/internal/logger"
 	"github.com/go-chi/render"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
@@ -111,6 +112,9 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 	case errors.Is(err, errJsonUnmarshal):
 		resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
 		SendErrResponse(rw, r, status, resp)
+	case errors.Is(err, index.ErrDocNotFound):
+		resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
+		SendErrResponse(rw, r, status, resp)
 	case errors.As(err, &validationError):
 		path, _ := validationError.Params()["path"].(string)
 		errDetails := []ErrorDetail{
@@ -120,7 +124,7 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 				Msg:   validationError.Error(),
 			},
 		}
-		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))
+		resp, status := NewErrResponse422(ErrResponseWithMsg("validation error"), ErrResponseWithDetails(errDetails))
 		SendErrResponse(rw, r, status, resp)
 	case errors.As(err, &validationErrors):
 		errDetails := make([]ErrorDetail, 0, len(validationErrors))
@@ -138,13 +142,11 @@ func handleErr(rw http.ResponseWriter, r *http.Request, err error) {
 			})
 		}
 
-		resp, status := NewErrResponse422(ErrResponseWithMsg("Validation error"), ErrResponseWithDetails(errDetails))
+		resp, status := NewErrResponse422(ErrResponseWithMsg("validation error"), ErrResponseWithDetails(errDetails))
 		SendErrResponse(rw, r, status, resp)
 	default:
 		ctx := r.Context()
-		l := logger.FromCtx(ctx)
-
-		l.Error("request err", logger.ExtractFields(ctx, zap.Error(err))...)
+		logger.FromCtx(ctx).Error("request err", logger.ExtractFields(ctx, zap.Error(err))...)
 
 		resp, status := NewErrResponse500()
 		SendErrResponse(rw, r, status, resp)

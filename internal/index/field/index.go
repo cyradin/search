@@ -1,9 +1,13 @@
 package field
 
 import (
+	"fmt"
+
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 )
+
+var ErrDocNotFound = fmt.Errorf("document not found")
 
 type Index struct {
 	name   string
@@ -64,7 +68,7 @@ func (s *Index) Add(id uint32, source map[string]interface{}) {
 
 func (s *Index) Get(id uint32) (map[string]interface{}, error) {
 	if res := s.fields[AllField].Data(id); res[0].(bool) != true {
-		return nil, errs.Errorf("doc not found")
+		return nil, ErrDocNotFound
 	}
 
 	result := make(map[string]interface{})

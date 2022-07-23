@@ -91,7 +91,15 @@ func (d *Documents) Get(index Index, id uint32) (DocSource, error) {
 		return nil, err
 	}
 
-	return fieldIndex.Get(id)
+	doc, err := fieldIndex.Get(id)
+	if err != nil {
+		if err == field.ErrDocNotFound {
+			return nil, ErrDocNotFound
+		}
+		return nil, errs.Errorf("document get err: %w", err)
+	}
+
+	return doc, nil
 }
 
 func (d *Documents) Delete(index Index, id uint32) error {
