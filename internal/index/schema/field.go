@@ -2,8 +2,8 @@ package schema
 
 import (
 	"context"
-	"fmt"
 
+	"github.com/cyradin/search/internal/errs"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -92,7 +92,7 @@ func validateFieldType() validation.RuleFunc {
 	return func(value interface{}) error {
 		v := value.(Type)
 		if !v.Valid() {
-			return fmt.Errorf("invalid field type %q", v)
+			return errs.Errorf("invalid field type %q", v)
 		}
 		return nil
 	}
@@ -107,7 +107,7 @@ func validateFieldAnalyzers(t Type) validation.RuleWithContextFunc {
 
 		s := ctx.Value("schema").(Schema)
 		if _, ok := s.Analyzers[v]; !ok {
-			return fmt.Errorf("unknown analyzer %q", v)
+			return errs.Errorf("unknown analyzer %q", v)
 		}
 
 		return nil
@@ -118,20 +118,20 @@ func validateFieldChildren(t Type) validation.RuleFunc {
 	return func(value interface{}) error {
 		if value == nil {
 			if t == TypeSlice || t == TypeMap {
-				return fmt.Errorf("type %q must have children defined", t)
+				return errs.Errorf("type %q must have children defined", t)
 			}
 			return nil
 		}
 		v := value.(map[string]Field)
 		if len(v) == 0 {
 			if t == TypeSlice || t == TypeMap {
-				return fmt.Errorf("type %q must have children defined", t)
+				return errs.Errorf("type %q must have children defined", t)
 			}
 			return nil
 		}
 
 		if len(v) != 0 && t != TypeSlice && t != TypeMap {
-			return fmt.Errorf("type %q cannot have children fields", t)
+			return errs.Errorf("type %q cannot have children fields", t)
 		}
 
 		return nil

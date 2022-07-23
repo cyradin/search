@@ -39,7 +39,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -67,7 +67,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -78,6 +78,13 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 
 		source, err := c.docs.Get(i, id)
 		if err != nil {
+			if errors.Is(err, index.ErrDocNotFound) {
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
+				render.Status(r, status)
+				render.Respond(w, r, resp)
+				return
+			}
+
 			handleErr(w, r, err)
 			return
 		}
@@ -96,7 +103,7 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
+				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
 				render.Status(r, status)
 				render.Respond(w, r, resp)
 				return
@@ -106,40 +113,6 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 		}
 
 		c.docs.Delete(i, id)
-		render.Status(r, http.StatusOK)
-	}
-}
-
-func (c *DocumentController) SearchAction() http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		ctx := r.Context()
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
-		if err != nil {
-			if errors.Is(err, index.ErrIndexNotFound) {
-				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
-				render.Status(r, status)
-				render.Respond(w, r, resp)
-				return
-			}
-			handleErr(w, r, err)
-			return
-		}
-
-		query := index.Search{}
-		if err := decodeAndValidate(r, &query); err != nil {
-			resp, status := NewErrResponse400(ErrResponseWithMsg(err.Error()))
-			render.Status(r, status)
-			render.Respond(w, r, resp)
-			return
-		}
-
-		result, err := c.docs.Search(ctx, i, query)
-		if err != nil {
-			handleErr(w, r, err)
-			return
-		}
-
-		render.Status(r, http.StatusOK)
-		render.Respond(w, r, result)
+		w.WriteHeader(http.StatusNoContent)
 	}
 }

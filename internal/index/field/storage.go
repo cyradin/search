@@ -3,7 +3,6 @@ package field
 import (
 	"bytes"
 	"context"
-	"fmt"
 	"io/fs"
 	"os"
 	"path"
@@ -11,6 +10,7 @@ import (
 	"strings"
 	"sync"
 
+	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/cyradin/search/internal/logger"
@@ -54,22 +54,22 @@ func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 	defer s.mtx.Unlock()
 
 	if _, ok := s.indexes[name]; ok {
-		return nil, fmt.Errorf("index %q aready initialized", name)
+		return nil, errs.Errorf("index %q aready initialized", name)
 	}
 
 	src := path.Join(s.src, name, fieldsDir)
 	if err := os.MkdirAll(src, dirPermissions); err != nil {
-		return nil, fmt.Errorf("index dir %q create err: %w", src, err)
+		return nil, errs.Errorf("index dir %q create err: %w", src, err)
 	}
 
 	index, err := NewIndex(name, sc)
 	if err != nil {
-		return nil, fmt.Errorf("index %q init err: %w", name, err)
+		return nil, errs.Errorf("index %q init err: %w", name, err)
 	}
 
 	err = s.loadIndex(index)
 	if err != nil {
-		return nil, fmt.Errorf("index %q data load err: %w", name, err)
+		return nil, errs.Errorf("index %q data load err: %w", name, err)
 	}
 
 	s.indexes[name] = index
@@ -90,7 +90,7 @@ func (s *Storage) GetIndex(name string) (*Index, error) {
 
 	fs, ok := s.indexes[name]
 	if !ok {
-		return nil, fmt.Errorf("index %q not found", name)
+		return nil, errs.Errorf("index %q not found", name)
 	}
 
 	return fs, nil
@@ -112,18 +112,18 @@ func (s *Storage) loadIndex(index *Index) error {
 
 		file, err := os.OpenFile(src, os.O_RDONLY|os.O_CREATE, filePermissions)
 		if err != nil {
-			return fmt.Errorf("file %q open err: %w", src, err)
+			return errs.Errorf("file %q open err: %w", src, err)
 		}
 
 		var buf bytes.Buffer
 		_, err = buf.ReadFrom(file)
 		if err != nil {
-			return fmt.Errorf("file %q read err: %w", src, err)
+			return errs.Errorf("file %q read err: %w", src, err)
 		}
 
 		err = field.UnmarshalBinary(buf.Bytes())
 		if err != nil {
-			return fmt.Errorf("field %q unmarshal err: %w", name, err)
+			return errs.Errorf("field %q unmarshal err: %w", name, err)
 		}
 
 		return nil
@@ -134,24 +134,24 @@ func (s *Storage) dumpIndex(index *Index) error {
 	dir := s.indexFieldsDir(index.name)
 	err := os.MkdirAll(dir, dirPermissions)
 	if err != nil {
-		return fmt.Errorf("dir %q create err: %w", dir, err)
+		return errs.Errorf("dir %q create err: %w", dir, err)
 	}
 
 	for name, field := range index.fields {
 		src := path.Join(dir, name+fieldFileExt)
 		file, err := os.OpenFile(src, os.O_WRONLY|os.O_CREATE, filePermissions)
 		if err != nil {
-			return fmt.Errorf("file %q open err: %w", src, err)
+			return errs.Errorf("file %q open err: %w", src, err)
 		}
 
 		data, err := field.MarshalBinary()
 		if err != nil {
-			return fmt.Errorf("field %q unmarshal err: %w", name, err)
+			return errs.Errorf("field %q unmarshal err: %w", name, err)
 		}
 
 		_, err = bytes.NewBuffer(data).WriteTo(file)
 		if err != nil {
-			return fmt.Errorf("file %q write err: %w", src, err)
+			return errs.Errorf("file %q write err: %w", src, err)
 		}
 	}
 

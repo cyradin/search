@@ -2,7 +2,6 @@ package query
 
 import (
 	"context"
-	"fmt"
 	"reflect"
 
 	"github.com/RoaringBitmap/roaring"
@@ -127,7 +126,7 @@ func build(ctx context.Context, req Query) (internalQuery, error) {
 	}
 
 	// must not be executed because of validation made earlier
-	panic(fmt.Errorf("unknown query type %q", key))
+	panic(errs.Errorf("unknown query type %q", key))
 }
 
 func firstVal(m map[string]interface{}) (string, interface{}) {
@@ -140,7 +139,7 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 
 func interfaceToSlice[T any](value interface{}) ([]T, error) {
 	if reflect.TypeOf(value).Kind() != reflect.Slice {
-		return nil, fmt.Errorf("value is not a slice")
+		return nil, errs.Errorf("value is not a slice")
 	}
 
 	s := reflect.ValueOf(value)
@@ -150,7 +149,7 @@ func interfaceToSlice[T any](value interface{}) ([]T, error) {
 		vv, ok := val.(T)
 		if !ok {
 			tt := new(T)
-			return nil, fmt.Errorf("invalid #%d element value: required %#v, got %#v", i, tt, val)
+			return nil, errs.Errorf("invalid #%d element value: required %#v, got %#v", i, tt, val)
 		}
 
 		result[i] = vv
