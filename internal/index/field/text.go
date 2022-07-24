@@ -53,7 +53,21 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Get(ctx context.Context, value interface{}) *Result {
+func (f *Text) Term(ctx context.Context, value interface{}) *Result {
+	v, err := cast.ToStringE(value)
+	if err != nil {
+		return NewResult(ctx, roaring.New())
+	}
+
+	m, ok := f.data[v]
+	if !ok {
+		return NewResult(ctx, roaring.New())
+	}
+
+	return NewResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
+}
+
+func (f *Text) Match(ctx context.Context, value interface{}) *Result {
 	val, err := castE[string](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())

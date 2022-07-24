@@ -21,11 +21,11 @@ func Test_All(t *testing.T) {
 		require.False(t, field.data.Contains(2))
 	})
 
-	t.Run("Get", func(t *testing.T) {
+	t.Run("Term", func(t *testing.T) {
 		field := NewAll()
 		field.Add(1, true)
 
-		result := field.Get(context.Background(), true)
+		result := field.Term(context.Background(), true)
 		require.True(t, result.Docs().Contains(1))
 	})
 

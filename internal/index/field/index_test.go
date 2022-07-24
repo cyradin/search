@@ -38,15 +38,15 @@ func Test_index(t *testing.T) {
 		index.Add(1, map[string]interface{}{"f1": true})
 		index.Add(2, map[string]interface{}{"f2": true})
 
-		result1 := index.fields["f1"].Get(ctx, true)
+		result1 := index.fields["f1"].Term(ctx, true)
 		require.True(t, result1.Docs().Contains(1))
 		require.False(t, result1.Docs().Contains(2))
 
-		result2 := index.fields["f2"].Get(ctx, true)
+		result2 := index.fields["f2"].Term(ctx, true)
 		require.False(t, result2.Docs().Contains(1))
 		require.True(t, result2.Docs().Contains(2))
 
-		result3 := index.fields[AllField].Get(ctx, true)
+		result3 := index.fields[AllField].Term(ctx, true)
 		require.True(t, result3.Docs().Contains(1))
 		require.True(t, result3.Docs().Contains(2))
 	})

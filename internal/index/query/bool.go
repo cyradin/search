@@ -81,7 +81,7 @@ func (q *boolQuery) exec(ctx context.Context) (*queryResult, error) {
 
 	if len(q.should) == 0 && len(q.must) == 0 && len(q.filter) == 0 {
 		if ff, ok := fields[field.AllField]; ok {
-			return newResult(ff.Get(ctx, true)), nil
+			return newResult(ff.Term(ctx, true)), nil
 		}
 
 		return newEmptyResult(), nil

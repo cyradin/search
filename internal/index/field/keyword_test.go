@@ -31,15 +31,15 @@ func Test_Keyword_Add(t *testing.T) {
 		})
 	})
 
-	t.Run("Get", func(t *testing.T) {
+	t.Run("Term", func(t *testing.T) {
 		field := NewKeyword()
 		field.Add(1, "foo")
 
-		result := field.Get(context.Background(), "foo")
+		result := field.Term(context.Background(), "foo")
 		require.True(t, result.Docs().Contains(1))
 		require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-		result = field.Get(context.Background(), "bar")
+		result = field.Term(context.Background(), "bar")
 		require.False(t, result.Docs().Contains(1))
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})
