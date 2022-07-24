@@ -3,7 +3,7 @@ package index
 import (
 	"context"
 	"os"
-	"path/filepath"
+	"path"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -14,6 +14,37 @@ type testDoc struct {
 	Name       string              `json:"name"`
 	Properties map[string][]string `json:"properties"`
 }
+
+var storageTestData = `
+{
+    "1": {
+        "id": 1,
+        "source": {
+            "id": "1",
+            "name": "foo",
+            "properties": {
+                "colors": [
+                    "red",
+                    "blue"
+                ]
+            }
+        }
+    },
+    "2": {
+        "id": 2,
+        "source": {
+            "id": "2",
+            "name": "bar",
+            "properties": {
+                "colors": [
+                    "red",
+                    "green"
+                ]
+            }
+        }
+    }
+}
+`
 
 func newTestDoc1() Document[uint32, testDoc] {
 	return Document[uint32, testDoc]{
@@ -41,37 +72,20 @@ func newTestDoc2() Document[uint32, testDoc] {
 	}
 }
 
-func Test_FileStorage_All(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name      string
-		file      string
-		expected  []Document[K, T]
-		erroneous bool
+func Test_FileStorage(t *testing.T) {
+	initStorage := func(t *testing.T) *FileStorage[uint32, testDoc] {
+		f := path.Join(t.TempDir(), "/file.json")
+		err := os.WriteFile(f, []byte(storageTestData), 0755)
+		require.NoError(t, err)
+		p, err := NewFileStorage[uint32, testDoc](f)
+		require.NoError(t, err)
+		return p
 	}
 
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "invalid_file",
-			file:      "",
-			erroneous: false,
-		},
-		{
-			name:      "ok",
-			file:      "../../test/testdata/document/storage_file.json",
-			erroneous: false,
-			expected:  []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc](d.file)
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
+	t.Run("All", func(t *testing.T) {
+		t.Run("must return empty list if storage file is empty", func(t *testing.T) {
+			p, err := NewFileStorage[uint32, testDoc]("")
 			require.NoError(t, err)
-
 			docs, errors := p.All()
 
 			var result []Document[uint32, testDoc]
@@ -88,330 +102,167 @@ func Test_FileStorage_All(t *testing.T) {
 			a()
 
 			require.NoError(t, err)
-			require.ElementsMatch(t, d.expected, result)
+			require.Len(t, result, 0)
 		})
-	}
-}
+		t.Run("must return not empty list if storage file is not empty", func(t *testing.T) {
+			p := initStorage(t)
+			docs, errors := p.All()
 
-func Test_FileStorage_One(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name      string
-		file      string
-		id        uint32
-		expected  Document[K, T]
-		erroneous bool
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "invalid_file",
-			file:      "invalid",
-			id:        0,
-			erroneous: true,
-		},
-		{
-			name:      "ok",
-			file:      "../../test/testdata/document/storage_file.json",
-			id:        1,
-			erroneous: false,
-			expected:  newTestDoc1(),
-		},
-		{
-			name:      "not_found",
-			file:      "../../test/testdata/document/storage_file.json",
-			id:        3,
-			erroneous: true,
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc](d.file)
-			require.NoError(t, err)
-
-			doc, err := p.One(d.id)
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, d.expected, doc)
-		})
-	}
-}
-
-func Test_FileStorage_Multi(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name      string
-		file      string
-		ids       []uint32
-		expected  []Document[K, T]
-		erroneous bool
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "invalid_file",
-			file:      "invalid",
-			erroneous: false,
-			expected:  []Document[uint32, testDoc]{},
-		},
-		{
-			name:      "one",
-			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []uint32{1},
-			erroneous: false,
-			expected:  []Document[uint32, testDoc]{newTestDoc1()},
-		},
-		{
-			name:      "one",
-			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []uint32{1, 2},
-			erroneous: false,
-			expected:  []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()},
-		},
-		{
-			name:      "not_found",
-			file:      "../../test/testdata/document/storage_file.json",
-			ids:       []uint32{3},
-			erroneous: false,
-			expected:  []Document[uint32, testDoc]{},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc](d.file)
-			require.NoError(t, err)
-
-			docs, err := p.Multi(d.ids...)
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			require.ElementsMatch(t, d.expected, docs)
-		})
-	}
-}
-
-func Test_FileStorage_Insert(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name      string
-		docs      map[uint32]Document[uint32, T]
-		erroneous bool
-		expected  uint32
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "ok",
-			erroneous: false,
-			docs:      make(map[uint32]Document[uint32, testDoc]),
-			expected:  1,
-		},
-		{
-			name:      "already_exists",
-			erroneous: true,
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc]("")
-			require.NoError(t, err)
-
-			p.docs = d.docs
-
-			id, err := p.Insert(0, testDoc{})
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			require.Equal(t, d.expected, id)
-		})
-	}
-}
-
-func Test_FileStorage_Update(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name      string
-		id        uint32
-		docs      map[uint32]Document[uint32, T]
-		erroneous bool
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "empty_id",
-			erroneous: true,
-			id:        0,
-			docs:      make(map[uint32]Document[uint32, testDoc]),
-		},
-		{
-			name:      "not_exists",
-			erroneous: true,
-			id:        1,
-			docs:      make(map[uint32]Document[uint32, testDoc]),
-		},
-		{
-			name:      "ok",
-			erroneous: false,
-			id:        1,
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc]("")
-			require.NoError(t, err)
-
-			p.docs = d.docs
-			err = p.Update(d.id, testDoc{})
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-		})
-	}
-}
-
-func Test_FileStorage_Delete(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name         string
-		id           uint32
-		docs         map[uint32]Document[uint32, T]
-		erroneous    bool
-		expectedDocs map[uint32]Document[uint32, T]
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:      "empty_id",
-			erroneous: true,
-			id:        0,
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-			expectedDocs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-		},
-		{
-			name:      "not_exists",
-			erroneous: true,
-			id:        2,
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-			expectedDocs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-		},
-		{
-			name:      "ok",
-			erroneous: false,
-			id:        1,
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {},
-			},
-			expectedDocs: map[uint32]Document[uint32, testDoc]{},
-		},
-	}
-
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			p, err := NewFileStorage[uint32, testDoc]("")
-			require.NoError(t, err)
-
-			p.docs = d.docs
-			err = p.Delete(d.id)
-			if d.erroneous {
-				require.Error(t, err)
-				return
-			}
-
-			require.NoError(t, err)
-			require.EqualValues(t, d.docs, d.expectedDocs)
-		})
-	}
-}
-
-func Test_FileStorage_Stop(t *testing.T) {
-	type testData[K StorageID, T any] struct {
-		name     string
-		docs     map[uint32]Document[uint32, T]
-		expected string
-	}
-
-	data := []testData[uint32, testDoc]{
-		{
-			name:     "empty",
-			docs:     make(map[uint32]Document[uint32, testDoc]),
-			expected: "{}",
-		},
-		{
-			name: "not empty",
-			docs: map[uint32]Document[uint32, testDoc]{
-				1: {
-					ID: 1,
-					Source: testDoc{
-						ID:   "id",
-						Name: "name",
-						Properties: map[string][]string{
-							"color": {"red", "green"},
-						},
-					},
-				},
-			},
-			expected: `
-				{
-					"1": {
-						"id": 1,
-						"source": {
-							"id": "id",
-							"name": "name",
-							"properties": {
-								"color": ["red", "green"]
-							}
-						}
+			var err error
+			var result []Document[uint32, testDoc]
+			a := func() {
+				for {
+					select {
+					case err = <-errors:
+						return
+					case doc := <-docs:
+						result = append(result, doc)
 					}
-				}`,
-		},
-	}
+				}
+			}
+			a()
 
-	for _, d := range data {
-		t.Run(d.name, func(t *testing.T) {
-			dir, err := os.MkdirTemp("", "testdir")
 			require.NoError(t, err)
-			defer os.RemoveAll(dir)
-
-			file := filepath.Join(dir, "storage.json")
-
-			p, err := NewFileStorage[uint32, testDoc](file)
-			require.NoError(t, err)
-
-			p.docs = d.docs
-
-			ctx := context.Background()
-			p.Stop(ctx)
-
-			result, err := os.ReadFile(file)
-			require.NoError(t, err)
-
-			require.JSONEq(t, d.expected, string(result))
+			require.ElementsMatch(t, []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()}, result)
 		})
-	}
+	})
+
+	t.Run("One", func(t *testing.T) {
+		t.Run("must return doc from storage if it exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			doc, err := p.One(1)
+			require.NoError(t, err)
+			require.Equal(t, newTestDoc1(), doc)
+		})
+		t.Run("must return err if doc is not found", func(t *testing.T) {
+			p := initStorage(t)
+
+			_, err := p.One(3)
+			require.Error(t, err)
+		})
+	})
+
+	t.Run("Multi", func(t *testing.T) {
+		t.Run("must return all found documents", func(t *testing.T) {
+			p := initStorage(t)
+
+			docs, err := p.Multi(1, 2, 3)
+			require.NoError(t, err)
+			require.ElementsMatch(t, []Document[uint32, testDoc]{newTestDoc1(), newTestDoc2()}, docs)
+		})
+	})
+
+	t.Run("Insert", func(t *testing.T) {
+		t.Run("must add document to storage", func(t *testing.T) {
+			p := initStorage(t)
+
+			doc := testDoc{ID: "3", Name: "name"}
+			id, err := p.Insert(3, doc)
+			require.NoError(t, err)
+			require.EqualValues(t, 3, id)
+
+			added, err := p.One(3)
+			require.NoError(t, err)
+			require.Equal(t, doc, added.Source)
+		})
+
+		t.Run("must return error if doc already exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			_, err := p.Insert(1, testDoc{})
+			require.Error(t, err)
+		})
+	})
+
+	t.Run("Update", func(t *testing.T) {
+		t.Run("must return err if id is empty", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Update(0, testDoc{})
+			require.Error(t, err)
+		})
+
+		t.Run("must return error if doc not exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Update(3, testDoc{})
+			require.Error(t, err)
+		})
+
+		t.Run("must update doc if it exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			doc := newTestDoc2()
+			doc.Source.Name = "new name"
+
+			err := p.Update(2, doc.Source)
+			require.NoError(t, err)
+
+			updated, err := p.One(2)
+			require.NoError(t, err)
+			require.Equal(t, doc, updated)
+		})
+	})
+
+	t.Run("Delete", func(t *testing.T) {
+		t.Run("must return err if id is empty", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Delete(0)
+			require.Error(t, err)
+		})
+		t.Run("must return error if doc not exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Delete(3)
+			require.Error(t, err)
+
+			doc1, err := p.One(1)
+			require.NoError(t, err)
+			require.Equal(t, newTestDoc1(), doc1)
+			doc2, err := p.One(2)
+			require.NoError(t, err)
+			require.Equal(t, newTestDoc2(), doc2)
+		})
+		t.Run("must delete doc if it exists", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Delete(2)
+			require.NoError(t, err)
+
+			doc1, err := p.One(1)
+			require.NoError(t, err)
+			require.Equal(t, newTestDoc1(), doc1)
+			_, err = p.One(2)
+			require.Error(t, err)
+		})
+	})
+
+	t.Run("Stop", func(t *testing.T) {
+		t.Run("must write empty json if storage is empty", func(t *testing.T) {
+			f := path.Join(t.TempDir(), "/file.json")
+			p, err := NewFileStorage[uint32, testDoc](f)
+			require.NoError(t, err)
+
+			err = p.Stop(context.Background())
+			require.NoError(t, err)
+
+			result, err := os.ReadFile(f)
+			require.NoError(t, err)
+
+			require.JSONEq(t, `{}`, string(result))
+		})
+		t.Run("must write docs if storage is not empty", func(t *testing.T) {
+			p := initStorage(t)
+
+			err := p.Stop(context.Background())
+			require.NoError(t, err)
+
+			result, err := os.ReadFile(p.src)
+			require.NoError(t, err)
+
+			require.JSONEq(t, storageTestData, string(result))
+		})
+	})
 }
