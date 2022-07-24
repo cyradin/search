@@ -44,7 +44,7 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	m.Add(id)
 }
 
-func (f *Keyword) Get(ctx context.Context, value interface{}) *Result {
+func (f *Keyword) Term(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToStringE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())

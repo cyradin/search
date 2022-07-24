@@ -41,7 +41,7 @@ func (f *Bool) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Bool) Get(ctx context.Context, value interface{}) *Result {
+func (f *Bool) Term(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToBoolE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())

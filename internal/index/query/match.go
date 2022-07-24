@@ -49,5 +49,5 @@ func (q *matchQuery) exec(ctx context.Context) (*queryResult, error) {
 
 	v := val.(map[string]interface{})["query"]
 
-	return newResult(f.Get(ctx, v)), nil
+	return newResult(f.Match(ctx, v)), nil
 }

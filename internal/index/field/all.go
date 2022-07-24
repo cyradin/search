@@ -35,16 +35,16 @@ func (f *All) Add(id uint32, value interface{}) {
 	f.data.Add(id)
 }
 
-func (f *All) Get(ctx context.Context, value interface{}) *Result {
+func (f *All) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, f.data.Clone())
 }
 
 func (f *All) GetOr(ctx context.Context, values []interface{}) *Result {
-	return f.Get(ctx, true)
+	return f.Term(ctx, true)
 }
 
 func (f *All) GetAnd(ctx context.Context, values []interface{}) *Result {
-	return f.Get(ctx, true)
+	return f.Term(ctx, true)
 }
 
 func (f *All) Delete(id uint32) {

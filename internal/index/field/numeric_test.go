@@ -40,15 +40,15 @@ func test_numericField[T NumericConstraint](t *testing.T) {
 		})
 	})
 
-	t.Run("Get", func(t *testing.T) {
+	t.Run("Term", func(t *testing.T) {
 		field := NewNumeric[T]()
 		field.Add(1, 1)
 
-		result := field.Get(context.Background(), 1)
+		result := field.Term(context.Background(), 1)
 		require.True(t, result.Docs().Contains(1))
 		require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-		result = field.Get(context.Background(), 2)
+		result = field.Term(context.Background(), 2)
 		require.False(t, result.Docs().Contains(1))
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})

@@ -65,7 +65,7 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	m.Add(id)
 }
 
-func (f *Numeric[T]) Get(ctx context.Context, value interface{}) *Result {
+func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
 	v, err := castE[T](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())

@@ -31,15 +31,15 @@ func Test_Bool(t *testing.T) {
 		})
 	})
 
-	t.Run("Get", func(t *testing.T) {
+	t.Run("Term", func(t *testing.T) {
 		field := NewBool()
 		field.Add(1, true)
 
-		result := field.Get(context.Background(), true)
+		result := field.Term(context.Background(), true)
 		require.True(t, result.Docs().Contains(1))
 		require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-		result = field.Get(context.Background(), false)
+		result = field.Term(context.Background(), false)
 		require.False(t, result.Docs().Contains(1))
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})

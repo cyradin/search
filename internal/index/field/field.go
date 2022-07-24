@@ -24,8 +24,8 @@ type Field interface {
 	Type() schema.Type
 	// Add add document field value
 	Add(id uint32, value interface{})
-	// Get get bitmap clone by value
-	Get(ctx context.Context, value interface{}) *Result
+	// Term get field value
+	Term(ctx context.Context, value interface{}) *Result
 	// GetOr compute the union between bitmaps of the passed values
 	GetOr(ctx context.Context, values []interface{}) *Result
 	// GetAnd compute the intersection between bitmaps of the passed values
@@ -55,10 +55,10 @@ func (f *Sync) Add(id uint32, value interface{}) {
 	f.field.Add(id, value)
 }
 
-func (f *Sync) Get(ctx context.Context, value interface{}) *Result {
+func (f *Sync) Term(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Get(ctx, value)
+	return f.field.Term(ctx, value)
 }
 
 func (f *Sync) GetOr(ctx context.Context, values []interface{}) *Result {
