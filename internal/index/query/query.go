@@ -22,6 +22,8 @@ const (
 	queryBoolFilter queryType = "filter"
 
 	queryMatch queryType = "match"
+
+	queryRange queryType = "range"
 )
 
 func queryTypes() []queryType {
@@ -29,6 +31,8 @@ func queryTypes() []queryType {
 		queryTerm,
 		queryTerms,
 		queryBool,
+		queryMatch,
+		queryRange,
 	}
 }
 
@@ -123,6 +127,8 @@ func build(ctx context.Context, req Query) (internalQuery, error) {
 		return newBoolQuery(ctx, req)
 	case queryMatch:
 		return newMatchQuery(ctx, req)
+	case queryRange:
+		return newRangeQuery(ctx, req)
 	}
 
 	// must not be executed because of validation made earlier
