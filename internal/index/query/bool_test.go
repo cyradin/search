@@ -11,8 +11,17 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Benchmark_boolQuery(b *testing.B) {
+func Benchmark_boolQuery_sync(b *testing.B) {
 	counts := []int{1, 10, 100, 1000, 10000, 100000, 1000000}
+	bench_boolQuery(b, counts, false)
+}
+
+func Benchmark_boolQuery_parallel(b *testing.B) {
+	counts := []int{1, 10, 100, 1000, 10000, 100000, 1000000}
+	bench_boolQuery(b, counts, true)
+}
+
+func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 	q := `{
 		"should": [
 			{
@@ -87,6 +96,10 @@ func Benchmark_boolQuery(b *testing.B) {
 				if err != nil {
 					panic(err)
 				}
+				if parallel {
+					bq.parallel = true
+				}
+
 				result, err := bq.exec(ctx)
 				if err != nil {
 					panic(err)

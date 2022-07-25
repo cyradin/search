@@ -11,7 +11,8 @@ import (
 var _ internalQuery = (*boolQuery)(nil)
 
 type boolQuery struct {
-	query Query
+	query    Query
+	parallel bool
 
 	must   []internalQuery
 	should []internalQuery
@@ -87,17 +88,16 @@ func (q *boolQuery) exec(ctx context.Context) (*queryResult, error) {
 		return newEmptyResult(), nil
 	}
 
-	shouldResult, err := q.execType(ctx, q.should, func(src *queryResult, dst *queryResult) { src.Or(dst) })
-	if err != nil {
-		return newEmptyResult(), err
-	}
+	var (
+		shouldResult, filterResult, mustResult *queryResult
+		err                                    error
+	)
 
-	filterResult, err := q.execType(ctx, q.filter, func(src *queryResult, dst *queryResult) { src.And(dst) })
-	if err != nil {
-		return newEmptyResult(), err
+	if q.parallel {
+		shouldResult, filterResult, mustResult, err = q.runParallel(ctx)
+	} else {
+		shouldResult, filterResult, mustResult, err = q.runSync(ctx)
 	}
-
-	mustResult, err := q.execType(ctx, q.must, func(src *queryResult, dst *queryResult) { src.And(dst) })
 	if err != nil {
 		return newEmptyResult(), err
 	}
@@ -124,7 +124,87 @@ func (q *boolQuery) exec(ctx context.Context) (*queryResult, error) {
 	return result, nil
 }
 
-func (q *boolQuery) execType(
+func (q *boolQuery) runParallel(ctx context.Context) (*queryResult, *queryResult, *queryResult, error) {
+	errors := make(chan error)
+
+	ctx, cancel := context.WithCancel(ctx)
+	defer cancel()
+
+	chShould := q.runAsyncQueries(ctx, q.should, errors)
+	chMust := q.runAsyncQueries(ctx, q.must, errors)
+	chFilter := q.runAsyncQueries(ctx, q.filter, errors)
+
+	var shouldResult *queryResult
+	var filterResult *queryResult
+	var mustResult *queryResult
+
+	for i := 0; i < len(q.should)+len(q.must)+len(q.filter); i++ {
+		select {
+		case r := <-chShould:
+			if shouldResult == nil {
+				shouldResult = r
+			} else {
+				shouldResult.Or(r)
+			}
+		case r := <-chMust:
+			if mustResult == nil {
+				mustResult = r
+			} else {
+				mustResult.And(r)
+			}
+		case r := <-chFilter:
+			if filterResult == nil {
+				filterResult = r
+			} else {
+				filterResult.And(r)
+			}
+		case err := <-errors:
+			return nil, nil, nil, err
+		}
+	}
+
+	return shouldResult, filterResult, mustResult, nil
+
+}
+
+func (q *boolQuery) runAsyncQueries(ctx context.Context, queries []internalQuery, errors chan<- error) <-chan *queryResult {
+	ch := make(chan *queryResult)
+
+	go func() {
+		for _, query := range queries {
+			go func(ctx context.Context, query internalQuery) {
+				res, err := query.exec(ctx)
+				if err != nil {
+					errors <- err
+				}
+				ch <- res
+			}(ctx, query)
+		}
+	}()
+
+	return ch
+}
+
+func (q *boolQuery) runSync(ctx context.Context) (*queryResult, *queryResult, *queryResult, error) {
+	shouldResult, err := q.runSyncQueries(ctx, q.should, func(src *queryResult, dst *queryResult) { src.Or(dst) })
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	filterResult, err := q.runSyncQueries(ctx, q.filter, func(src *queryResult, dst *queryResult) { src.And(dst) })
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	mustResult, err := q.runSyncQueries(ctx, q.must, func(src *queryResult, dst *queryResult) { src.And(dst) })
+	if err != nil {
+		return nil, nil, nil, err
+	}
+
+	return shouldResult, filterResult, mustResult, nil
+}
+
+func (q *boolQuery) runSyncQueries(
 	ctx context.Context,
 	queries []internalQuery,
 	apply func(src *queryResult, dst *queryResult),
