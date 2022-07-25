@@ -44,30 +44,6 @@ func Test_Keyword_Add(t *testing.T) {
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})
 
-	t.Run("GetOr", func(t *testing.T) {
-		field := NewKeyword()
-		field.Add(1, "foo")
-		field.Add(2, "bar")
-		field.Add(3, "baz")
-
-		result := field.GetOr(context.Background(), []interface{}{"foo", "bar"})
-		require.True(t, result.Docs().Contains(1))
-		require.True(t, result.Docs().Contains(2))
-		require.EqualValues(t, 2, result.Docs().GetCardinality())
-	})
-
-	t.Run("GetAnd", func(t *testing.T) {
-		field := NewKeyword()
-		field.Add(1, "foo")
-		field.Add(1, "bar")
-		field.Add(2, "foo")
-		field.Add(3, "baz")
-
-		result := field.GetAnd(context.Background(), []interface{}{"foo", "bar"})
-		require.True(t, result.Docs().Contains(1))
-		require.EqualValues(t, 1, result.Docs().GetCardinality())
-	})
-
 	t.Run("Delete", func(t *testing.T) {
 		field := NewKeyword()
 		field.Add(1, "foo")

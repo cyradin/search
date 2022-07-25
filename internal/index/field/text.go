@@ -100,14 +100,6 @@ func (f *Text) Match(ctx context.Context, value interface{}) *Result {
 	return NewResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) GetOr(ctx context.Context, values []interface{}) *Result {
-	return NewResult(ctx, roaring.New()) // no implemented (yet?)
-}
-
-func (f *Text) GetAnd(ctx context.Context, values []interface{}) *Result {
-	return NewResult(ctx, roaring.New()) // no implemented (yet?)
-}
-
 func (f *Text) Delete(id uint32) {
 	vals, ok := f.values[id]
 	if !ok {

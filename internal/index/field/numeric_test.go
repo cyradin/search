@@ -53,30 +53,6 @@ func test_numericField[T NumericConstraint](t *testing.T) {
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})
 
-	t.Run("GetOr", func(t *testing.T) {
-		field := NewNumeric[T]()
-		field.Add(1, 1)
-		field.Add(2, 2)
-		field.Add(3, "baz")
-
-		result := field.GetOr(context.Background(), []interface{}{1, 2})
-		require.True(t, result.Docs().Contains(1))
-		require.True(t, result.Docs().Contains(2))
-		require.EqualValues(t, 2, result.Docs().GetCardinality())
-	})
-
-	t.Run("GetAnd", func(t *testing.T) {
-		field := NewNumeric[T]()
-		field.Add(1, 1)
-		field.Add(1, 2)
-		field.Add(2, 1)
-		field.Add(3, "baz")
-
-		result := field.GetAnd(context.Background(), []interface{}{1, 2})
-		require.True(t, result.Docs().Contains(1))
-		require.EqualValues(t, 1, result.Docs().GetCardinality())
-	})
-
 	t.Run("Delete", func(t *testing.T) {
 		field := NewNumeric[T]()
 		field.Add(1, 1)

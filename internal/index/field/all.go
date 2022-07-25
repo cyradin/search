@@ -39,12 +39,8 @@ func (f *All) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, f.data.Clone())
 }
 
-func (f *All) GetOr(ctx context.Context, values []interface{}) *Result {
-	return f.Term(ctx, true)
-}
-
-func (f *All) GetAnd(ctx context.Context, values []interface{}) *Result {
-	return f.Term(ctx, true)
+func (f *All) Match(ctx context.Context, value interface{}) *Result {
+	return f.Term(ctx, value)
 }
 
 func (f *All) Delete(id uint32) {

@@ -44,30 +44,6 @@ func Test_Bool(t *testing.T) {
 		require.EqualValues(t, 0, result.Docs().GetCardinality())
 	})
 
-	t.Run("GetOr", func(t *testing.T) {
-		field := NewBool()
-		field.Add(1, true)
-		field.Add(2, false)
-
-		result := field.GetOr(context.Background(), []interface{}{true, "qwe", false})
-		require.True(t, result.Docs().Contains(1))
-		require.True(t, result.Docs().Contains(2))
-		require.EqualValues(t, 2, result.Docs().GetCardinality())
-	})
-
-	t.Run("GetAnd", func(t *testing.T) {
-		field := NewBool()
-		field.Add(1, true)
-		field.Add(2, false)
-
-		result := field.GetAnd(context.Background(), []interface{}{true, "qwe", true})
-		require.True(t, result.Docs().Contains(1))
-		require.EqualValues(t, 1, result.Docs().GetCardinality())
-
-		result = field.GetAnd(context.Background(), []interface{}{true, "qwe", false})
-		require.EqualValues(t, 0, result.Docs().GetCardinality())
-	})
-
 	t.Run("Delete", func(t *testing.T) {
 		field := NewBool()
 		field.Add(1, true)

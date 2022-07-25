@@ -26,10 +26,8 @@ type Field interface {
 	Add(id uint32, value interface{})
 	// Term get field value
 	Term(ctx context.Context, value interface{}) *Result
-	// GetOr compute the union between bitmaps of the passed values
-	GetOr(ctx context.Context, values []interface{}) *Result
-	// GetAnd compute the intersection between bitmaps of the passed values
-	GetAnd(ctx context.Context, values []interface{}) *Result
+	// Match get field analyzed value
+	Match(ctx context.Context, value interface{}) *Result
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values
@@ -61,16 +59,10 @@ func (f *Sync) Term(ctx context.Context, value interface{}) *Result {
 	return f.field.Term(ctx, value)
 }
 
-func (f *Sync) GetOr(ctx context.Context, values []interface{}) *Result {
+func (f *Sync) Match(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.GetOr(ctx, values)
-}
-
-func (f *Sync) GetAnd(ctx context.Context, values []interface{}) *Result {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-	return f.field.GetAnd(ctx, values)
+	return f.field.Term(ctx, value)
 }
 
 func (f *Sync) Delete(id uint32) {

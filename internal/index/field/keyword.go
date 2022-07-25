@@ -58,58 +58,8 @@ func (f *Keyword) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, m.Clone())
 }
 
-func (f *Keyword) GetOr(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToStringE(value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.Or(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
-}
-
-func (f *Keyword) GetAnd(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToStringE(value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.And(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Keyword) Match(ctx context.Context, value interface{}) *Result {
+	return f.Term(ctx, value)
 }
 
 func (f *Keyword) Delete(id uint32) {
