@@ -2,10 +2,30 @@ package field
 
 import (
 	"context"
+	"fmt"
+	"math/rand"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
+
+func Benchmark_Bool_Term(b *testing.B) {
+	data := []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
+
+	for _, cnt := range data {
+		f := NewBool()
+		for i := 0; i < cnt; i++ {
+			f.Add(rand.Uint32(), true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f.Term(ctx, true)
+			}
+		})
+	}
+}
 
 func Test_Bool(t *testing.T) {
 	t.Run("Add", func(t *testing.T) {
