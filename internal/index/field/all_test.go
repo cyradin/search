@@ -29,19 +29,11 @@ func Test_All(t *testing.T) {
 		require.True(t, result.Docs().Contains(1))
 	})
 
-	t.Run("GetAnd", func(t *testing.T) {
+	t.Run("Match", func(t *testing.T) {
 		field := NewAll()
 		field.Add(1, true)
 
-		result := field.GetAnd(context.Background(), nil)
-		require.True(t, result.Docs().Contains(1))
-	})
-
-	t.Run("GetOr", func(t *testing.T) {
-		field := NewAll()
-		field.Add(1, true)
-
-		result := field.GetOr(context.Background(), nil)
+		result := field.Match(context.Background(), true)
 		require.True(t, result.Docs().Contains(1))
 	})
 

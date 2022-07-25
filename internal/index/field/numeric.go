@@ -79,58 +79,8 @@ func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, m.Clone())
 }
 
-func (f *Numeric[T]) GetOr(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := castE[T](value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.Or(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
-}
-
-func (f *Numeric[T]) GetAnd(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := castE[T](value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.And(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Numeric[T]) Match(ctx context.Context, value interface{}) *Result {
+	return f.Term(ctx, value)
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
