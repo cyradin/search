@@ -2,11 +2,103 @@ package query
 
 import (
 	"context"
+	"encoding/json"
+	"fmt"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
+
+func Benchmark_boolQuery(b *testing.B) {
+	counts := []int{1, 10, 100, 1000, 10000, 100000, 1000000}
+	q := `{
+		"should": [
+			{
+				"term": {
+					"field": {
+						"query": "should1"
+					}
+				}
+			},
+			{
+				"term": {
+					"field": {
+						"query": "should2"
+					}
+				}
+			}
+		],
+		"must": [
+			{
+				"term": {
+					"field": {
+						"query": "must"
+					}
+				}
+			}
+		],
+		"filter": [
+			{
+				"term": {
+					"field": {
+						"query": "filter"
+					}
+				}
+			}
+		]
+	}`
+
+	query := make(map[string]interface{})
+	err := json.Unmarshal([]byte(q), &query)
+	if err != nil {
+		panic(err)
+	}
+
+	for _, cnt := range counts {
+		f, err := field.New(field.FieldData{Type: schema.TypeKeyword})
+		if err != nil {
+			panic(err)
+		}
+
+		for i := 0; i < cnt; i++ {
+			// every 10th i will match bool query
+			if i%2 == 0 {
+				f.Add(uint32(i), "must")
+			}
+			if i%5 == 0 {
+				f.Add(uint32(i), "filter")
+			}
+
+			f.Add(uint32(i), "should1")
+			if i%3 == 0 {
+				f.Add(uint32(i), "should2")
+			}
+		}
+
+		ctx := withFields(context.Background(), Fields{
+			"field": f,
+		})
+
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				bq, err := newBoolQuery(ctx, query)
+				if err != nil {
+					panic(err)
+				}
+				result, err := bq.exec(ctx)
+				if err != nil {
+					panic(err)
+				}
+
+				if cnt >= 10 && int(result.Docs().GetCardinality()) != cnt/10 {
+					panic("invalid query result")
+				}
+			}
+		})
+	}
+}
 
 func Test_boolQuery(t *testing.T) {
 	t.Run("newBoolQuery", func(t *testing.T) {
