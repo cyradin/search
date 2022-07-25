@@ -4,18 +4,92 @@ import (
 	"context"
 	"fmt"
 	"math/rand"
+	"sort"
 	"testing"
 
 	"github.com/stretchr/testify/require"
 )
 
-func Benchmark_Bool_Term(b *testing.B) {
-	data := []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
+var benchmarkCounts = []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
 
-	for _, cnt := range data {
+func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
+		f := NewBool()
+		for i := 0; i < cnt; i++ {
+			f.Add(uint32(i), true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f.Term(ctx, true)
+			}
+		})
+	}
+}
+
+func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
+		f := NewBool()
+		for i := 0; i < cnt; i++ {
+			f.Add(uint32(i+1000), true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f.Term(ctx, true)
+			}
+		})
+	}
+}
+
+func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
+		f := NewBool()
+		for i := 0; i < cnt; i++ {
+			f.Add(uint32(i*2), true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f.Term(ctx, true)
+			}
+		})
+	}
+}
+
+func Benchmark_Bool_Term_Values_Random(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
 		f := NewBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(rand.Uint32(), true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			for i := 0; i < b.N; i++ {
+				f.Term(ctx, true)
+			}
+		})
+	}
+}
+
+func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
+		f := NewBool()
+
+		values := make([]uint32, cnt)
+		for i := 0; i < cnt; i++ {
+			values[i] = rand.Uint32()
+		}
+		sort.Slice(values, func(i, j int) bool {
+			return values[i] < values[j]
+		})
+
+		for _, v := range values {
+			f.Add(v, true)
 		}
 
 		ctx := context.Background()
