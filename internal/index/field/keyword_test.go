@@ -7,7 +7,7 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func Test_Keyword_Add(t *testing.T) {
+func Test_Keyword(t *testing.T) {
 	t.Run("Add", func(t *testing.T) {
 		t.Run("bool", func(t *testing.T) {
 			field := NewKeyword()
@@ -53,7 +53,7 @@ func Test_Keyword_Add(t *testing.T) {
 		field.Delete(2)
 		require.EqualValues(t, 1, field.data["foo"].GetCardinality())
 		require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-		require.ElementsMatch(t, []string{"foo", "bar"}, field.values[1])
+		require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
 		require.Nil(t, field.values[2])
 
 		field.Delete(1)
@@ -69,10 +69,10 @@ func Test_Keyword_Add(t *testing.T) {
 		field.Add(2, "foo")
 
 		result := field.Data(1)
-		require.EqualValues(t, []interface{}{"foo", "bar"}, result)
+		require.ElementsMatch(t, []string{"foo", "bar"}, result)
 
 		result = field.Data(2)
-		require.EqualValues(t, []interface{}{"foo"}, result)
+		require.ElementsMatch(t, []string{"foo"}, result)
 	})
 
 	t.Run("MarshalBinary-UnmarshalBinary", func(t *testing.T) {
@@ -89,8 +89,8 @@ func Test_Keyword_Add(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, field2.data["foo"].Contains(1))
 		require.True(t, field2.data["bar"].Contains(1))
-		require.ElementsMatch(t, []string{"foo", "bar"}, field.values[1])
+		require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
 		require.True(t, field2.data["foo"].Contains(2))
-		require.ElementsMatch(t, []string{"foo"}, field.values[2])
+		require.EqualValues(t, map[string]struct{}{"foo": {}}, field.values[2])
 	})
 }

@@ -14,13 +14,13 @@ var _ Field = (*Keyword)(nil)
 
 type Keyword struct {
 	data   map[string]*roaring.Bitmap
-	values map[uint32][]string
+	values map[uint32]map[string]struct{}
 }
 
 func NewKeyword() *Keyword {
 	return &Keyword{
 		data:   make(map[string]*roaring.Bitmap),
-		values: make(map[uint32][]string),
+		values: make(map[uint32]map[string]struct{}),
 	}
 }
 
@@ -34,7 +34,10 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 		return
 	}
 
-	f.values[id] = append(f.values[id], v)
+	if f.values[id] == nil {
+		f.values[id] = make(map[string]struct{})
+	}
+	f.values[id][v] = struct{}{}
 
 	m, ok := f.data[v]
 	if !ok {
@@ -69,7 +72,7 @@ func (f *Keyword) Delete(id uint32) {
 	}
 	delete(f.values, id)
 
-	for _, v := range vals {
+	for v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -84,7 +87,7 @@ func (f *Keyword) Delete(id uint32) {
 func (f *Keyword) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for _, v := range f.values[id] {
+	for v := range f.values[id] {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -99,7 +102,7 @@ func (f *Keyword) Data(id uint32) []interface{} {
 
 type keywordData struct {
 	Data   map[string]*roaring.Bitmap
-	Values map[uint32][]string
+	Values map[uint32]map[string]struct{}
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

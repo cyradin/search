@@ -14,7 +14,7 @@ type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
-	values   map[uint32][]string
+	values   map[uint32]map[string]struct{}
 }
 
 var _ Field = (*Text)(nil)
@@ -22,7 +22,7 @@ var _ Field = (*Text)(nil)
 func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
-		values:   make(map[uint32][]string),
+		values:   make(map[uint32]map[string]struct{}),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -42,7 +42,10 @@ func (f *Text) Add(id uint32, value interface{}) {
 	f.scoring.Add(id, terms)
 
 	for _, vv := range terms {
-		f.values[id] = append(f.values[id], vv)
+		if f.values[id] == nil {
+			f.values[id] = make(map[string]struct{})
+		}
+		f.values[id][vv] = struct{}{}
 
 		m, ok := f.data[vv]
 		if !ok {
@@ -107,7 +110,7 @@ func (f *Text) Delete(id uint32) {
 	}
 	delete(f.values, id)
 
-	for _, v := range vals {
+	for v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -122,7 +125,7 @@ func (f *Text) Delete(id uint32) {
 func (f *Text) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for _, v := range f.values[id] {
+	for v := range f.values[id] {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -137,7 +140,7 @@ func (f *Text) Data(id uint32) []interface{} {
 
 type textData struct {
 	Data    map[string]*roaring.Bitmap
-	Values  map[uint32][]string
+	Values  map[uint32]map[string]struct{}
 	Scoring []byte
 }
 

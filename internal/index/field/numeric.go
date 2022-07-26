@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
+	"sort"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -15,13 +16,13 @@ type NumericConstraint interface {
 
 type Numeric[T NumericConstraint] struct {
 	data   map[T]*roaring.Bitmap
-	values map[uint32][]T
+	values map[uint32]map[T]struct{}
 }
 
 func NewNumeric[T NumericConstraint]() *Numeric[T] {
 	return &Numeric[T]{
 		data:   make(map[T]*roaring.Bitmap),
-		values: make(map[uint32][]T),
+		values: make(map[uint32]map[T]struct{}),
 	}
 }
 
@@ -54,7 +55,10 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 		return
 	}
 
-	f.values[id] = append(f.values[id], v)
+	if f.values[id] == nil {
+		f.values[id] = make(map[T]struct{})
+	}
+	f.values[id][v] = struct{}{}
 
 	m, ok := f.data[v]
 	if !ok {
@@ -90,7 +94,7 @@ func (f *Numeric[T]) Delete(id uint32) {
 	}
 	delete(f.values, id)
 
-	for _, v := range vals {
+	for v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -105,7 +109,7 @@ func (f *Numeric[T]) Delete(id uint32) {
 func (f *Numeric[T]) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for _, v := range f.values[id] {
+	for v := range f.values[id] {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -120,7 +124,7 @@ func (f *Numeric[T]) Data(id uint32) []interface{} {
 
 type numericData[T NumericConstraint] struct {
 	Data   map[T]*roaring.Bitmap
-	Values map[uint32][]T
+	Values map[uint32]map[T]struct{}
 }
 
 func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
@@ -141,4 +145,14 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	f.values = raw.Values
 
 	return nil
+}
+
+func add[T NumericConstraint](slice []T, v T) {
+	index := sort.Search(len(slice), func(i int) bool { return v <= slice[i] })
+	if index == len(slice) {
+		slice = append(slice, v)
+	} else if slice[index] != v {
+		slice = append(slice[:index+1], slice[index:]...)
+		slice[index] = v
+	}
 }
