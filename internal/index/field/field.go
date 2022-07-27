@@ -10,8 +10,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-type FieldData struct {
-	Type     schema.Type
+type FieldOpts struct {
 	Analyzer func([]string) []string
 	Scoring  *Scoring
 }
@@ -97,10 +96,10 @@ func (f *Sync) UnmarshalBinary(data []byte) error {
 	return f.field.UnmarshalBinary(data)
 }
 
-func New(f FieldData) (Field, error) {
+func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 	var field Field
 
-	switch f.Type {
+	switch t {
 	case schema.TypeAll:
 		field = NewAll()
 	case schema.TypeBool:
@@ -108,10 +107,10 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeKeyword:
 		field = NewKeyword()
 	case schema.TypeText:
-		if f.Scoring == nil {
+		if len(opts) == 0 || opts[0].Scoring == nil {
 			return nil, errs.Errorf("field scoring data required, but not provided")
 		}
-		field = NewText(f.Analyzer, f.Scoring)
+		field = NewText(opts[0].Analyzer, opts[0].Scoring)
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()
@@ -133,7 +132,7 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeFloat:
 		field = NewNumeric[float32]()
 	default:
-		return nil, errs.Errorf("invalid field type %q", f.Type)
+		return nil, errs.Errorf("invalid field type %q", t)
 	}
 
 	return NewSync(field), nil
