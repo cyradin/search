@@ -66,7 +66,7 @@ func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 	}
 
 	for _, cnt := range counts {
-		f, err := field.New(field.FieldData{Type: schema.TypeKeyword})
+		f, err := field.New(schema.TypeKeyword)
 		if err != nil {
 			panic(err)
 		}
