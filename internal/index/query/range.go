@@ -5,6 +5,7 @@ import (
 
 	"github.com/cyradin/search/internal/errs"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/spf13/cast"
 )
 
 var _ internalQuery = (*rangeQuery)(nil)
@@ -47,5 +48,19 @@ func newRangeQuery(ctx context.Context, query Query) (*rangeQuery, error) {
 }
 
 func (q *rangeQuery) exec(ctx context.Context) (*queryResult, error) {
-	return nil, nil // @todo
+	key, val := firstVal(q.query)
+	fields := fields(ctx)
+	field, ok := fields[key]
+	if !ok {
+		return newEmptyResult(), nil
+	}
+
+	vv := val.(map[string]interface{})
+
+	from := vv["from"]
+	to := vv["to"]
+	includeLower := cast.ToBool(vv["includeLower"])
+	includeUpper := cast.ToBool(vv["includeUpper"])
+
+	return newResult(field.Range(ctx, from, to, includeLower, includeUpper)), nil
 }
