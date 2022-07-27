@@ -132,37 +132,6 @@ func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
 	}
 }
 
-func Benchmark_Bool_Sync_Term_Values_Random_Sorted(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
-		f := NewSync(NewBool())
-
-		values := make([]uint32, cnt)
-		for i := 0; i < cnt; i++ {
-			values[i] = rand.Uint32()
-		}
-		sort.Slice(values, func(i, j int) bool {
-			return values[i] < values[j]
-		})
-
-		for _, v := range values {
-			f.Add(v, true)
-		}
-
-		ctx := context.Background()
-		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
-			wg := sync.WaitGroup{}
-			for i := 0; i < b.N; i++ {
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					f.Term(ctx, true)
-				}()
-			}
-			wg.Wait()
-		})
-	}
-}
-
 func Test_Bool_Add(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
 		field := NewBool()
