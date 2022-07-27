@@ -10,7 +10,6 @@ import (
 
 func Test_index(t *testing.T) {
 	t.Run("can create new index", func(t *testing.T) {
-
 		s := schema.New(map[string]schema.Field{
 			"bool": {Type: schema.TypeBool},
 			"text": {Type: schema.TypeText, Analyzer: "analyzer"},
