@@ -98,7 +98,7 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			result := index.fields["bool"].Get(ctx, true)
+			result := index.fields["bool"].Term(ctx, true)
 			require.True(t, result.Docs().Contains(1))
 		})
 		t.Run("text field", func(t *testing.T) {
@@ -127,7 +127,7 @@ func Test_Storage(t *testing.T) {
 			err = s.loadIndex(index)
 			require.NoError(t, err)
 
-			result := index.fields["text"].Get(ctx, "word")
+			result := index.fields["text"].Term(ctx, "word")
 			require.True(t, result.Docs().Contains(1))
 		})
 	})

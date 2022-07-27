@@ -96,7 +96,7 @@ func Test_build(t *testing.T) {
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
-	t.Run("must not return error if query a valid term query", func(t *testing.T) {
+	t.Run("must not return error if query is a valid term query", func(t *testing.T) {
 		f1 := field.NewBool()
 
 		query, err := decodeQuery(`{
@@ -113,7 +113,7 @@ func Test_build(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
-	t.Run("must not return error if query a valid terms query", func(t *testing.T) {
+	t.Run("must not return error if query is a valid terms query", func(t *testing.T) {
 		f1 := field.NewBool()
 
 		query, err := decodeQuery(`{
@@ -130,7 +130,7 @@ func Test_build(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
-	t.Run("must not return error if query a valid bool query", func(t *testing.T) {
+	t.Run("must not return error if query is a valid bool query", func(t *testing.T) {
 		f1 := field.NewBool()
 
 		query, err := decodeQuery(`{
@@ -144,6 +144,42 @@ func Test_build(t *testing.T) {
 						}
 					}
 				]
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
+
+	t.Run("must not return error if query is a valid match query", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"match": {
+				"field": {
+					"query": "hello"
+				}
+			}
+		}`)
+		require.NoError(t, err)
+
+		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
+		result, err := build(ctx, query)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
+
+	t.Run("must not return error if query is a valid range query", func(t *testing.T) {
+		f1 := field.NewBool()
+
+		query, err := decodeQuery(`{
+			"range": {
+				"field": {
+					"from": 1
+				}
 			}
 		}`)
 		require.NoError(t, err)

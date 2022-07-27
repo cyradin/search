@@ -14,13 +14,13 @@ var _ Field = (*Keyword)(nil)
 
 type Keyword struct {
 	data   map[string]*roaring.Bitmap
-	values map[uint32][]string
+	values map[uint32]map[string]struct{}
 }
 
 func NewKeyword() *Keyword {
 	return &Keyword{
 		data:   make(map[string]*roaring.Bitmap),
-		values: make(map[uint32][]string),
+		values: make(map[uint32]map[string]struct{}),
 	}
 }
 
@@ -34,7 +34,10 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 		return
 	}
 
-	f.values[id] = append(f.values[id], v)
+	if f.values[id] == nil {
+		f.values[id] = make(map[string]struct{})
+	}
+	f.values[id][v] = struct{}{}
 
 	m, ok := f.data[v]
 	if !ok {
@@ -44,7 +47,7 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	m.Add(id)
 }
 
-func (f *Keyword) Get(ctx context.Context, value interface{}) *Result {
+func (f *Keyword) Term(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToStringE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -58,58 +61,12 @@ func (f *Keyword) Get(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, m.Clone())
 }
 
-func (f *Keyword) GetOr(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToStringE(value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.Or(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Keyword) Match(ctx context.Context, value interface{}) *Result {
+	return f.Term(ctx, value)
 }
 
-func (f *Keyword) GetAnd(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToStringE(value)
-		if err != nil {
-			continue
-		}
-
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
-		if result == nil {
-			result = m.Clone()
-		} else {
-			result.And(m)
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Keyword) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
 }
 
 func (f *Keyword) Delete(id uint32) {
@@ -119,7 +76,7 @@ func (f *Keyword) Delete(id uint32) {
 	}
 	delete(f.values, id)
 
-	for _, v := range vals {
+	for v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -134,7 +91,7 @@ func (f *Keyword) Delete(id uint32) {
 func (f *Keyword) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for _, v := range f.values[id] {
+	for v := range f.values[id] {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -149,7 +106,7 @@ func (f *Keyword) Data(id uint32) []interface{} {
 
 type keywordData struct {
 	Data   map[string]*roaring.Bitmap
-	Values map[uint32][]string
+	Values map[uint32]map[string]struct{}
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

@@ -10,8 +10,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-type FieldData struct {
-	Type     schema.Type
+type FieldOpts struct {
 	Analyzer func([]string) []string
 	Scoring  *Scoring
 }
@@ -24,12 +23,12 @@ type Field interface {
 	Type() schema.Type
 	// Add add document field value
 	Add(id uint32, value interface{})
-	// Get get bitmap clone by value
-	Get(ctx context.Context, value interface{}) *Result
-	// GetOr compute the union between bitmaps of the passed values
-	GetOr(ctx context.Context, values []interface{}) *Result
-	// GetAnd compute the intersection between bitmaps of the passed values
-	GetAnd(ctx context.Context, values []interface{}) *Result
+	// Term get field value
+	Term(ctx context.Context, value interface{}) *Result
+	// Match get field analyzed value
+	Match(ctx context.Context, value interface{}) *Result
+	// Range get values from .. to ...
+	Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values
@@ -55,22 +54,22 @@ func (f *Sync) Add(id uint32, value interface{}) {
 	f.field.Add(id, value)
 }
 
-func (f *Sync) Get(ctx context.Context, value interface{}) *Result {
+func (f *Sync) Term(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Get(ctx, value)
+	return f.field.Term(ctx, value)
 }
 
-func (f *Sync) GetOr(ctx context.Context, values []interface{}) *Result {
+func (f *Sync) Match(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.GetOr(ctx, values)
+	return f.field.Term(ctx, value)
 }
 
-func (f *Sync) GetAnd(ctx context.Context, values []interface{}) *Result {
+func (f *Sync) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.GetAnd(ctx, values)
+	return f.field.Range(ctx, from, to, incFrom, incTo)
 }
 
 func (f *Sync) Delete(id uint32) {
@@ -97,10 +96,10 @@ func (f *Sync) UnmarshalBinary(data []byte) error {
 	return f.field.UnmarshalBinary(data)
 }
 
-func New(f FieldData) (Field, error) {
+func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 	var field Field
 
-	switch f.Type {
+	switch t {
 	case schema.TypeAll:
 		field = NewAll()
 	case schema.TypeBool:
@@ -108,10 +107,10 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeKeyword:
 		field = NewKeyword()
 	case schema.TypeText:
-		if f.Scoring == nil {
+		if len(opts) == 0 || opts[0].Scoring == nil {
 			return nil, errs.Errorf("field scoring data required, but not provided")
 		}
-		field = NewText(f.Analyzer, f.Scoring)
+		field = NewText(opts[0].Analyzer, opts[0].Scoring)
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()
@@ -133,7 +132,7 @@ func New(f FieldData) (Field, error) {
 	case schema.TypeFloat:
 		field = NewNumeric[float32]()
 	default:
-		return nil, errs.Errorf("invalid field type %q", f.Type)
+		return nil, errs.Errorf("invalid field type %q", t)
 	}
 
 	return NewSync(field), nil

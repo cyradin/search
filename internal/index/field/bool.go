@@ -41,7 +41,7 @@ func (f *Bool) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Bool) Get(ctx context.Context, value interface{}) *Result {
+func (f *Bool) Term(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToBoolE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -50,46 +50,12 @@ func (f *Bool) Get(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, f.get(v))
 }
 
-func (f *Bool) GetOr(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToBoolE(value)
-		if err != nil {
-			continue
-		}
-		if result == nil {
-			result = f.get(v)
-		} else {
-			result.Or(f.get(v))
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Bool) Match(ctx context.Context, value interface{}) *Result {
+	return f.Term(ctx, value)
 }
 
-func (f *Bool) GetAnd(ctx context.Context, values []interface{}) *Result {
-	var result *roaring.Bitmap
-	for _, value := range values {
-		v, err := cast.ToBoolE(value)
-		if err != nil {
-			continue
-		}
-		if result == nil {
-			result = f.get(v)
-		} else {
-			result.And(f.get(v))
-		}
-	}
-
-	if result == nil {
-		return NewResult(ctx, roaring.New())
-	}
-
-	return NewResult(ctx, result)
+func (f *Bool) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
 }
 
 func (f *Bool) Delete(id uint32) {

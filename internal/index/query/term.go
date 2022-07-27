@@ -49,7 +49,7 @@ func (q *termQuery) exec(ctx context.Context) (*queryResult, error) {
 	}
 	v := val.(map[string]interface{})["query"]
 
-	return newResult(field.Get(ctx, v)), nil
+	return newResult(field.Term(ctx, v)), nil
 }
 
 type termsQuery struct {
@@ -99,7 +99,20 @@ func (q *termsQuery) exec(ctx context.Context) (*queryResult, error) {
 	if !ok {
 		return newEmptyResult(), nil
 	}
-	v, _ := interfaceToSlice[interface{}](val.(map[string]interface{})["query"])
+	values, err := interfaceToSlice[interface{}](val.(map[string]interface{})["query"])
+	if err != nil {
+		return nil, err
+	}
 
-	return newResult(field.GetOr(ctx, v)), nil
+	var result *queryResult
+	for _, v := range values {
+		r := newResult(field.Term(ctx, v))
+		if result == nil {
+			result = r
+			continue
+		}
+		result.Or(result)
+	}
+
+	return result, nil
 }

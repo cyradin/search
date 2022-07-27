@@ -14,7 +14,7 @@ type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
-	values   map[uint32][]string
+	values   map[uint32]map[string]struct{}
 }
 
 var _ Field = (*Text)(nil)
@@ -22,7 +22,7 @@ var _ Field = (*Text)(nil)
 func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
-		values:   make(map[uint32][]string),
+		values:   make(map[uint32]map[string]struct{}),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -42,7 +42,10 @@ func (f *Text) Add(id uint32, value interface{}) {
 	f.scoring.Add(id, terms)
 
 	for _, vv := range terms {
-		f.values[id] = append(f.values[id], vv)
+		if f.values[id] == nil {
+			f.values[id] = make(map[string]struct{})
+		}
+		f.values[id][vv] = struct{}{}
 
 		m, ok := f.data[vv]
 		if !ok {
@@ -53,7 +56,21 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Get(ctx context.Context, value interface{}) *Result {
+func (f *Text) Term(ctx context.Context, value interface{}) *Result {
+	v, err := cast.ToStringE(value)
+	if err != nil {
+		return NewResult(ctx, roaring.New())
+	}
+
+	m, ok := f.data[v]
+	if !ok {
+		return NewResult(ctx, roaring.New())
+	}
+
+	return NewResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
+}
+
+func (f *Text) Match(ctx context.Context, value interface{}) *Result {
 	val, err := castE[string](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -86,12 +103,8 @@ func (f *Text) Get(ctx context.Context, value interface{}) *Result {
 	return NewResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) GetOr(ctx context.Context, values []interface{}) *Result {
-	return NewResult(ctx, roaring.New()) // no implemented (yet?)
-}
-
-func (f *Text) GetAnd(ctx context.Context, values []interface{}) *Result {
-	return NewResult(ctx, roaring.New()) // no implemented (yet?)
+func (f *Text) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
 }
 
 func (f *Text) Delete(id uint32) {
@@ -101,7 +114,7 @@ func (f *Text) Delete(id uint32) {
 	}
 	delete(f.values, id)
 
-	for _, v := range vals {
+	for v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -116,7 +129,7 @@ func (f *Text) Delete(id uint32) {
 func (f *Text) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for _, v := range f.values[id] {
+	for v := range f.values[id] {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -131,7 +144,7 @@ func (f *Text) Data(id uint32) []interface{} {
 
 type textData struct {
 	Data    map[string]*roaring.Bitmap
-	Values  map[uint32][]string
+	Values  map[uint32]map[string]struct{}
 	Scoring []byte
 }
 
