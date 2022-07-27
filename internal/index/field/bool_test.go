@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/rand"
 	"sort"
+	"sync"
 	"testing"
 
 	"github.com/stretchr/testify/require"
@@ -21,9 +22,15 @@ func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
 
 		ctx := context.Background()
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
 			for i := 0; i < b.N; i++ {
-				f.Term(ctx, true)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
 			}
+			wg.Wait()
 		})
 	}
 }
@@ -37,9 +44,15 @@ func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
 
 		ctx := context.Background()
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
 			for i := 0; i < b.N; i++ {
-				f.Term(ctx, true)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
 			}
+			wg.Wait()
 		})
 	}
 }
@@ -53,9 +66,15 @@ func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
 
 		ctx := context.Background()
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
 			for i := 0; i < b.N; i++ {
-				f.Term(ctx, true)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
 			}
+			wg.Wait()
 		})
 	}
 }
@@ -69,9 +88,15 @@ func Benchmark_Bool_Term_Values_Random(b *testing.B) {
 
 		ctx := context.Background()
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
 			for i := 0; i < b.N; i++ {
-				f.Term(ctx, true)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
 			}
+			wg.Wait()
 		})
 	}
 }
@@ -94,9 +119,46 @@ func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
 
 		ctx := context.Background()
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
 			for i := 0; i < b.N; i++ {
-				f.Term(ctx, true)
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
 			}
+			wg.Wait()
+		})
+	}
+}
+
+func Benchmark_Bool_Sync_Term_Values_Random_Sorted(b *testing.B) {
+	for _, cnt := range benchmarkCounts {
+		f := NewSync(NewBool())
+
+		values := make([]uint32, cnt)
+		for i := 0; i < cnt; i++ {
+			values[i] = rand.Uint32()
+		}
+		sort.Slice(values, func(i, j int) bool {
+			return values[i] < values[j]
+		})
+
+		for _, v := range values {
+			f.Add(v, true)
+		}
+
+		ctx := context.Background()
+		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
+			wg := sync.WaitGroup{}
+			for i := 0; i < b.N; i++ {
+				wg.Add(1)
+				go func() {
+					defer wg.Done()
+					f.Term(ctx, true)
+				}()
+			}
+			wg.Wait()
 		})
 	}
 }
