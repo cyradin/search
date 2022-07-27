@@ -15,6 +15,7 @@ type Text struct {
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
 	values   map[uint32]map[string]struct{}
+	raw      map[uint32]map[string]struct{}
 }
 
 var _ Field = (*Text)(nil)
@@ -23,6 +24,7 @@ func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
 		values:   make(map[uint32]map[string]struct{}),
+		raw:      make(map[uint32]map[string]struct{}),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -37,6 +39,11 @@ func (f *Text) Add(id uint32, value interface{}) {
 	if err != nil {
 		return
 	}
+
+	if f.raw[id] == nil {
+		f.raw[id] = make(map[string]struct{})
+	}
+	f.raw[id][v] = struct{}{}
 
 	terms := f.analyzer([]string{v})
 	f.scoring.Add(id, terms)
@@ -113,6 +120,7 @@ func (f *Text) Delete(id uint32) {
 		return
 	}
 	delete(f.values, id)
+	delete(f.raw, id)
 
 	for v := range vals {
 		m, ok := f.data[v]
@@ -127,14 +135,10 @@ func (f *Text) Delete(id uint32) {
 }
 
 func (f *Text) Data(id uint32) []interface{} {
-	var result []interface{}
+	result := make([]interface{}, 0)
 
-	for v := range f.values[id] {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		if m.Contains(id) {
+	if f.raw[id] != nil {
+		for v := range f.raw[id] {
 			result = append(result, v)
 		}
 	}
@@ -145,6 +149,7 @@ func (f *Text) Data(id uint32) []interface{} {
 type textData struct {
 	Data    map[string]*roaring.Bitmap
 	Values  map[uint32]map[string]struct{}
+	Raw     map[uint32]map[string]struct{}
 	Scoring []byte
 }
 
@@ -155,7 +160,7 @@ func (f *Text) MarshalBinary() ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	err = gob.NewEncoder(&buf).Encode(textData{Data: f.data, Values: f.values, Scoring: scoringData})
+	err = gob.NewEncoder(&buf).Encode(textData{Data: f.data, Values: f.values, Scoring: scoringData, Raw: f.raw})
 
 	return buf.Bytes(), nil
 }
@@ -174,6 +179,7 @@ func (f *Text) UnmarshalBinary(data []byte) error {
 
 	f.data = raw.Data
 	f.values = raw.Values
+	f.raw = raw.Raw
 
 	return nil
 }
