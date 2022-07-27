@@ -10,6 +10,8 @@ import (
 	"github.com/cyradin/search/internal/index/schema"
 )
 
+var _ Field = (*Numeric[int32])(nil)
+
 type NumericConstraint interface {
 	int8 | int16 | int32 | int64 | uint64 | float32 | float64
 }
@@ -17,6 +19,7 @@ type NumericConstraint interface {
 type Numeric[T NumericConstraint] struct {
 	data   map[T]*roaring.Bitmap
 	values map[uint32]map[T]struct{}
+	list   []T
 }
 
 func NewNumeric[T NumericConstraint]() *Numeric[T] {
@@ -67,6 +70,7 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	}
 
 	m.Add(id)
+	f.listAdd(v)
 }
 
 func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
@@ -87,6 +91,50 @@ func (f *Numeric[T]) Match(ctx context.Context, value interface{}) *Result {
 	return f.Term(ctx, value)
 }
 
+func (f *Numeric[T]) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	// if from == nil && to == nil {
+	// 	return NewResult(ctx, roaring.New())
+	// }
+
+	// fromIndex := 0
+	// toIndex := len(f.values) - 1
+	// if from != nil {
+	// 	v, err := castE[T](from)
+	// 	if err != nil {
+	// 		return NewResult(ctx, roaring.New())
+	// 	}
+
+	// 	if incFrom {
+	// 		fromIndex = f.findGte(v)
+	// 	} else {
+	// 		fromIndex = f.findGt(v)
+	// 	}
+	// }
+
+	// if to != nil {
+	// 	v, err := castE[T](to)
+	// 	if err != nil {
+	// 		return NewResult(ctx, roaring.New())
+	// 	}
+
+	// 	if incTo {
+	// 		toIndex = f.findLte(v)
+	// 	} else {
+	// 		toIndex = f.findLt(v)
+	// 	}
+	// }
+
+	// if fromIndex == len(f.values) || toIndex == len(f.values) || fromIndex > toIndex {
+	// 	return NewResult(ctx, roaring.New())
+	// }
+
+	// for i := fromIndex; i <= toIndex; i++ {
+	// 	// @todo
+	// }
+
+	return NewResult(ctx, roaring.New())
+}
+
 func (f *Numeric[T]) Delete(id uint32) {
 	vals, ok := f.values[id]
 	if !ok {
@@ -102,6 +150,7 @@ func (f *Numeric[T]) Delete(id uint32) {
 		m.Remove(id)
 		if m.GetCardinality() == 0 {
 			delete(f.data, v)
+			f.listDel(v)
 		}
 	}
 }
@@ -147,12 +196,39 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	return nil
 }
 
-func add[T NumericConstraint](slice []T, v T) {
-	index := sort.Search(len(slice), func(i int) bool { return v <= slice[i] })
-	if index == len(slice) {
-		slice = append(slice, v)
-	} else if slice[index] != v {
-		slice = append(slice[:index+1], slice[index:]...)
-		slice[index] = v
+func (f *Numeric[T]) listAdd(v T) {
+	index := sort.Search(len(f.list), func(i int) bool { return v <= f.list[i] })
+	if index == len(f.list) {
+		f.list = append(f.list, v)
+	} else if f.list[index] != v {
+		f.list = append(f.list[:index+1], f.list[index:]...)
+		f.list[index] = v
+	}
+}
+
+func (f *Numeric[T]) findGt(v T) int {
+	return sort.Search(len(f.list), func(i int) bool { return f.list[i] > v })
+}
+
+func (f *Numeric[T]) findGte(v T) int {
+	return sort.Search(len(f.list), func(i int) bool { return f.list[i] >= v })
+}
+
+func (f *Numeric[T]) findLt(v T) int {
+	return sort.Search(len(f.list), func(i int) bool { return f.list[i] >= v }) - 1
+}
+
+func (f *Numeric[T]) findLte(v T) int {
+	return sort.Search(len(f.list), func(i int) bool { return f.list[i] > v }) - 1
+}
+
+func (f *Numeric[T]) listDel(v T) {
+	index := sort.Search(len(f.list), func(i int) bool { return v <= f.list[i] })
+	if index == len(f.list) {
+		return
+	}
+
+	if f.list[index] == v {
+		f.list = append(f.list[:index], f.list[index+1:]...)
 	}
 }

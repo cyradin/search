@@ -54,6 +54,10 @@ func (f *Bool) Match(ctx context.Context, value interface{}) *Result {
 	return f.Term(ctx, value)
 }
 
+func (f *Bool) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
+}
+
 func (f *Bool) Delete(id uint32) {
 	f.dataTrue.Remove(id)
 	f.dataFalse.Remove(id)

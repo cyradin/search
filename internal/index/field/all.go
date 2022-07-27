@@ -43,6 +43,10 @@ func (f *All) Match(ctx context.Context, value interface{}) *Result {
 	return f.Term(ctx, value)
 }
 
+func (f *All) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
+}
+
 func (f *All) Delete(id uint32) {
 	f.data.Remove(id)
 }
