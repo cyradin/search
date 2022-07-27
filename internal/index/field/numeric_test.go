@@ -77,6 +77,55 @@ func test_numericField_Term[T NumericConstraint](t *testing.T) {
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
 }
 
+func Test_numericField_Range(t *testing.T) {
+	t.Run("int8", test_numericField_Range[int8])
+	t.Run("int16", test_numericField_Range[int16])
+	t.Run("int32", test_numericField_Range[int32])
+	t.Run("int64", test_numericField_Range[int64])
+	t.Run("uint64", test_numericField_Range[uint64])
+	t.Run("float32", test_numericField_Range[float32])
+	t.Run("float64", test_numericField_Range[float64])
+}
+
+func test_numericField_Range[T NumericConstraint](t *testing.T) {
+	field := NewNumeric[T]()
+	field.Add(1, 1)
+	field.Add(2, 2)
+	field.Add(3, 3)
+	field.Add(4, 4)
+	field.Add(5, 5)
+	field.Add(6, 6)
+
+	t.Run("(1..", func(t *testing.T) {
+		result := field.Range(context.Background(), 1, nil, false, false)
+		require.ElementsMatch(t, []uint32{2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("[1..", func(t *testing.T) {
+		result := field.Range(context.Background(), 1, nil, true, false)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("..3)", func(t *testing.T) {
+		result := field.Range(context.Background(), nil, 3, false, false)
+		require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
+	})
+	t.Run("..3]", func(t *testing.T) {
+		result := field.Range(context.Background(), nil, 3, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
+	})
+	t.Run("..6]", func(t *testing.T) {
+		result := field.Range(context.Background(), nil, 6, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("..7]", func(t *testing.T) {
+		result := field.Range(context.Background(), nil, 6, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("(1..4]", func(t *testing.T) {
+		result := field.Range(context.Background(), 1, 4, false, true)
+		require.ElementsMatch(t, []uint32{2, 3, 4}, result.Docs().ToArray())
+	})
+}
+
 func Test_numericField_Delete(t *testing.T) {
 	t.Run("int8", test_numericField_Delete[int8])
 	t.Run("int16", test_numericField_Delete[int16])
@@ -187,6 +236,7 @@ func test_numericField_findGt[T NumericConstraint](t *testing.T) {
 	field.Add(1, 20)
 	field.Add(1, 30)
 
+	assert.EqualValues(t, 0, field.findGt(0))
 	assert.EqualValues(t, 1, field.findGt(10))
 	assert.EqualValues(t, 2, field.findGt(20))
 	assert.EqualValues(t, 3, field.findGt(30))
@@ -208,6 +258,7 @@ func test_numericField_findGte[T NumericConstraint](t *testing.T) {
 	field.Add(1, 20)
 	field.Add(1, 30)
 
+	assert.EqualValues(t, 0, field.findGte(0))
 	assert.EqualValues(t, 0, field.findGte(10))
 	assert.EqualValues(t, 1, field.findGte(20))
 	assert.EqualValues(t, 2, field.findGte(30))

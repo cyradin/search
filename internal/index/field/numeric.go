@@ -92,47 +92,53 @@ func (f *Numeric[T]) Match(ctx context.Context, value interface{}) *Result {
 }
 
 func (f *Numeric[T]) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	// if from == nil && to == nil {
-	// 	return NewResult(ctx, roaring.New())
-	// }
+	if from == nil && to == nil {
+		return NewResult(ctx, roaring.New())
+	}
 
-	// fromIndex := 0
-	// toIndex := len(f.values) - 1
-	// if from != nil {
-	// 	v, err := castE[T](from)
-	// 	if err != nil {
-	// 		return NewResult(ctx, roaring.New())
-	// 	}
+	fromIndex := 0
+	toIndex := len(f.values) - 1
+	if from != nil {
+		v, err := castE[T](from)
+		if err != nil {
+			return NewResult(ctx, roaring.New())
+		}
 
-	// 	if incFrom {
-	// 		fromIndex = f.findGte(v)
-	// 	} else {
-	// 		fromIndex = f.findGt(v)
-	// 	}
-	// }
+		if incFrom {
+			fromIndex = f.findGte(v)
+		} else {
+			fromIndex = f.findGt(v)
+		}
+	}
 
-	// if to != nil {
-	// 	v, err := castE[T](to)
-	// 	if err != nil {
-	// 		return NewResult(ctx, roaring.New())
-	// 	}
+	if to != nil {
+		v, err := castE[T](to)
+		if err != nil {
+			return NewResult(ctx, roaring.New())
+		}
 
-	// 	if incTo {
-	// 		toIndex = f.findLte(v)
-	// 	} else {
-	// 		toIndex = f.findLt(v)
-	// 	}
-	// }
+		if incTo {
+			toIndex = f.findLte(v)
+		} else {
+			toIndex = f.findLt(v)
+		}
+	}
 
-	// if fromIndex == len(f.values) || toIndex == len(f.values) || fromIndex > toIndex {
-	// 	return NewResult(ctx, roaring.New())
-	// }
+	if fromIndex == len(f.values) || toIndex == len(f.values) || fromIndex > toIndex {
+		return NewResult(ctx, roaring.New())
+	}
 
-	// for i := fromIndex; i <= toIndex; i++ {
-	// 	// @todo
-	// }
+	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
+	for i := fromIndex; i <= toIndex; i++ {
+		v, ok := f.data[f.list[i]]
+		if !ok {
+			continue // @todo broken index
+		}
 
-	return NewResult(ctx, roaring.New())
+		bm = append(bm, v)
+	}
+
+	return NewResult(ctx, roaring.FastOr(bm...))
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
