@@ -28,6 +28,8 @@ type Field interface {
 	Term(ctx context.Context, value interface{}) *Result
 	// Match get field analyzed value
 	Match(ctx context.Context, value interface{}) *Result
+	// Range get values from .. to ...
+	Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values
@@ -63,6 +65,12 @@ func (f *Sync) Match(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 	return f.field.Term(ctx, value)
+}
+
+func (f *Sync) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+	return f.field.Range(ctx, from, to, incFrom, incTo)
 }
 
 func (f *Sync) Delete(id uint32) {

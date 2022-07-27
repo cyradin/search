@@ -65,6 +65,10 @@ func (f *Keyword) Match(ctx context.Context, value interface{}) *Result {
 	return f.Term(ctx, value)
 }
 
+func (f *Keyword) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+	return NewResult(ctx, roaring.New())
+}
+
 func (f *Keyword) Delete(id uint32) {
 	vals, ok := f.values[id]
 	if !ok {
