@@ -23,11 +23,11 @@ type Field interface {
 	// Add add document field value
 	Add(id uint32, value interface{})
 	// TermQuery get documents by field value
-	TermQuery(ctx context.Context, value interface{}) *Result
+	TermQuery(ctx context.Context, value interface{}) *QueryResult
 	// MatchQuery get documents by field analyzed value
-	MatchQuery(ctx context.Context, value interface{}) *Result
+	MatchQuery(ctx context.Context, value interface{}) *QueryResult
 	// RangeQuery get documents by values from .. to ...
-	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
+	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values

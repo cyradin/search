@@ -38,7 +38,7 @@ func queryTypes() []queryType {
 
 type queryResult struct {
 	docs    *roaring.Bitmap
-	results []*field.Result
+	results []*field.QueryResult
 }
 
 func newEmptyResult() *queryResult {
@@ -47,10 +47,10 @@ func newEmptyResult() *queryResult {
 	}
 }
 
-func newResult(res *field.Result) *queryResult {
+func newResult(res *field.QueryResult) *queryResult {
 	return &queryResult{
 		docs:    res.Docs(),
-		results: []*field.Result{res},
+		results: []*field.QueryResult{res},
 	}
 }
 

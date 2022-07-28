@@ -73,27 +73,27 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	f.listAdd(v)
 }
 
-func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := castE[T](value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	m, ok := f.data[v]
 	if !ok {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, m.Clone())
+	return newResult(ctx, m.Clone())
 }
 
-func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	return f.TermQuery(ctx, value)
 }
 
-func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
 	if from == nil && to == nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	fromIndex := 0
@@ -101,7 +101,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 	if from != nil {
 		v, err := castE[T](from)
 		if err != nil {
-			return NewResult(ctx, roaring.New())
+			return newResult(ctx, roaring.New())
 		}
 
 		if incFrom {
@@ -114,7 +114,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 	if to != nil {
 		v, err := castE[T](to)
 		if err != nil {
-			return NewResult(ctx, roaring.New())
+			return newResult(ctx, roaring.New())
 		}
 
 		if incTo {
@@ -125,7 +125,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 	}
 
 	if fromIndex == len(f.values) || toIndex == len(f.values) || fromIndex > toIndex {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
@@ -138,7 +138,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 		bm = append(bm, v)
 	}
 
-	return NewResult(ctx, roaring.FastOr(bm...))
+	return newResult(ctx, roaring.FastOr(bm...))
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
