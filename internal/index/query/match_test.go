@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -72,16 +73,21 @@ func Test_newMatchQuery(t *testing.T) {
 }
 
 func Test_matchQuery_exec(t *testing.T) {
-	f1 := field.NewKeyword()
+	f1, err := field.New(schema.TypeKeyword)
+	require.NoError(t, err)
 	f1.Add(1, "value")
 
-	f2 := field.NewText(func(s []string) []string {
-		var result []string
-		for _, str := range s {
-			result = append(result, strings.Fields(str)...)
-		}
-		return result
-	}, field.NewScoring())
+	f2, err := field.New(schema.TypeText, field.FieldOpts{
+		Analyzer: func(s []string) []string {
+			var result []string
+			for _, str := range s {
+				result = append(result, strings.Fields(str)...)
+			}
+			return result
+		},
+		Scoring: field.NewScoring(),
+	})
+	require.NoError(t, err)
 	f2.Add(1, "foo bar")
 
 	ctx := withFields(context.Background(),

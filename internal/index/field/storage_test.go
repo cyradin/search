@@ -86,7 +86,8 @@ func Test_Storage(t *testing.T) {
 			err := os.MkdirAll(fieldsDir, dirPermissions)
 			require.NoError(t, err)
 
-			field := NewBool()
+			field, err := New(schema.TypeBool)
+			require.NoError(t, err)
 			field.Add(1, true)
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)
@@ -115,7 +116,7 @@ func Test_Storage(t *testing.T) {
 			scoring := NewScoring()
 			scoring.data.AvgDocLen = 5
 
-			field := NewText(func(s []string) []string { return s }, scoring)
+			field := newText(func(s []string) []string { return s }, scoring)
 			field.Add(1, "word")
 			data, err := field.MarshalBinary()
 			require.NoError(t, err)

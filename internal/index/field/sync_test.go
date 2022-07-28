@@ -13,7 +13,7 @@ func Benchmark_SyncMonitor(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		f := NewSyncMonitor(NewBool()).Start(ctx)
+		f := NewSyncMonitor(newBool()).Start(ctx)
 
 		values := make([]uint32, cnt)
 		for i := 0; i < cnt; i++ {
@@ -46,7 +46,7 @@ func Benchmark_SyncMtx(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
 		ctx, cancel := context.WithCancel(context.Background())
 
-		f := NewSyncMtx(NewBool())
+		f := NewSyncMtx(newBool())
 
 		values := make([]uint32, cnt)
 		for i := 0; i < cnt; i++ {

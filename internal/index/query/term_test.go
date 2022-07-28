@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
 
@@ -71,7 +72,8 @@ func Test_newTermQuery(t *testing.T) {
 }
 
 func Test_termQuery_exec(t *testing.T) {
-	f := field.NewKeyword()
+	f, err := field.New(schema.TypeKeyword)
+	require.NoError(t, err)
 	f.Add(1, "value")
 	ctx := withFields(context.Background(),
 		map[string]field.Field{
@@ -209,7 +211,8 @@ func Test_newTermsQuery(t *testing.T) {
 }
 
 func Test_termsQuery_exec(t *testing.T) {
-	f := field.NewKeyword()
+	f, err := field.New(schema.TypeKeyword)
+	require.NoError(t, err)
 	f.Add(1, "value")
 	ctx := withFields(context.Background(),
 		map[string]field.Field{

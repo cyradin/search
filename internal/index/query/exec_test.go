@@ -5,12 +5,14 @@ import (
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	"github.com/stretchr/testify/require"
 )
 
 func Test_Exec(t *testing.T) {
 	t.Run("must return matching doc ids", func(t *testing.T) {
-		f := field.NewBool()
+		f, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 		f.Add(1, true)
 
 		req, err := decodeQuery(`{

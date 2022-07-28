@@ -27,7 +27,7 @@ var testAnalyzer2 = func(s []string) []string {
 func Test_Text_Add(t *testing.T) {
 	t.Run("string", func(t *testing.T) {
 		value := "value"
-		field := NewText(testAnalyzer, NewScoring())
+		field := newText(testAnalyzer, NewScoring())
 
 		field.Add(1, value)
 		bm, ok := field.data["value_addition"]
@@ -39,7 +39,7 @@ func Test_Text_Add(t *testing.T) {
 	})
 
 	t.Run("bool", func(t *testing.T) {
-		field := NewText(testAnalyzer, NewScoring())
+		field := newText(testAnalyzer, NewScoring())
 
 		field.Add(1, true)
 		bm, ok := field.data["true_addition"]
@@ -54,7 +54,7 @@ func Test_Text_Add(t *testing.T) {
 
 func Test_Text_Term(t *testing.T) {
 	scoring := NewScoring()
-	f := NewText(testAnalyzer2, scoring)
+	f := newText(testAnalyzer2, scoring)
 	f.Add(1, "foo")
 
 	result := f.Term(context.Background(), "foo")
@@ -66,7 +66,7 @@ func Test_Text_Term(t *testing.T) {
 func Test_Text_Match(t *testing.T) {
 	t.Run("can return union if both values found", func(t *testing.T) {
 		scoring := NewScoring()
-		f := NewText(testAnalyzer2, scoring)
+		f := newText(testAnalyzer2, scoring)
 		f.Add(1, "foo")
 		f.Add(2, "bar")
 
@@ -80,7 +80,7 @@ func Test_Text_Match(t *testing.T) {
 }
 
 func Test_Text_Delete(t *testing.T) {
-	field := NewText(testAnalyzer2, NewScoring())
+	field := newText(testAnalyzer2, NewScoring())
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -100,7 +100,7 @@ func Test_Text_Delete(t *testing.T) {
 }
 
 func Test_Text_Data(t *testing.T) {
-	field := NewText(testAnalyzer, NewScoring())
+	field := newText(testAnalyzer, NewScoring())
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -113,7 +113,7 @@ func Test_Text_Data(t *testing.T) {
 }
 
 func Test_Text_Marshal(t *testing.T) {
-	field := NewText(testAnalyzer2, NewScoring())
+	field := newText(testAnalyzer2, NewScoring())
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -121,7 +121,7 @@ func Test_Text_Marshal(t *testing.T) {
 	data, err := field.MarshalBinary()
 	require.NoError(t, err)
 
-	field2 := NewText(testAnalyzer2, NewScoring())
+	field2 := newText(testAnalyzer2, NewScoring())
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))

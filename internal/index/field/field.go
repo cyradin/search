@@ -39,16 +39,16 @@ func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 
 	switch t {
 	case schema.TypeAll:
-		field = NewAll()
+		field = newAll()
 	case schema.TypeBool:
-		field = NewBool()
+		field = newBool()
 	case schema.TypeKeyword:
-		field = NewKeyword()
+		field = newKeyword()
 	case schema.TypeText:
 		if len(opts) == 0 || opts[0].Scoring == nil {
 			return nil, errs.Errorf("field scoring data required, but not provided")
 		}
-		field = NewText(opts[0].Analyzer, opts[0].Scoring)
+		field = newText(opts[0].Analyzer, opts[0].Scoring)
 	// @todo implement slice type
 	// case schema.TypeSlice:
 	// 	i.fields[f.Name] = field.NewSlice()
@@ -56,19 +56,19 @@ func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 	// case schema.TypeNap:
 	// 	i.fields[f.Name] = field.NewMap()
 	case schema.TypeUnsignedLong:
-		field = NewNumeric[uint64]()
+		field = newNumeric[uint64]()
 	case schema.TypeLong:
-		field = NewNumeric[int64]()
+		field = newNumeric[int64]()
 	case schema.TypeInteger:
-		field = NewNumeric[int32]()
+		field = newNumeric[int32]()
 	case schema.TypeShort:
-		field = NewNumeric[int16]()
+		field = newNumeric[int16]()
 	case schema.TypeByte:
-		field = NewNumeric[int8]()
+		field = newNumeric[int8]()
 	case schema.TypeDouble:
-		field = NewNumeric[float64]()
+		field = newNumeric[float64]()
 	case schema.TypeFloat:
-		field = NewNumeric[float32]()
+		field = newNumeric[float32]()
 	default:
 		return nil, errs.Errorf("invalid field type %q", t)
 	}

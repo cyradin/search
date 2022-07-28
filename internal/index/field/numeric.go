@@ -22,7 +22,7 @@ type Numeric[T NumericConstraint] struct {
 	list   []T
 }
 
-func NewNumeric[T NumericConstraint]() *Numeric[T] {
+func newNumeric[T NumericConstraint]() *Numeric[T] {
 	return &Numeric[T]{
 		data:   make(map[T]*roaring.Bitmap),
 		values: make(map[uint32]map[T]struct{}),
