@@ -22,12 +22,12 @@ type Field interface {
 	Type() schema.Type
 	// Add add document field value
 	Add(id uint32, value interface{})
-	// Term get field value
-	Term(ctx context.Context, value interface{}) *Result
-	// Match get field analyzed value
-	Match(ctx context.Context, value interface{}) *Result
-	// Range get values from .. to ...
-	Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
+	// TermQuery get documents by field value
+	TermQuery(ctx context.Context, value interface{}) *Result
+	// MatchQuery get documents by field analyzed value
+	MatchQuery(ctx context.Context, value interface{}) *Result
+	// RangeQuery get documents by values from .. to ...
+	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values

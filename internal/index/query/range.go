@@ -62,5 +62,5 @@ func (q *rangeQuery) exec(ctx context.Context) (*queryResult, error) {
 	includeLower := cast.ToBool(vv["includeLower"])
 	includeUpper := cast.ToBool(vv["includeUpper"])
 
-	return newResult(field.Range(ctx, from, to, includeLower, includeUpper)), nil
+	return newResult(field.RangeQuery(ctx, from, to, includeLower, includeUpper)), nil
 }

@@ -52,25 +52,25 @@ func Test_Text_Add(t *testing.T) {
 	})
 }
 
-func Test_Text_Term(t *testing.T) {
+func Test_Text_TermQuery(t *testing.T) {
 	scoring := NewScoring()
 	f := newText(testAnalyzer2, scoring)
 	f.Add(1, "foo")
 
-	result := f.Term(context.Background(), "foo")
+	result := f.TermQuery(context.Background(), "foo")
 	require.Equal(t, uint64(1), result.Docs().GetCardinality())
 	require.True(t, result.Docs().Contains(1))
 	require.Greater(t, result.Score(1), 0.0)
 }
 
-func Test_Text_Match(t *testing.T) {
+func Test_Text_MatchQuery(t *testing.T) {
 	t.Run("can return union if both values found", func(t *testing.T) {
 		scoring := NewScoring()
 		f := newText(testAnalyzer2, scoring)
 		f.Add(1, "foo")
 		f.Add(2, "bar")
 
-		result := f.Match(context.Background(), "foo bar")
+		result := f.MatchQuery(context.Background(), "foo bar")
 		require.Equal(t, uint64(2), result.Docs().GetCardinality())
 		require.True(t, result.Docs().Contains(1))
 		require.True(t, result.Docs().Contains(2))

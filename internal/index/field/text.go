@@ -63,7 +63,7 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Term(ctx context.Context, value interface{}) *Result {
+func (f *Text) TermQuery(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToStringE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -77,7 +77,7 @@ func (f *Text) Term(ctx context.Context, value interface{}) *Result {
 	return NewResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
 }
 
-func (f *Text) Match(ctx context.Context, value interface{}) *Result {
+func (f *Text) MatchQuery(ctx context.Context, value interface{}) *Result {
 	val, err := castE[string](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -110,7 +110,7 @@ func (f *Text) Match(ctx context.Context, value interface{}) *Result {
 	return NewResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	return NewResult(ctx, roaring.New())
 }
 
