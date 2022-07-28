@@ -27,7 +27,7 @@ func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -49,7 +49,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -71,7 +71,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -93,7 +93,7 @@ func Benchmark_Bool_Term_Values_Random(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -124,7 +124,7 @@ func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -155,15 +155,28 @@ func Test_Bool_Add(t *testing.T) {
 	})
 }
 
-func Test_Bool_Term(t *testing.T) {
+func Test_Bool_TermQuery(t *testing.T) {
 	field := newBool()
 	field.Add(1, true)
 
-	result := field.Term(context.Background(), true)
+	result := field.TermQuery(context.Background(), true)
 	require.True(t, result.Docs().Contains(1))
 	require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-	result = field.Term(context.Background(), false)
+	result = field.TermQuery(context.Background(), false)
+	require.False(t, result.Docs().Contains(1))
+	require.EqualValues(t, 0, result.Docs().GetCardinality())
+}
+
+func Test_Bool_MatchQuery(t *testing.T) {
+	field := newBool()
+	field.Add(1, true)
+
+	result := field.MatchQuery(context.Background(), true)
+	require.True(t, result.Docs().Contains(1))
+	require.EqualValues(t, 1, result.Docs().GetCardinality())
+
+	result = field.MatchQuery(context.Background(), false)
 	require.False(t, result.Docs().Contains(1))
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
 }

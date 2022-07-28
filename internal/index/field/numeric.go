@@ -73,7 +73,7 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	f.listAdd(v)
 }
 
-func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
+func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *Result {
 	v, err := castE[T](value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -87,11 +87,11 @@ func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, m.Clone())
 }
 
-func (f *Numeric[T]) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *Result {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *Numeric[T]) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	if from == nil && to == nil {
 		return NewResult(ctx, roaring.New())
 	}

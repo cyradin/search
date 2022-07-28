@@ -47,7 +47,7 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	m.Add(id)
 }
 
-func (f *Keyword) Term(ctx context.Context, value interface{}) *Result {
+func (f *Keyword) TermQuery(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToStringE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -61,11 +61,11 @@ func (f *Keyword) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, m.Clone())
 }
 
-func (f *Keyword) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *Keyword) MatchQuery(ctx context.Context, value interface{}) *Result {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *Keyword) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	return NewResult(ctx, roaring.New())
 }
 

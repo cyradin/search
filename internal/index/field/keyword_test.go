@@ -30,15 +30,28 @@ func Test_Keyword_Add(t *testing.T) {
 	})
 }
 
-func Test_Keyword_Term(t *testing.T) {
+func Test_Keyword_TermQuery(t *testing.T) {
 	field := newKeyword()
 	field.Add(1, "foo")
 
-	result := field.Term(context.Background(), "foo")
+	result := field.TermQuery(context.Background(), "foo")
 	require.True(t, result.Docs().Contains(1))
 	require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-	result = field.Term(context.Background(), "bar")
+	result = field.TermQuery(context.Background(), "bar")
+	require.False(t, result.Docs().Contains(1))
+	require.EqualValues(t, 0, result.Docs().GetCardinality())
+}
+
+func Test_Keyword_MatchQuery(t *testing.T) {
+	field := newKeyword()
+	field.Add(1, "foo")
+
+	result := field.MatchQuery(context.Background(), "foo")
+	require.True(t, result.Docs().Contains(1))
+	require.EqualValues(t, 1, result.Docs().GetCardinality())
+
+	result = field.MatchQuery(context.Background(), "bar")
 	require.False(t, result.Docs().Contains(1))
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
 }

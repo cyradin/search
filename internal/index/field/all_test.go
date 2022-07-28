@@ -20,19 +20,19 @@ func Test_All_Add(t *testing.T) {
 	require.False(t, field.data.Contains(2))
 }
 
-func Test_All_Term(t *testing.T) {
+func Test_All_TermQuery(t *testing.T) {
 	field := newAll()
 	field.Add(1, true)
 
-	result := field.Term(context.Background(), true)
+	result := field.TermQuery(context.Background(), true)
 	require.True(t, result.Docs().Contains(1))
 }
 
-func Test_All_Match(t *testing.T) {
+func Test_All_MatchQuery(t *testing.T) {
 	field := newAll()
 	field.Add(1, true)
 
-	result := field.Match(context.Background(), true)
+	result := field.MatchQuery(context.Background(), true)
 	require.True(t, result.Docs().Contains(1))
 }
 

@@ -41,7 +41,7 @@ func (f *Bool) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Bool) Term(ctx context.Context, value interface{}) *Result {
+func (f *Bool) TermQuery(ctx context.Context, value interface{}) *Result {
 	v, err := cast.ToBoolE(value)
 	if err != nil {
 		return NewResult(ctx, roaring.New())
@@ -50,11 +50,11 @@ func (f *Bool) Term(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, f.get(v))
 }
 
-func (f *Bool) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *Bool) MatchQuery(ctx context.Context, value interface{}) *Result {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *Bool) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	return NewResult(ctx, roaring.New())
 }
 

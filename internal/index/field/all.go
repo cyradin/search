@@ -35,15 +35,15 @@ func (f *All) Add(id uint32, value interface{}) {
 	f.data.Add(id)
 }
 
-func (f *All) Term(ctx context.Context, value interface{}) *Result {
+func (f *All) TermQuery(ctx context.Context, value interface{}) *Result {
 	return NewResult(ctx, f.data.Clone())
 }
 
-func (f *All) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *All) MatchQuery(ctx context.Context, value interface{}) *Result {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *All) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *All) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	return NewResult(ctx, roaring.New())
 }
 

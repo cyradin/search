@@ -33,7 +33,7 @@ func Benchmark_SyncMonitor(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()
@@ -66,7 +66,7 @@ func Benchmark_SyncMtx(b *testing.B) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					f.Term(ctx, true)
+					f.TermQuery(ctx, true)
 				}()
 			}
 			wg.Wait()

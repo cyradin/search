@@ -116,7 +116,7 @@ func (f *SyncMonitor) Add(id uint32, value interface{}) {
 	<-ch
 }
 
-func (f *SyncMonitor) Term(ctx context.Context, value interface{}) *Result {
+func (f *SyncMonitor) TermQuery(ctx context.Context, value interface{}) *Result {
 	if !f.started {
 		panic("monitor not started")
 	}
@@ -126,7 +126,7 @@ func (f *SyncMonitor) Term(ctx context.Context, value interface{}) *Result {
 	return <-ch
 }
 
-func (f *SyncMonitor) Match(ctx context.Context, value interface{}) *Result {
+func (f *SyncMonitor) MatchQuery(ctx context.Context, value interface{}) *Result {
 	if !f.started {
 		panic("monitor not started")
 	}
@@ -136,7 +136,7 @@ func (f *SyncMonitor) Match(ctx context.Context, value interface{}) *Result {
 	return <-ch
 }
 
-func (f *SyncMonitor) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *SyncMonitor) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	if !f.started {
 		panic("monitor not started")
 	}
@@ -200,19 +200,19 @@ func (f *SyncMonitor) monitor(ctx context.Context) {
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					v.ch <- f.field.Term(v.ctx, v.value)
+					v.ch <- f.field.TermQuery(v.ctx, v.value)
 				}()
 			case v := <-f.chMatch:
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					v.ch <- f.field.Match(v.ctx, v.value)
+					v.ch <- f.field.MatchQuery(v.ctx, v.value)
 				}()
 			case v := <-f.chRange:
 				wg.Add(1)
 				go func() {
 					defer wg.Done()
-					v.ch <- f.field.Range(v.ctx, v.from, v.to, v.incFrom, v.incTo)
+					v.ch <- f.field.RangeQuery(v.ctx, v.from, v.to, v.incFrom, v.incTo)
 				}()
 			case v := <-f.chData:
 				wg.Add(1)
@@ -267,22 +267,22 @@ func (f *SyncMtx) Add(id uint32, value interface{}) {
 	f.field.Add(id, value)
 }
 
-func (f *SyncMtx) Term(ctx context.Context, value interface{}) *Result {
+func (f *SyncMtx) TermQuery(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Term(ctx, value)
+	return f.field.TermQuery(ctx, value)
 }
 
-func (f *SyncMtx) Match(ctx context.Context, value interface{}) *Result {
+func (f *SyncMtx) MatchQuery(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Match(ctx, value)
+	return f.field.MatchQuery(ctx, value)
 }
 
-func (f *SyncMtx) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *SyncMtx) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Range(ctx, from, to, incFrom, incTo)
+	return f.field.RangeQuery(ctx, from, to, incFrom, incTo)
 }
 
 func (f *SyncMtx) Delete(id uint32) {
