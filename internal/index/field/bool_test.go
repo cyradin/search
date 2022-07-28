@@ -15,7 +15,7 @@ var benchmarkCounts = []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
 
 func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
-		f := NewBool()
+		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i), true)
 		}
@@ -37,7 +37,7 @@ func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
 
 func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
-		f := NewBool()
+		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i+1000), true)
 		}
@@ -59,7 +59,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
 
 func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
-		f := NewBool()
+		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i*2), true)
 		}
@@ -81,7 +81,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
 
 func Benchmark_Bool_Term_Values_Random(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
-		f := NewBool()
+		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(rand.Uint32(), true)
 		}
@@ -103,7 +103,7 @@ func Benchmark_Bool_Term_Values_Random(b *testing.B) {
 
 func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
 	for _, cnt := range benchmarkCounts {
-		f := NewBool()
+		f := newBool()
 
 		values := make([]uint32, cnt)
 		for i := 0; i < cnt; i++ {
@@ -134,7 +134,7 @@ func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
 
 func Test_Bool_Add(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
-		field := NewBool()
+		field := newBool()
 		field.Add(1, true)
 		field.Add(1, false)
 		field.Add(2, true)
@@ -147,7 +147,7 @@ func Test_Bool_Add(t *testing.T) {
 		require.False(t, field.dataFalse.Contains(2))
 	})
 	t.Run("string", func(t *testing.T) {
-		field := NewBool()
+		field := newBool()
 		field.Add(1, "qwe")
 
 		require.EqualValues(t, 0, field.dataTrue.GetCardinality())
@@ -156,7 +156,7 @@ func Test_Bool_Add(t *testing.T) {
 }
 
 func Test_Bool_Term(t *testing.T) {
-	field := NewBool()
+	field := newBool()
 	field.Add(1, true)
 
 	result := field.Term(context.Background(), true)
@@ -169,7 +169,7 @@ func Test_Bool_Term(t *testing.T) {
 }
 
 func Test_Bool_Delete(t *testing.T) {
-	field := NewBool()
+	field := newBool()
 	field.Add(1, true)
 	field.Add(1, false)
 	field.Add(2, false)
@@ -184,7 +184,7 @@ func Test_Bool_Delete(t *testing.T) {
 }
 
 func Test_Bool_Data(t *testing.T) {
-	field := NewBool()
+	field := newBool()
 	field.Add(1, true)
 	field.Add(1, false)
 	field.Add(2, false)
@@ -197,7 +197,7 @@ func Test_Bool_Data(t *testing.T) {
 }
 
 func Test_Bool_Marshal(t *testing.T) {
-	field := NewBool()
+	field := newBool()
 	field.Add(1, true)
 	field.Add(1, false)
 	field.Add(2, true)
@@ -205,7 +205,7 @@ func Test_Bool_Marshal(t *testing.T) {
 	data, err := field.MarshalBinary()
 	require.NoError(t, err)
 
-	field2 := NewBool()
+	field2 := newBool()
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
 	require.True(t, field2.dataTrue.Contains(1))

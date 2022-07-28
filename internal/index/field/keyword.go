@@ -17,7 +17,7 @@ type Keyword struct {
 	values map[uint32]map[string]struct{}
 }
 
-func NewKeyword() *Keyword {
+func newKeyword() *Keyword {
 	return &Keyword{
 		data:   make(map[string]*roaring.Bitmap),
 		values: make(map[uint32]map[string]struct{}),

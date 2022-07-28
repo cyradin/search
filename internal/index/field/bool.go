@@ -17,7 +17,7 @@ type Bool struct {
 	dataFalse *roaring.Bitmap
 }
 
-func NewBool() *Bool {
+func newBool() *Bool {
 	return &Bool{
 		dataTrue:  roaring.New(),
 		dataFalse: roaring.New(),

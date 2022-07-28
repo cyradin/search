@@ -9,14 +9,14 @@ import (
 
 func Test_Keyword_Add(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
-		field := NewKeyword()
+		field := newKeyword()
 		field.Add(1, true)
 
 		require.EqualValues(t, 1, field.data["true"].GetCardinality())
 		require.True(t, field.data["true"].Contains(1))
 	})
 	t.Run("string", func(t *testing.T) {
-		field := NewKeyword()
+		field := newKeyword()
 		field.Add(1, "foo")
 		field.Add(1, "bar")
 		field.Add(2, "foo")
@@ -31,7 +31,7 @@ func Test_Keyword_Add(t *testing.T) {
 }
 
 func Test_Keyword_Term(t *testing.T) {
-	field := NewKeyword()
+	field := newKeyword()
 	field.Add(1, "foo")
 
 	result := field.Term(context.Background(), "foo")
@@ -44,7 +44,7 @@ func Test_Keyword_Term(t *testing.T) {
 }
 
 func Test_Keyword_Delete(t *testing.T) {
-	field := NewKeyword()
+	field := newKeyword()
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -62,7 +62,7 @@ func Test_Keyword_Delete(t *testing.T) {
 }
 
 func Test_Keyword_Data(t *testing.T) {
-	field := NewKeyword()
+	field := newKeyword()
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -75,7 +75,7 @@ func Test_Keyword_Data(t *testing.T) {
 }
 
 func Test_Keyword_Marshal(t *testing.T) {
-	field := NewKeyword()
+	field := newKeyword()
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
@@ -83,7 +83,7 @@ func Test_Keyword_Marshal(t *testing.T) {
 	data, err := field.MarshalBinary()
 	require.NoError(t, err)
 
-	field2 := NewKeyword()
+	field2 := newKeyword()
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))

@@ -21,7 +21,7 @@ type All struct {
 	data *roaring.Bitmap
 }
 
-func NewAll() *All {
+func newAll() *All {
 	return &All{
 		data: roaring.New(),
 	}

@@ -212,11 +212,13 @@ func Test_newBoolQuery(t *testing.T) {
 }
 
 func Test_boolQuery_exec(t *testing.T) {
-	f1 := field.NewBool()
+	f1, err := field.New(schema.TypeBool)
+	require.NoError(t, err)
 	f1.Add(1, true)
 	f1.Add(2, false)
 
-	f2 := field.NewAll()
+	f2, err := field.New(schema.TypeAll)
+	require.NoError(t, err)
 	f2.Add(1, true)
 	f2.Add(2, false)
 	f2.Add(3, true)

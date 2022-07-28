@@ -20,13 +20,13 @@ func Test_numericField_Add(t *testing.T) {
 
 func test_numericField_Add[T NumericConstraint](t *testing.T) {
 	t.Run("string", func(t *testing.T) {
-		field := NewNumeric[T]()
+		field := newNumeric[T]()
 		field.Add(1, "qwe")
 
 		require.EqualValues(t, 0, len(field.data))
 	})
 	t.Run("numeric", func(t *testing.T) {
-		field := NewNumeric[T]()
+		field := newNumeric[T]()
 		field.Add(1, 10)
 		field.Add(1, 20)
 		field.Add(1, 50)
@@ -65,7 +65,7 @@ func Test_numericField_Term(t *testing.T) {
 }
 
 func test_numericField_Term[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 1)
 
 	result := field.Term(context.Background(), 1)
@@ -88,7 +88,7 @@ func Test_numericField_Range(t *testing.T) {
 }
 
 func test_numericField_Range[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 1)
 	field.Add(2, 2)
 	field.Add(3, 3)
@@ -137,7 +137,7 @@ func Test_numericField_Delete(t *testing.T) {
 }
 
 func test_numericField_Delete[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 10)
 	field.Add(1, 20)
 	field.Add(1, 50)
@@ -180,7 +180,7 @@ func Test_numericField_Data(t *testing.T) {
 }
 
 func test_numericField_Data[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 1)
 	field.Add(1, 2)
 	field.Add(2, 1)
@@ -202,7 +202,7 @@ func Test_numericField_Marshal(t *testing.T) {
 }
 
 func test_numericField_Marshal[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 1)
 	field.Add(1, 2)
 	field.Add(2, 1)
@@ -210,7 +210,7 @@ func test_numericField_Marshal[T NumericConstraint](t *testing.T) {
 	data, err := field.MarshalBinary()
 	require.NoError(t, err)
 
-	field2 := NewNumeric[T]()
+	field2 := newNumeric[T]()
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
 	require.True(t, field2.data[1].Contains(1))
@@ -231,7 +231,7 @@ func Test_numericField_findGt(t *testing.T) {
 }
 
 func test_numericField_findGt[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 10)
 	field.Add(1, 20)
 	field.Add(1, 30)
@@ -253,7 +253,7 @@ func Test_numericField_findGte(t *testing.T) {
 }
 
 func test_numericField_findGte[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 10)
 	field.Add(1, 20)
 	field.Add(1, 30)
@@ -276,7 +276,7 @@ func Test_numericField_findLt(t *testing.T) {
 }
 
 func test_numericField_findLt[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 10)
 	field.Add(1, 20)
 	field.Add(1, 30)
@@ -298,7 +298,7 @@ func Test_numericField_findLte(t *testing.T) {
 }
 
 func test_numericField_findLte[T NumericConstraint](t *testing.T) {
-	field := NewNumeric[T]()
+	field := newNumeric[T]()
 	field.Add(1, 10)
 	field.Add(1, 20)
 	field.Add(1, 30)

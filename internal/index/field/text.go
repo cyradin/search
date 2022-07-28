@@ -20,7 +20,7 @@ type Text struct {
 
 var _ Field = (*Text)(nil)
 
-func NewText(analyzer func([]string) []string, scoring *Scoring) *Text {
+func newText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
 		values:   make(map[uint32]map[string]struct{}),

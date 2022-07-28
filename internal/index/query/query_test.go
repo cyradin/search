@@ -6,6 +6,7 @@ import (
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/index/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
@@ -38,7 +39,8 @@ func decodeQuerySlice(query string) ([]map[string]interface{}, error) {
 
 func Test_build(t *testing.T) {
 	t.Run("must return error if query is empty", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{}`)
 		require.NoError(t, err)
@@ -49,7 +51,8 @@ func Test_build(t *testing.T) {
 		require.Nil(t, result)
 	})
 	t.Run("must return error if query contains multiple root fields", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"term": {
@@ -67,7 +70,8 @@ func Test_build(t *testing.T) {
 		require.Nil(t, result)
 	})
 	t.Run("must return error if query is invalid", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"term": {
@@ -82,7 +86,8 @@ func Test_build(t *testing.T) {
 		require.Nil(t, result)
 	})
 	t.Run("must return error if query type is unknown", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"invalid": {
@@ -97,7 +102,8 @@ func Test_build(t *testing.T) {
 		require.Nil(t, result)
 	})
 	t.Run("must not return error if query is a valid term query", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"term": {
@@ -114,7 +120,8 @@ func Test_build(t *testing.T) {
 		require.NotNil(t, result)
 	})
 	t.Run("must not return error if query is a valid terms query", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"terms": {
@@ -131,7 +138,8 @@ func Test_build(t *testing.T) {
 		require.NotNil(t, result)
 	})
 	t.Run("must not return error if query is a valid bool query", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"bool": {
@@ -155,7 +163,8 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must not return error if query is a valid match query", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"match": {
@@ -173,7 +182,8 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must not return error if query is a valid range query", func(t *testing.T) {
-		f1 := field.NewBool()
+		f1, err := field.New(schema.TypeBool)
+		require.NoError(t, err)
 
 		query, err := decodeQuery(`{
 			"range": {
