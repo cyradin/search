@@ -41,21 +41,21 @@ func (f *Bool) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Bool) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *Bool) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := cast.ToBoolE(value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, f.get(v))
+	return newResult(ctx, f.get(v))
 }
 
-func (f *Bool) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *Bool) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	return f.TermQuery(ctx, value)
 }
 
-func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
 }
 
 func (f *Bool) Delete(id uint32) {

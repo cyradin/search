@@ -47,26 +47,26 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	m.Add(id)
 }
 
-func (f *Keyword) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *Keyword) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := cast.ToStringE(value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	m, ok := f.data[v]
 	if !ok {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, m.Clone())
+	return newResult(ctx, m.Clone())
 }
 
-func (f *Keyword) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *Keyword) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	return f.TermQuery(ctx, value)
 }
 
-func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
 }
 
 func (f *Keyword) Delete(id uint32) {

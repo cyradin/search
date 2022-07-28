@@ -35,16 +35,16 @@ func (f *All) Add(id uint32, value interface{}) {
 	f.data.Add(id)
 }
 
-func (f *All) TermQuery(ctx context.Context, value interface{}) *Result {
-	return NewResult(ctx, f.data.Clone())
+func (f *All) TermQuery(ctx context.Context, value interface{}) *QueryResult {
+	return newResult(ctx, f.data.Clone())
 }
 
-func (f *All) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *All) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	return f.TermQuery(ctx, value)
 }
 
-func (f *All) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *All) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
 }
 
 func (f *All) Delete(id uint32) {

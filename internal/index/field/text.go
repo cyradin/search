@@ -63,24 +63,24 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *Text) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := cast.ToStringE(value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	m, ok := f.data[v]
 	if !ok {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
+	return newResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
 }
 
-func (f *Text) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *Text) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	val, err := castE[string](value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 	tokens := f.analyzer([]string{val})
 
@@ -104,14 +104,14 @@ func (f *Text) MatchQuery(ctx context.Context, value interface{}) *Result {
 	}
 
 	if result == nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
+	return newResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
 }
 
 func (f *Text) Delete(id uint32) {

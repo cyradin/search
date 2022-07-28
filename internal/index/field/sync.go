@@ -16,13 +16,13 @@ type syncAdd struct {
 type syncTerm struct {
 	ctx   context.Context
 	value interface{}
-	ch    chan *Result
+	ch    chan *QueryResult
 }
 
 type syncMatch struct {
 	ctx   context.Context
 	value interface{}
-	ch    chan *Result
+	ch    chan *QueryResult
 }
 
 type syncRange struct {
@@ -31,7 +31,7 @@ type syncRange struct {
 	to      interface{}
 	incFrom bool
 	incTo   bool
-	ch      chan *Result
+	ch      chan *QueryResult
 }
 
 type syncDelete struct {
@@ -116,31 +116,31 @@ func (f *SyncMonitor) Add(id uint32, value interface{}) {
 	<-ch
 }
 
-func (f *SyncMonitor) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *SyncMonitor) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	if !f.started {
 		panic("monitor not started")
 	}
-	ch := make(chan *Result)
+	ch := make(chan *QueryResult)
 	v := syncTerm{ctx, value, ch}
 	f.chTerm <- v
 	return <-ch
 }
 
-func (f *SyncMonitor) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *SyncMonitor) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	if !f.started {
 		panic("monitor not started")
 	}
-	ch := make(chan *Result)
+	ch := make(chan *QueryResult)
 	v := syncMatch{ctx, value, ch}
 	f.chMatch <- v
 	return <-ch
 }
 
-func (f *SyncMonitor) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *SyncMonitor) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
 	if !f.started {
 		panic("monitor not started")
 	}
-	ch := make(chan *Result)
+	ch := make(chan *QueryResult)
 	v := syncRange{ctx, from, to, incFrom, incTo, ch}
 	f.chRange <- v
 	return <-ch
@@ -267,19 +267,19 @@ func (f *SyncMtx) Add(id uint32, value interface{}) {
 	f.field.Add(id, value)
 }
 
-func (f *SyncMtx) TermQuery(ctx context.Context, value interface{}) *Result {
+func (f *SyncMtx) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 	return f.field.TermQuery(ctx, value)
 }
 
-func (f *SyncMtx) MatchQuery(ctx context.Context, value interface{}) *Result {
+func (f *SyncMtx) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 	return f.field.MatchQuery(ctx, value)
 }
 
-func (f *SyncMtx) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *SyncMtx) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 	return f.field.RangeQuery(ctx, from, to, incFrom, incTo)
