@@ -276,7 +276,7 @@ func (f *SyncMtx) Term(ctx context.Context, value interface{}) *Result {
 func (f *SyncMtx) Match(ctx context.Context, value interface{}) *Result {
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
-	return f.field.Term(ctx, value)
+	return f.field.Match(ctx, value)
 }
 
 func (f *SyncMtx) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
