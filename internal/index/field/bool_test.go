@@ -11,10 +11,10 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var benchmarkCounts = []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
+var boolBenchmarkCounts = []int{1, 10, 100, 1000, 10000, 100000, 1000000, 10000000}
 
 func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
+	for _, cnt := range boolBenchmarkCounts {
 		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i), true)
@@ -36,7 +36,7 @@ func Benchmark_Bool_Term_Values_In_A_Row(b *testing.B) {
 }
 
 func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
+	for _, cnt := range boolBenchmarkCounts {
 		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i+1000), true)
@@ -58,7 +58,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Plus_1000(b *testing.B) {
 }
 
 func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
+	for _, cnt := range boolBenchmarkCounts {
 		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(uint32(i*2), true)
@@ -80,7 +80,7 @@ func Benchmark_Bool_Term_Values_In_A_Row_Even(b *testing.B) {
 }
 
 func Benchmark_Bool_Term_Values_Random(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
+	for _, cnt := range boolBenchmarkCounts {
 		f := newBool()
 		for i := 0; i < cnt; i++ {
 			f.Add(rand.Uint32(), true)
@@ -102,7 +102,7 @@ func Benchmark_Bool_Term_Values_Random(b *testing.B) {
 }
 
 func Benchmark_Bool_Term_Values_Random_Sorted(b *testing.B) {
-	for _, cnt := range benchmarkCounts {
+	for _, cnt := range boolBenchmarkCounts {
 		f := newBool()
 
 		values := make([]uint32, cnt)
