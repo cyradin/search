@@ -48,10 +48,10 @@ type TermAggResult struct {
 	Buckets []TermBucket
 }
 
-func termAgg[T comparable](docs *roaring.Bitmap, data docValues[T], size int) TermAggResult {
+func termAgg[T Simple](docs *roaring.Bitmap, data *docValues[T], size int) TermAggResult {
 	values := make(map[T]int)
 	for _, id := range docs.ToArray() {
-		for v := range data[id] {
+		for _, v := range data.ValuesByDoc(id) {
 			values[v]++
 		}
 	}
