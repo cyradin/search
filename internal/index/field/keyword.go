@@ -14,13 +14,13 @@ var _ Field = (*Keyword)(nil)
 
 type Keyword struct {
 	data   map[string]*roaring.Bitmap
-	values map[uint32]map[string]struct{}
+	values docValues[string]
 }
 
 func newKeyword() *Keyword {
 	return &Keyword{
 		data:   make(map[string]*roaring.Bitmap),
-		values: make(map[uint32]map[string]struct{}),
+		values: make(docValues[string]),
 	}
 }
 
@@ -106,7 +106,7 @@ func (f *Keyword) Data(id uint32) []interface{} {
 
 type keywordData struct {
 	Data   map[string]*roaring.Bitmap
-	Values map[uint32]map[string]struct{}
+	Values docValues[string]
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

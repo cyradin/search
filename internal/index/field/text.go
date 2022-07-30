@@ -14,8 +14,8 @@ type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
-	values   map[uint32]map[string]struct{}
-	raw      map[uint32]map[string]struct{}
+	values   docValues[string]
+	raw      docValues[string]
 }
 
 var _ Field = (*Text)(nil)
@@ -23,8 +23,8 @@ var _ Field = (*Text)(nil)
 func newText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
-		values:   make(map[uint32]map[string]struct{}),
-		raw:      make(map[uint32]map[string]struct{}),
+		values:   make(docValues[string]),
+		raw:      make(docValues[string]),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -148,8 +148,8 @@ func (f *Text) Data(id uint32) []interface{} {
 
 type textData struct {
 	Data    map[string]*roaring.Bitmap
-	Values  map[uint32]map[string]struct{}
-	Raw     map[uint32]map[string]struct{}
+	Values  docValues[string]
+	Raw     docValues[string]
 	Scoring []byte
 }
 

@@ -18,14 +18,14 @@ type NumericConstraint interface {
 
 type Numeric[T NumericConstraint] struct {
 	data   map[T]*roaring.Bitmap
-	values map[uint32]map[T]struct{}
+	values docValues[T]
 	list   []T
 }
 
 func newNumeric[T NumericConstraint]() *Numeric[T] {
 	return &Numeric[T]{
 		data:   make(map[T]*roaring.Bitmap),
-		values: make(map[uint32]map[T]struct{}),
+		values: make(docValues[T]),
 	}
 }
 
@@ -179,7 +179,7 @@ func (f *Numeric[T]) Data(id uint32) []interface{} {
 
 type numericData[T NumericConstraint] struct {
 	Data   map[T]*roaring.Bitmap
-	Values map[uint32]map[T]struct{}
+	Values docValues[T]
 }
 
 func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
