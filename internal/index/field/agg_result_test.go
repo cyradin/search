@@ -23,32 +23,35 @@ func Test_keyValueHeap(t *testing.T) {
 	require.Equal(t, 3, h.Len())
 }
 
-var termAggBenchmarkCounts = [][]int{
-	{10, 10},
-	{100, 10},
-	{1000, 50},
-	{10000, 100},
-	{100000, 10},
-	{100000, 50},
-	{100000, 100},
-	{100000, 500},
-	{1000000, 1000},
-	{10000000, 10},
-	{10000000, 100},
-	{10000000, 1000},
-}
-
 func Benchmark_termAgg(b *testing.B) {
-	for _, counts := range termAggBenchmarkCounts {
+	allCounts := [][]int{
+		{10, 10},
+		{100, 10},
+		{1000, 50},
+		{10000, 100},
+		{100000, 10},
+		{100000, 50},
+		{100000, 100},
+		{100000, 500},
+		{1000000, 1000},
+		{10000000, 10},
+		{10000000, 100},
+		{10000000, 1000},
+	}
+
+	for _, counts := range allCounts {
 		docs := roaring.New()
-		data := make(docValues[int])
+		data := newDocValues[int32]()
 		for i := 0; i < counts[0]; i++ {
 			v1 := i%counts[1] + 1
 			v2 := i%counts[1] + 2
 			v3 := i%counts[1] + 3
 
 			docs.Add(uint32(i))
-			data[uint32(i)] = docValue[int]{v1: {}, v2: {}, v3: {}}
+
+			data.Add(uint32(i), int32(v1))
+			data.Add(uint32(i), int32(v2))
+			data.Add(uint32(i), int32(v3))
 		}
 
 		b.Run(fmt.Sprintf("docs_%d_cardinality_%d", counts[0], counts[1]), func(b *testing.B) {
@@ -57,13 +60,12 @@ func Benchmark_termAgg(b *testing.B) {
 			}
 		})
 	}
-
 }
 
 func Test_termAgg(t *testing.T) {
 	t.Run("empty docs", func(t *testing.T) {
 		docs := roaring.New()
-		data := make(docValues[int])
+		data := newDocValues[int32]()
 
 		result := termAgg(docs, data, 20)
 		require.Len(t, result.Buckets, 0)
@@ -77,20 +79,25 @@ func Test_termAgg(t *testing.T) {
 		docs.Add(4)
 		docs.Add(5)
 
-		data := docValues[int]{
-			1: {1: {}, 2: {}, 3: {}, 4: {}},
-			2: {1: {}, 2: {}, 3: {}},
-			3: {1: {}, 2: {}},
-			4: {1: {}},
-		}
+		data := newDocValues[int32]()
+		data.Add(1, 1)
+		data.Add(1, 2)
+		data.Add(1, 3)
+		data.Add(1, 4)
+		data.Add(2, 1)
+		data.Add(2, 2)
+		data.Add(2, 3)
+		data.Add(3, 1)
+		data.Add(3, 2)
+		data.Add(4, 1)
 
 		result := termAgg(docs, data, 20)
 
 		require.Equal(t, []TermBucket{
-			{Key: 1, DocCount: 4},
-			{Key: 2, DocCount: 3},
-			{Key: 3, DocCount: 2},
-			{Key: 4, DocCount: 1},
-		}, result)
+			{Key: int32(1), DocCount: 4},
+			{Key: int32(2), DocCount: 3},
+			{Key: int32(3), DocCount: 2},
+			{Key: int32(4), DocCount: 1},
+		}, result.Buckets)
 	})
 }

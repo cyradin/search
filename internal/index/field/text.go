@@ -14,8 +14,8 @@ type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
-	values   docValues[string]
-	raw      docValues[string]
+	values   *docValues[string]
+	raw      *docValues[string]
 }
 
 var _ Field = (*Text)(nil)
@@ -23,8 +23,8 @@ var _ Field = (*Text)(nil)
 func newText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
-		values:   make(docValues[string]),
-		raw:      make(docValues[string]),
+		values:   newDocValues[string](),
+		raw:      newDocValues[string](),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -40,20 +40,13 @@ func (f *Text) Add(id uint32, value interface{}) {
 		return
 	}
 
-	if f.raw[id] == nil {
-		f.raw[id] = make(map[string]struct{})
-	}
-	f.raw[id][v] = struct{}{}
+	f.raw.Add(id, v)
 
 	terms := f.analyzer([]string{v})
 	f.scoring.Add(id, terms)
 
 	for _, vv := range terms {
-		if f.values[id] == nil {
-			f.values[id] = make(map[string]struct{})
-		}
-		f.values[id][vv] = struct{}{}
-
+		f.values.Add(id, vv)
 		m, ok := f.data[vv]
 		if !ok {
 			m = roaring.New()
@@ -115,14 +108,19 @@ func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{},
 }
 
 func (f *Text) Delete(id uint32) {
-	vals, ok := f.values[id]
-	if !ok {
+	if !f.values.ContainsDoc(id) {
 		return
 	}
-	delete(f.values, id)
-	delete(f.raw, id)
 
-	for v := range vals {
+	vals := f.values.ValuesByDoc(id)
+	if len(vals) == 0 {
+		return
+	}
+
+	f.values.DeleteDoc(id)
+	f.raw.DeleteDoc(id)
+
+	for _, v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -137,8 +135,8 @@ func (f *Text) Delete(id uint32) {
 func (f *Text) Data(id uint32) []interface{} {
 	result := make([]interface{}, 0)
 
-	if f.raw[id] != nil {
-		for v := range f.raw[id] {
+	if f.raw.ContainsDoc(id) {
+		for _, v := range f.raw.ValuesByDoc(id) {
 			result = append(result, v)
 		}
 	}
@@ -148,8 +146,8 @@ func (f *Text) Data(id uint32) []interface{} {
 
 type textData struct {
 	Data    map[string]*roaring.Bitmap
-	Values  docValues[string]
-	Raw     docValues[string]
+	Values  *docValues[string]
+	Raw     *docValues[string]
 	Scoring []byte
 }
 

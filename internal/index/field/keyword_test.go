@@ -65,13 +65,13 @@ func Test_Keyword_Delete(t *testing.T) {
 	field.Delete(2)
 	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
 	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.Nil(t, field.values[2])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
 	require.Nil(t, field.data["foo"])
 	require.Nil(t, field.data["bar"])
-	require.Nil(t, field.values[1])
+	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
 func Test_Keyword_Data(t *testing.T) {
@@ -101,7 +101,7 @@ func Test_Keyword_Marshal(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))
 	require.True(t, field2.data["bar"].Contains(1))
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.True(t, field2.data["foo"].Contains(2))
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.values[2])
+	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
 }

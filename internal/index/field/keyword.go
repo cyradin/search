@@ -14,13 +14,13 @@ var _ Field = (*Keyword)(nil)
 
 type Keyword struct {
 	data   map[string]*roaring.Bitmap
-	values docValues[string]
+	values *docValues[string]
 }
 
 func newKeyword() *Keyword {
 	return &Keyword{
 		data:   make(map[string]*roaring.Bitmap),
-		values: make(docValues[string]),
+		values: newDocValues[string](),
 	}
 }
 
@@ -34,10 +34,7 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 		return
 	}
 
-	if f.values[id] == nil {
-		f.values[id] = make(map[string]struct{})
-	}
-	f.values[id][v] = struct{}{}
+	f.values.Add(id, v)
 
 	m, ok := f.data[v]
 	if !ok {
@@ -70,13 +67,8 @@ func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface
 }
 
 func (f *Keyword) Delete(id uint32) {
-	vals, ok := f.values[id]
-	if !ok {
-		return
-	}
-	delete(f.values, id)
-
-	for v := range vals {
+	vals := f.values.ValuesByDoc(id)
+	for _, v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -86,12 +78,13 @@ func (f *Keyword) Delete(id uint32) {
 			delete(f.data, v)
 		}
 	}
+	f.values.DeleteDoc(id)
 }
 
 func (f *Keyword) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for v := range f.values[id] {
+	for _, v := range f.values.ValuesByDoc(id) {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -106,7 +99,7 @@ func (f *Keyword) Data(id uint32) []interface{} {
 
 type keywordData struct {
 	Data   map[string]*roaring.Bitmap
-	Values docValues[string]
+	Values *docValues[string]
 }
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {

@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -47,10 +46,8 @@ func test_numericField_Add[T NumericConstraint](t *testing.T) {
 		require.True(t, field.data[10].Contains(2))
 		require.False(t, field.data[1].Contains(2))
 
-		require.EqualValues(t, map[T]struct{}{1: {}, 10: {}, 20: {}, 50: {}}, field.values[1])
-		require.EqualValues(t, map[T]struct{}{10: {}}, field.values[2])
-
-		require.EqualValues(t, []T{1, 10, 20, 50}, field.list)
+		require.ElementsMatch(t, []T{1, 10, 20, 50}, field.values.ValuesByDoc(1))
+		require.ElementsMatch(t, []T{10}, field.values.ValuesByDoc(2))
 	})
 }
 
@@ -179,17 +176,15 @@ func test_numericField_Delete[T NumericConstraint](t *testing.T) {
 	require.Nil(t, field.data[1])
 	require.Nil(t, field.data[30])
 	require.Nil(t, field.data[60])
-	require.EqualValues(t, map[T]struct{}{2: {}, 10: {}, 20: {}, 50: {}}, field.values[1])
-	require.Nil(t, field.values[2])
-
-	require.ElementsMatch(t, []T{2, 10, 20, 50}, field.list)
+	require.ElementsMatch(t, []T{2, 10, 20, 50}, field.values.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
 	require.Nil(t, field.data[1])
 	require.Nil(t, field.data[10])
 	require.Nil(t, field.data[20])
 	require.Nil(t, field.data[50])
-	require.Nil(t, field.values[1])
+	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
 func Test_numericField_Data(t *testing.T) {
@@ -238,97 +233,7 @@ func test_numericField_Marshal[T NumericConstraint](t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, field2.data[1].Contains(1))
 	require.True(t, field2.data[2].Contains(1))
-	require.EqualValues(t, map[T]struct{}{1: {}, 2: {}}, field.values[1])
+	require.ElementsMatch(t, []T{1, 2}, field.values.ValuesByDoc(1))
 	require.True(t, field2.data[1].Contains(2))
-	require.EqualValues(t, map[T]struct{}{1: {}}, field.values[2])
-}
-
-func Test_numericField_findGt(t *testing.T) {
-	t.Run("int8", test_numericField_findGt[int8])
-	t.Run("int16", test_numericField_findGt[int16])
-	t.Run("int32", test_numericField_findGt[int32])
-	t.Run("int64", test_numericField_findGt[int64])
-	t.Run("uint64", test_numericField_findGt[uint64])
-	t.Run("float32", test_numericField_findGt[float32])
-	t.Run("float64", test_numericField_findGt[float64])
-}
-
-func test_numericField_findGt[T NumericConstraint](t *testing.T) {
-	field := newNumeric[T]()
-	field.Add(1, 10)
-	field.Add(1, 20)
-	field.Add(1, 30)
-
-	assert.EqualValues(t, 0, field.findGt(0))
-	assert.EqualValues(t, 1, field.findGt(10))
-	assert.EqualValues(t, 2, field.findGt(20))
-	assert.EqualValues(t, 3, field.findGt(30))
-}
-
-func Test_numericField_findGte(t *testing.T) {
-	t.Run("int8", test_numericField_findGte[int8])
-	t.Run("int16", test_numericField_findGte[int16])
-	t.Run("int32", test_numericField_findGte[int32])
-	t.Run("int64", test_numericField_findGte[int64])
-	t.Run("uint64", test_numericField_findGte[uint64])
-	t.Run("float32", test_numericField_findGte[float32])
-	t.Run("float64", test_numericField_findGte[float64])
-}
-
-func test_numericField_findGte[T NumericConstraint](t *testing.T) {
-	field := newNumeric[T]()
-	field.Add(1, 10)
-	field.Add(1, 20)
-	field.Add(1, 30)
-
-	assert.EqualValues(t, 0, field.findGte(0))
-	assert.EqualValues(t, 0, field.findGte(10))
-	assert.EqualValues(t, 1, field.findGte(20))
-	assert.EqualValues(t, 2, field.findGte(30))
-	assert.EqualValues(t, 3, field.findGte(40))
-}
-
-func Test_numericField_findLt(t *testing.T) {
-	t.Run("int8", test_numericField_findLt[int8])
-	t.Run("int16", test_numericField_findLt[int16])
-	t.Run("int32", test_numericField_findLt[int32])
-	t.Run("int64", test_numericField_findLt[int64])
-	t.Run("uint64", test_numericField_findLt[uint64])
-	t.Run("float32", test_numericField_findLt[float32])
-	t.Run("float64", test_numericField_findLt[float64])
-}
-
-func test_numericField_findLt[T NumericConstraint](t *testing.T) {
-	field := newNumeric[T]()
-	field.Add(1, 10)
-	field.Add(1, 20)
-	field.Add(1, 30)
-
-	assert.EqualValues(t, -1, field.findLt(10))
-	assert.EqualValues(t, 0, field.findLt(20))
-	assert.EqualValues(t, 1, field.findLt(30))
-	assert.EqualValues(t, 2, field.findLt(40))
-}
-
-func Test_numericField_findLte(t *testing.T) {
-	t.Run("int8", test_numericField_findLte[int8])
-	t.Run("int16", test_numericField_findLte[int16])
-	t.Run("int32", test_numericField_findLte[int32])
-	t.Run("int64", test_numericField_findLte[int64])
-	t.Run("uint64", test_numericField_findLte[uint64])
-	t.Run("float32", test_numericField_findLte[float32])
-	t.Run("float64", test_numericField_findLte[float64])
-}
-
-func test_numericField_findLte[T NumericConstraint](t *testing.T) {
-	field := newNumeric[T]()
-	field.Add(1, 10)
-	field.Add(1, 20)
-	field.Add(1, 30)
-
-	assert.EqualValues(t, -1, field.findLte(0))
-	assert.EqualValues(t, 0, field.findLte(10))
-	assert.EqualValues(t, 1, field.findLte(20))
-	assert.EqualValues(t, 2, field.findLte(30))
-	assert.EqualValues(t, 2, field.findLte(40))
+	require.ElementsMatch(t, []T{1}, field.values.ValuesByDoc(2))
 }

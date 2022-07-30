@@ -122,6 +122,3 @@ func castE[T comparable](value interface{}) (T, error) {
 
 	return val.(T), err
 }
-
-type docValues[T comparable] map[uint32]docValue[T]
-type docValue[T comparable] map[T]struct{}

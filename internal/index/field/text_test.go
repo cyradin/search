@@ -34,8 +34,8 @@ func Test_Text_Add(t *testing.T) {
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
 		require.EqualValues(t, 1, bm.GetCardinality())
-		require.EqualValues(t, map[string]struct{}{"value": {}}, field.raw[1])
-		require.EqualValues(t, map[string]struct{}{"value_addition": {}}, field.values[1])
+		require.ElementsMatch(t, []string{"value"}, field.raw.ValuesByDoc(1))
+		require.ElementsMatch(t, []string{"value_addition"}, field.values.ValuesByDoc(1))
 	})
 
 	t.Run("bool", func(t *testing.T) {
@@ -47,8 +47,8 @@ func Test_Text_Add(t *testing.T) {
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
 		require.EqualValues(t, 1, bm.GetCardinality())
-		require.EqualValues(t, map[string]struct{}{"true": {}}, field.raw[1])
-		require.EqualValues(t, map[string]struct{}{"true_addition": {}}, field.values[1])
+		require.ElementsMatch(t, []string{"true"}, field.raw.ValuesByDoc(1))
+		require.ElementsMatch(t, []string{"true_addition"}, field.values.ValuesByDoc(1))
 	})
 }
 
@@ -88,15 +88,15 @@ func Test_Text_Delete(t *testing.T) {
 	field.Delete(2)
 	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
 	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.raw[1])
-	require.Nil(t, field.values[2])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
 	require.Nil(t, field.data["foo"])
 	require.Nil(t, field.data["bar"])
-	require.Nil(t, field.values[1])
-	require.Nil(t, field.raw[1])
+	require.Empty(t, field.raw.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
 func Test_Text_Data(t *testing.T) {
@@ -126,10 +126,10 @@ func Test_Text_Marshal(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))
 	require.True(t, field2.data["bar"].Contains(1))
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.raw[1])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
 	require.True(t, field2.data["foo"].Contains(2))
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.values[2])
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.raw[2])
+	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
+	require.ElementsMatch(t, []string{"foo"}, field.raw.ValuesByDoc(2))
 	require.Equal(t, field.scoring.data, field2.scoring.data)
 }
