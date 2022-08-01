@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -179,6 +180,44 @@ func Test_Bool_MatchQuery(t *testing.T) {
 	result = field.MatchQuery(context.Background(), false)
 	require.False(t, result.Docs().Contains(1))
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
+}
+
+func Test_Bool_TermAgg(t *testing.T) {
+	f := newBool()
+	f.Add(1, true)
+	f.Add(2, false)
+	f.Add(2, true)
+	f.Add(3, true)
+	f.Add(4, false)
+
+	t.Run("must return both buckets if both values matches", func(t *testing.T) {
+		docs := roaring.New()
+		docs.Add(1)
+		docs.Add(2)
+		result := f.TermAgg(context.Background(), docs, 20)
+		require.ElementsMatch(t, []TermBucket{{Key: true, DocCount: 2}, {Key: false, DocCount: 1}}, result.Buckets)
+	})
+
+	t.Run("must return 'true' bucket if ony true value matches", func(t *testing.T) {
+		docs := roaring.New()
+		docs.Add(3)
+		result := f.TermAgg(context.Background(), docs, 20)
+		require.ElementsMatch(t, []TermBucket{{Key: true, DocCount: 1}}, result.Buckets)
+	})
+
+	t.Run("must return 'false' bucket if ony false value matches", func(t *testing.T) {
+		docs := roaring.New()
+		docs.Add(4)
+		result := f.TermAgg(context.Background(), docs, 20)
+		require.ElementsMatch(t, []TermBucket{{Key: false, DocCount: 1}}, result.Buckets)
+	})
+
+	t.Run("must return no buckets if there's no matching docs", func(t *testing.T) {
+		docs := roaring.New()
+		docs.Add(5)
+		result := f.TermAgg(context.Background(), docs, 20)
+		require.ElementsMatch(t, []TermBucket{}, result.Buckets)
+	})
 }
 
 func Test_Bool_Delete(t *testing.T) {

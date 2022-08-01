@@ -66,6 +66,10 @@ func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface
 	return newResult(ctx, roaring.New())
 }
 
+func (f *Keyword) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	return termAgg[string](docs, f.values, size)
+}
+
 func (f *Keyword) Delete(id uint32) {
 	vals := f.values.ValuesByDoc(id)
 	for _, v := range vals {
