@@ -1,12 +1,17 @@
 package field
 
-import "sort"
+import (
+	"sort"
+
+	"github.com/RoaringBitmap/roaring"
+)
 
 type Simple interface {
 	NumericConstraint | string
 }
 
 type docValues[T Simple] struct {
+	Docs     map[T]*roaring.Bitmap
 	Values   map[uint32]docValue[T]
 	Counters map[T]int
 	List     []T
@@ -15,6 +20,7 @@ type docValue[T Simple] map[T]struct{}
 
 func newDocValues[T Simple]() *docValues[T] {
 	return &docValues[T]{
+		Docs:     make(map[T]*roaring.Bitmap),
 		Values:   make(map[uint32]docValue[T]),
 		Counters: make(map[T]int),
 	}
@@ -54,6 +60,14 @@ func (v *docValues[T]) ValuesByDoc(id uint32) []T {
 	return result
 }
 
+func (v *docValues[T]) DocsByValue(value T) *roaring.Bitmap {
+	vv, ok := v.Docs[value]
+	if !ok {
+		return roaring.New()
+	}
+	return vv
+}
+
 func (v *docValues[T]) Add(id uint32, value T) {
 	if v.Values[id] == nil {
 		v.Values[id] = make(map[T]struct{})
@@ -64,6 +78,11 @@ func (v *docValues[T]) Add(id uint32, value T) {
 		v.listAdd(value)
 	}
 	v.Counters[value]++
+
+	if v.Docs[value] == nil {
+		v.Docs[value] = roaring.New()
+	}
+	v.Docs[value].Add(id)
 }
 
 func (v *docValues[T]) DeleteDoc(id uint32) {
@@ -78,6 +97,10 @@ func (v *docValues[T]) DeleteDoc(id uint32) {
 		if v.Counters[vv] == 0 {
 			v.listDel(vv)
 			delete(v.Counters, vv)
+		}
+		v.Docs[vv].Remove(id)
+		if v.Docs[vv].GetCardinality() == 0 {
+			delete(v.Docs, vv)
 		}
 	}
 }

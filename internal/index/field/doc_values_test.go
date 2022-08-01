@@ -71,26 +71,40 @@ func Test_docValues_ValuesByDoc(t *testing.T) {
 	require.ElementsMatch(t, []int32{1, 2}, v.ValuesByDoc(1))
 }
 
+func Test_docValues_DocsByValue(t *testing.T) {
+	v := newDocValues[int32]()
+	v.Add(1, 1)
+	require.ElementsMatch(t, []uint32{1}, v.DocsByValue(1).ToArray())
+	v.Add(1, 2)
+	require.ElementsMatch(t, []uint32{1}, v.DocsByValue(1).ToArray())
+	v.Add(2, 1)
+	require.ElementsMatch(t, []uint32{1, 2}, v.DocsByValue(1).ToArray())
+}
+
 func Test_docValues_Add(t *testing.T) {
 	v := newDocValues[int32]()
 	require.Len(t, v.List, 0)
 	require.Len(t, v.Values, 0)
 	require.Len(t, v.Counters, 0)
+	require.Len(t, v.Docs, 0)
 
 	v.Add(1, 1)
 	require.Len(t, v.List, 1)
 	require.Len(t, v.Values, 1)
 	require.Len(t, v.Counters, 1)
+	require.Len(t, v.Docs, 1)
 
 	v.Add(1, 1)
 	require.Len(t, v.List, 1)
 	require.Len(t, v.Values, 1)
 	require.Len(t, v.Counters, 1)
+	require.Len(t, v.Docs, 1)
 
 	v.Add(1, 2)
 	require.Len(t, v.List, 2)
 	require.Len(t, v.Values, 1)
 	require.Len(t, v.Counters, 2)
+	require.Len(t, v.Docs, 2)
 }
 
 func Test_docValues_Delete(t *testing.T) {
@@ -102,11 +116,13 @@ func Test_docValues_Delete(t *testing.T) {
 	require.Len(t, v.List, 1)
 	require.Len(t, v.Values, 1)
 	require.Len(t, v.Counters, 1)
+	require.Len(t, v.Docs, 1)
 
 	v.DeleteDoc(1)
 	require.Len(t, v.List, 0)
 	require.Len(t, v.Values, 0)
 	require.Len(t, v.Counters, 0)
+	require.Len(t, v.Docs, 0)
 }
 
 func Test_docValues_FindGt(t *testing.T) {
