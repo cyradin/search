@@ -4,7 +4,6 @@ import (
 	"bytes"
 	"context"
 	"encoding/gob"
-	"sort"
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
@@ -18,14 +17,13 @@ type NumericConstraint interface {
 
 type Numeric[T NumericConstraint] struct {
 	data   map[T]*roaring.Bitmap
-	values map[uint32]map[T]struct{}
-	list   []T
+	values *docValues[T]
 }
 
 func newNumeric[T NumericConstraint]() *Numeric[T] {
 	return &Numeric[T]{
 		data:   make(map[T]*roaring.Bitmap),
-		values: make(map[uint32]map[T]struct{}),
+		values: newDocValues[T](),
 	}
 }
 
@@ -58,79 +56,74 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 		return
 	}
 
-	if f.values[id] == nil {
-		f.values[id] = make(map[T]struct{})
-	}
-	f.values[id][v] = struct{}{}
+	f.values.Add(id, v)
 
 	m, ok := f.data[v]
 	if !ok {
 		m = roaring.New()
 		f.data[v] = m
 	}
-
 	m.Add(id)
-	f.listAdd(v)
 }
 
-func (f *Numeric[T]) Term(ctx context.Context, value interface{}) *Result {
+func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := castE[T](value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	m, ok := f.data[v]
 	if !ok {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, m.Clone())
+	return newResult(ctx, m.Clone())
 }
 
-func (f *Numeric[T]) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *Numeric[T]) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
+func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
 	if from == nil && to == nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	fromIndex := 0
-	toIndex := len(f.values) - 1
+	toIndex := f.values.Cardinality() - 1
 	if from != nil {
 		v, err := castE[T](from)
 		if err != nil {
-			return NewResult(ctx, roaring.New())
+			return newResult(ctx, roaring.New())
 		}
 
 		if incFrom {
-			fromIndex = f.findGte(v)
+			fromIndex = f.values.FindGte(v)
 		} else {
-			fromIndex = f.findGt(v)
+			fromIndex = f.values.FindGt(v)
 		}
 	}
 
 	if to != nil {
 		v, err := castE[T](to)
 		if err != nil {
-			return NewResult(ctx, roaring.New())
+			return newResult(ctx, roaring.New())
 		}
 
 		if incTo {
-			toIndex = f.findLte(v)
+			toIndex = f.values.FindLte(v)
 		} else {
-			toIndex = f.findLt(v)
+			toIndex = f.values.FindLt(v)
 		}
 	}
 
-	if fromIndex == len(f.values) || toIndex == len(f.values) || fromIndex > toIndex {
-		return NewResult(ctx, roaring.New())
+	if fromIndex == f.values.Cardinality() || toIndex == f.values.Cardinality() || fromIndex > toIndex {
+		return newResult(ctx, roaring.New())
 	}
 
 	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
 	for i := fromIndex; i <= toIndex; i++ {
-		v, ok := f.data[f.list[i]]
+		v, ok := f.data[f.values.ValueByIndex(i)]
 		if !ok {
 			continue // @todo broken index
 		}
@@ -138,17 +131,16 @@ func (f *Numeric[T]) Range(ctx context.Context, from interface{}, to interface{}
 		bm = append(bm, v)
 	}
 
-	return NewResult(ctx, roaring.FastOr(bm...))
+	return newResult(ctx, roaring.FastOr(bm...))
+}
+
+func (f *Numeric[T]) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	return termAgg[T](docs, f.values, size)
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
-	vals, ok := f.values[id]
-	if !ok {
-		return
-	}
-	delete(f.values, id)
-
-	for v := range vals {
+	vals := f.values.ValuesByDoc(id)
+	for _, v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -156,15 +148,15 @@ func (f *Numeric[T]) Delete(id uint32) {
 		m.Remove(id)
 		if m.GetCardinality() == 0 {
 			delete(f.data, v)
-			f.listDel(v)
 		}
 	}
+	f.values.DeleteDoc(id)
 }
 
 func (f *Numeric[T]) Data(id uint32) []interface{} {
 	var result []interface{}
 
-	for v := range f.values[id] {
+	for _, v := range f.values.ValuesByDoc(id) {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -179,7 +171,7 @@ func (f *Numeric[T]) Data(id uint32) []interface{} {
 
 type numericData[T NumericConstraint] struct {
 	Data   map[T]*roaring.Bitmap
-	Values map[uint32]map[T]struct{}
+	Values *docValues[T]
 }
 
 func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
@@ -200,41 +192,4 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	f.values = raw.Values
 
 	return nil
-}
-
-func (f *Numeric[T]) listAdd(v T) {
-	index := sort.Search(len(f.list), func(i int) bool { return v <= f.list[i] })
-	if index == len(f.list) {
-		f.list = append(f.list, v)
-	} else if f.list[index] != v {
-		f.list = append(f.list[:index+1], f.list[index:]...)
-		f.list[index] = v
-	}
-}
-
-func (f *Numeric[T]) findGt(v T) int {
-	return sort.Search(len(f.list), func(i int) bool { return f.list[i] > v })
-}
-
-func (f *Numeric[T]) findGte(v T) int {
-	return sort.Search(len(f.list), func(i int) bool { return f.list[i] >= v })
-}
-
-func (f *Numeric[T]) findLt(v T) int {
-	return sort.Search(len(f.list), func(i int) bool { return f.list[i] >= v }) - 1
-}
-
-func (f *Numeric[T]) findLte(v T) int {
-	return sort.Search(len(f.list), func(i int) bool { return f.list[i] > v }) - 1
-}
-
-func (f *Numeric[T]) listDel(v T) {
-	index := sort.Search(len(f.list), func(i int) bool { return v <= f.list[i] })
-	if index == len(f.list) {
-		return
-	}
-
-	if f.list[index] == v {
-		f.list = append(f.list[:index], f.list[index+1:]...)
-	}
 }

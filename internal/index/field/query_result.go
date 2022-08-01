@@ -20,9 +20,9 @@ func IsScoringDisabled(ctx context.Context) bool {
 const bm25K1 = 1.2
 const bm25B = 0.75
 
-type ResultOpt func(r *Result)
+type ResultOpt func(r *QueryResult)
 
-type Result struct {
+type QueryResult struct {
 	tokens          []string
 	scoring         *Scoring
 	scoringDisabled bool
@@ -30,8 +30,8 @@ type Result struct {
 	boost           float64
 }
 
-func NewResult(ctx context.Context, docs *roaring.Bitmap, opts ...ResultOpt) *Result {
-	result := &Result{
+func newResult(ctx context.Context, docs *roaring.Bitmap, opts ...ResultOpt) *QueryResult {
+	result := &QueryResult{
 		docs:  docs,
 		boost: 1.0,
 	}
@@ -39,8 +39,8 @@ func NewResult(ctx context.Context, docs *roaring.Bitmap, opts ...ResultOpt) *Re
 	return result.WithOpts(ctx, opts...)
 }
 
-func NewResultWithScoring(ctx context.Context, docs *roaring.Bitmap, scoring *Scoring, opts ...ResultOpt) *Result {
-	result := &Result{
+func newResultWithScoring(ctx context.Context, docs *roaring.Bitmap, scoring *Scoring, opts ...ResultOpt) *QueryResult {
+	result := &QueryResult{
 		docs:    docs,
 		boost:   1.0,
 		scoring: scoring,
@@ -49,7 +49,7 @@ func NewResultWithScoring(ctx context.Context, docs *roaring.Bitmap, scoring *Sc
 	return result.WithOpts(ctx, opts...)
 }
 
-func (r *Result) WithOpts(ctx context.Context, opts ...ResultOpt) *Result {
+func (r *QueryResult) WithOpts(ctx context.Context, opts ...ResultOpt) *QueryResult {
 	if IsScoringDisabled(ctx) {
 		opts = append(opts, WithDisabledScoring())
 	}
@@ -61,11 +61,11 @@ func (r *Result) WithOpts(ctx context.Context, opts ...ResultOpt) *Result {
 	return r
 }
 
-func (r *Result) Docs() *roaring.Bitmap {
+func (r *QueryResult) Docs() *roaring.Bitmap {
 	return r.docs
 }
 
-func (r *Result) Score(id uint32) float64 {
+func (r *QueryResult) Score(id uint32) float64 {
 	if r.scoringDisabled {
 		return 0
 	}
@@ -87,19 +87,19 @@ func (r *Result) Score(id uint32) float64 {
 }
 
 func WithTokens(tokens []string) ResultOpt {
-	return func(r *Result) {
+	return func(r *QueryResult) {
 		r.tokens = tokens
 	}
 }
 
 func WithBoost(boost float64) ResultOpt {
-	return func(r *Result) {
+	return func(r *QueryResult) {
 		r.boost = boost
 	}
 }
 
 func WithDisabledScoring() ResultOpt {
-	return func(r *Result) {
+	return func(r *QueryResult) {
 		r.scoringDisabled = true
 	}
 }

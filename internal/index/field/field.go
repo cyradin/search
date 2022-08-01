@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
@@ -22,12 +23,14 @@ type Field interface {
 	Type() schema.Type
 	// Add add document field value
 	Add(id uint32, value interface{})
-	// Term get field value
-	Term(ctx context.Context, value interface{}) *Result
-	// Match get field analyzed value
-	Match(ctx context.Context, value interface{}) *Result
-	// Range get values from .. to ...
-	Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result
+	// TermQuery get documents by field value
+	TermQuery(ctx context.Context, value interface{}) *QueryResult
+	// MatchQuery get documents by field analyzed value
+	MatchQuery(ctx context.Context, value interface{}) *QueryResult
+	// RangeQuery get documents by values from .. to ...
+	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult
+	// TermAgg get doc counts by every available value
+	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values

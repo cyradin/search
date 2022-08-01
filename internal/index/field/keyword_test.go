@@ -4,6 +4,7 @@ import (
 	"context"
 	"testing"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -30,17 +31,45 @@ func Test_Keyword_Add(t *testing.T) {
 	})
 }
 
-func Test_Keyword_Term(t *testing.T) {
+func Test_Keyword_TermQuery(t *testing.T) {
 	field := newKeyword()
 	field.Add(1, "foo")
 
-	result := field.Term(context.Background(), "foo")
+	result := field.TermQuery(context.Background(), "foo")
 	require.True(t, result.Docs().Contains(1))
 	require.EqualValues(t, 1, result.Docs().GetCardinality())
 
-	result = field.Term(context.Background(), "bar")
+	result = field.TermQuery(context.Background(), "bar")
 	require.False(t, result.Docs().Contains(1))
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
+}
+
+func Test_Keyword_MatchQuery(t *testing.T) {
+	field := newKeyword()
+	field.Add(1, "foo")
+
+	result := field.MatchQuery(context.Background(), "foo")
+	require.True(t, result.Docs().Contains(1))
+	require.EqualValues(t, 1, result.Docs().GetCardinality())
+
+	result = field.MatchQuery(context.Background(), "bar")
+	require.False(t, result.Docs().Contains(1))
+	require.EqualValues(t, 0, result.Docs().GetCardinality())
+}
+
+func Test_Keyword_TermAgg(t *testing.T) {
+	f := newKeyword()
+	f.Add(1, "foo")
+	f.Add(2, "foo")
+	f.Add(2, "bar")
+	f.Add(3, "baz")
+
+	docs := roaring.New()
+	docs.Add(1)
+	docs.Add(2)
+
+	result := f.TermAgg(context.Background(), docs, 20)
+	require.ElementsMatch(t, []TermBucket{{Key: "foo", DocCount: 2}, {Key: "bar", DocCount: 1}}, result.Buckets)
 }
 
 func Test_Keyword_Delete(t *testing.T) {
@@ -52,13 +81,13 @@ func Test_Keyword_Delete(t *testing.T) {
 	field.Delete(2)
 	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
 	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.Nil(t, field.values[2])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
 	require.Nil(t, field.data["foo"])
 	require.Nil(t, field.data["bar"])
-	require.Nil(t, field.values[1])
+	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
 func Test_Keyword_Data(t *testing.T) {
@@ -88,7 +117,7 @@ func Test_Keyword_Marshal(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))
 	require.True(t, field2.data["bar"].Contains(1))
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.True(t, field2.data["foo"].Contains(2))
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.values[2])
+	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
 }

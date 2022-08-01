@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -34,8 +35,8 @@ func Test_Text_Add(t *testing.T) {
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
 		require.EqualValues(t, 1, bm.GetCardinality())
-		require.EqualValues(t, map[string]struct{}{"value": {}}, field.raw[1])
-		require.EqualValues(t, map[string]struct{}{"value_addition": {}}, field.values[1])
+		require.ElementsMatch(t, []string{"value"}, field.raw.ValuesByDoc(1))
+		require.ElementsMatch(t, []string{"value_addition"}, field.values.ValuesByDoc(1))
 	})
 
 	t.Run("bool", func(t *testing.T) {
@@ -47,36 +48,52 @@ func Test_Text_Add(t *testing.T) {
 		require.True(t, ok)
 		require.True(t, bm.Contains(1))
 		require.EqualValues(t, 1, bm.GetCardinality())
-		require.EqualValues(t, map[string]struct{}{"true": {}}, field.raw[1])
-		require.EqualValues(t, map[string]struct{}{"true_addition": {}}, field.values[1])
+		require.ElementsMatch(t, []string{"true"}, field.raw.ValuesByDoc(1))
+		require.ElementsMatch(t, []string{"true_addition"}, field.values.ValuesByDoc(1))
 	})
 }
 
-func Test_Text_Term(t *testing.T) {
+func Test_Text_TermQuery(t *testing.T) {
 	scoring := NewScoring()
 	f := newText(testAnalyzer2, scoring)
 	f.Add(1, "foo")
 
-	result := f.Term(context.Background(), "foo")
+	result := f.TermQuery(context.Background(), "foo")
 	require.Equal(t, uint64(1), result.Docs().GetCardinality())
 	require.True(t, result.Docs().Contains(1))
 	require.Greater(t, result.Score(1), 0.0)
 }
 
-func Test_Text_Match(t *testing.T) {
+func Test_Text_MatchQuery(t *testing.T) {
 	t.Run("can return union if both values found", func(t *testing.T) {
 		scoring := NewScoring()
 		f := newText(testAnalyzer2, scoring)
 		f.Add(1, "foo")
 		f.Add(2, "bar")
 
-		result := f.Match(context.Background(), "foo bar")
+		result := f.MatchQuery(context.Background(), "foo bar")
 		require.Equal(t, uint64(2), result.Docs().GetCardinality())
 		require.True(t, result.Docs().Contains(1))
 		require.True(t, result.Docs().Contains(2))
 		require.Greater(t, result.Score(1), 0.0)
 		require.Greater(t, result.Score(2), 0.0)
 	})
+}
+
+func Test_Text_TermAgg(t *testing.T) {
+	scoring := NewScoring()
+	f := newText(testAnalyzer2, scoring)
+	f.Add(1, "foo")
+	f.Add(2, "foo")
+	f.Add(2, "bar")
+	f.Add(3, "baz")
+
+	docs := roaring.New()
+	docs.Add(1)
+	docs.Add(2)
+
+	result := f.TermAgg(context.Background(), docs, 20)
+	require.ElementsMatch(t, []TermBucket{{Key: "foo", DocCount: 2}, {Key: "bar", DocCount: 1}}, result.Buckets)
 }
 
 func Test_Text_Delete(t *testing.T) {
@@ -88,15 +105,15 @@ func Test_Text_Delete(t *testing.T) {
 	field.Delete(2)
 	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
 	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.raw[1])
-	require.Nil(t, field.values[2])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
 	require.Nil(t, field.data["foo"])
 	require.Nil(t, field.data["bar"])
-	require.Nil(t, field.values[1])
-	require.Nil(t, field.raw[1])
+	require.Empty(t, field.raw.ValuesByDoc(1))
+	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
 func Test_Text_Data(t *testing.T) {
@@ -126,10 +143,10 @@ func Test_Text_Marshal(t *testing.T) {
 	require.NoError(t, err)
 	require.True(t, field2.data["foo"].Contains(1))
 	require.True(t, field2.data["bar"].Contains(1))
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.values[1])
-	require.EqualValues(t, map[string]struct{}{"foo": {}, "bar": {}}, field.raw[1])
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
+	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
 	require.True(t, field2.data["foo"].Contains(2))
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.values[2])
-	require.EqualValues(t, map[string]struct{}{"foo": {}}, field.raw[2])
+	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
+	require.ElementsMatch(t, []string{"foo"}, field.raw.ValuesByDoc(2))
 	require.Equal(t, field.scoring.data, field2.scoring.data)
 }

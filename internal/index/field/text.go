@@ -14,8 +14,8 @@ type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
 	data     map[string]*roaring.Bitmap
-	values   map[uint32]map[string]struct{}
-	raw      map[uint32]map[string]struct{}
+	values   *docValues[string]
+	raw      *docValues[string]
 }
 
 var _ Field = (*Text)(nil)
@@ -23,8 +23,8 @@ var _ Field = (*Text)(nil)
 func newText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
 		data:     make(map[string]*roaring.Bitmap),
-		values:   make(map[uint32]map[string]struct{}),
-		raw:      make(map[uint32]map[string]struct{}),
+		values:   newDocValues[string](),
+		raw:      newDocValues[string](),
 		analyzer: analyzer,
 		scoring:  scoring,
 	}
@@ -40,20 +40,13 @@ func (f *Text) Add(id uint32, value interface{}) {
 		return
 	}
 
-	if f.raw[id] == nil {
-		f.raw[id] = make(map[string]struct{})
-	}
-	f.raw[id][v] = struct{}{}
+	f.raw.Add(id, v)
 
 	terms := f.analyzer([]string{v})
 	f.scoring.Add(id, terms)
 
 	for _, vv := range terms {
-		if f.values[id] == nil {
-			f.values[id] = make(map[string]struct{})
-		}
-		f.values[id][vv] = struct{}{}
-
+		f.values.Add(id, vv)
 		m, ok := f.data[vv]
 		if !ok {
 			m = roaring.New()
@@ -63,24 +56,24 @@ func (f *Text) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Text) Term(ctx context.Context, value interface{}) *Result {
+func (f *Text) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := cast.ToStringE(value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
 	m, ok := f.data[v]
 	if !ok {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
+	return newResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
 }
 
-func (f *Text) Match(ctx context.Context, value interface{}) *Result {
+func (f *Text) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 	val, err := castE[string](value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 	tokens := f.analyzer([]string{val})
 
@@ -104,25 +97,34 @@ func (f *Text) Match(ctx context.Context, value interface{}) *Result {
 	}
 
 	if result == nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
+	return newResultWithScoring(ctx, result, f.scoring, WithTokens(tokens))
 }
 
-func (f *Text) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
+}
+
+func (f *Text) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	return termAgg[string](docs, f.raw, size)
 }
 
 func (f *Text) Delete(id uint32) {
-	vals, ok := f.values[id]
-	if !ok {
+	if !f.values.ContainsDoc(id) {
 		return
 	}
-	delete(f.values, id)
-	delete(f.raw, id)
 
-	for v := range vals {
+	vals := f.values.ValuesByDoc(id)
+	if len(vals) == 0 {
+		return
+	}
+
+	f.values.DeleteDoc(id)
+	f.raw.DeleteDoc(id)
+
+	for _, v := range vals {
 		m, ok := f.data[v]
 		if !ok {
 			continue
@@ -137,8 +139,8 @@ func (f *Text) Delete(id uint32) {
 func (f *Text) Data(id uint32) []interface{} {
 	result := make([]interface{}, 0)
 
-	if f.raw[id] != nil {
-		for v := range f.raw[id] {
+	if f.raw.ContainsDoc(id) {
+		for _, v := range f.raw.ValuesByDoc(id) {
 			result = append(result, v)
 		}
 	}
@@ -148,8 +150,8 @@ func (f *Text) Data(id uint32) []interface{} {
 
 type textData struct {
 	Data    map[string]*roaring.Bitmap
-	Values  map[uint32]map[string]struct{}
-	Raw     map[uint32]map[string]struct{}
+	Values  *docValues[string]
+	Raw     *docValues[string]
 	Scoring []byte
 }
 

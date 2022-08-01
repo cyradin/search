@@ -41,21 +41,66 @@ func (f *Bool) Add(id uint32, value interface{}) {
 	}
 }
 
-func (f *Bool) Term(ctx context.Context, value interface{}) *Result {
+func (f *Bool) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	v, err := cast.ToBoolE(value)
 	if err != nil {
-		return NewResult(ctx, roaring.New())
+		return newResult(ctx, roaring.New())
 	}
 
-	return NewResult(ctx, f.get(v))
+	return newResult(ctx, f.get(v))
 }
 
-func (f *Bool) Match(ctx context.Context, value interface{}) *Result {
-	return f.Term(ctx, value)
+func (f *Bool) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
+	return f.TermQuery(ctx, value)
 }
 
-func (f *Bool) Range(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *Result {
-	return NewResult(ctx, roaring.New())
+func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	return newResult(ctx, roaring.New())
+}
+
+func (f *Bool) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	if size == 0 {
+		return TermAggResult{}
+	}
+
+	trueBucket := TermBucket{
+		Key:      true,
+		DocCount: 0,
+	}
+	falseBucket := TermBucket{
+		Key:      false,
+		DocCount: 0,
+	}
+
+	for _, id := range docs.ToArray() {
+		if f.dataFalse.Contains(id) {
+			falseBucket.DocCount++
+		}
+		if f.dataTrue.Contains(id) {
+			trueBucket.DocCount++
+		}
+	}
+
+	result := TermAggResult{
+		Buckets: make([]TermBucket, 0, 2),
+	}
+
+	if size == 1 {
+		if trueBucket.DocCount > falseBucket.DocCount {
+			result.Buckets = append(result.Buckets, trueBucket)
+		} else if falseBucket.DocCount > trueBucket.DocCount {
+			result.Buckets = append(result.Buckets, falseBucket)
+		}
+	} else {
+		if trueBucket.DocCount > 0 {
+			result.Buckets = append(result.Buckets, trueBucket)
+		}
+		if falseBucket.DocCount > 0 {
+			result.Buckets = append(result.Buckets, falseBucket)
+		}
+	}
+
+	return result
 }
 
 func (f *Bool) Delete(id uint32) {
