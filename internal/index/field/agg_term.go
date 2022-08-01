@@ -49,16 +49,17 @@ type TermAggResult struct {
 }
 
 func termAgg[T Simple](docs *roaring.Bitmap, data *docValues[T], size int) TermAggResult {
-	values := make(map[T]int)
-	for _, id := range docs.ToArray() {
-		for _, v := range data.ValuesByDoc(id) {
-			values[v]++
-		}
-	}
+	heapData := make(keyValueHeap[T], 0, size)
+	for _, v := range data.List {
+		valueDocs := data.DocsByValue(v).Clone()
+		valueDocs.And(docs)
 
-	heapData := make(keyValueHeap[T], 0, len(values))
-	for k, v := range values {
-		heapData = append(heapData, keyValue[T]{Key: k, Value: v})
+		valueDocs.GetCardinality()
+		if valueDocs.IsEmpty() {
+			continue
+		}
+
+		heapData = append(heapData, keyValue[T]{Key: v, Value: int(valueDocs.GetCardinality())})
 	}
 	heap.Init(&heapData)
 
