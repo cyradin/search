@@ -134,6 +134,10 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 	return newResult(ctx, roaring.FastOr(bm...))
 }
 
+func (f *Numeric[T]) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	return termAgg[T](docs, f.values, size)
+}
+
 func (f *Numeric[T]) Delete(id uint32) {
 	vals := f.values.ValuesByDoc(id)
 	for _, v := range vals {

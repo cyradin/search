@@ -5,6 +5,7 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -77,6 +78,22 @@ func Test_Text_MatchQuery(t *testing.T) {
 		require.Greater(t, result.Score(1), 0.0)
 		require.Greater(t, result.Score(2), 0.0)
 	})
+}
+
+func Test_Text_TermAgg(t *testing.T) {
+	scoring := NewScoring()
+	f := newText(testAnalyzer2, scoring)
+	f.Add(1, "foo")
+	f.Add(2, "foo")
+	f.Add(2, "bar")
+	f.Add(3, "baz")
+
+	docs := roaring.New()
+	docs.Add(1)
+	docs.Add(2)
+
+	result := f.TermAgg(context.Background(), docs, 20)
+	require.ElementsMatch(t, []TermBucket{{Key: "foo", DocCount: 2}, {Key: "bar", DocCount: 1}}, result.Buckets)
 }
 
 func Test_Text_Delete(t *testing.T) {

@@ -40,12 +40,12 @@ func (h *keyValueHeap[T]) Pop() any {
 }
 
 type TermBucket struct {
-	Key      interface{}
-	DocCount int
+	Key      interface{} `json:"key"`
+	DocCount int         `json:"docCount"`
 }
 
 type TermAggResult struct {
-	Buckets []TermBucket
+	Buckets []TermBucket `json:"buckets"`
 }
 
 func termAgg[T Simple](docs *roaring.Bitmap, data *docValues[T], size int) TermAggResult {

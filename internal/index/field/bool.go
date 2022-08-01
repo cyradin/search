@@ -58,6 +58,51 @@ func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{},
 	return newResult(ctx, roaring.New())
 }
 
+func (f *Bool) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	if size == 0 {
+		return TermAggResult{}
+	}
+
+	trueBucket := TermBucket{
+		Key:      true,
+		DocCount: 0,
+	}
+	falseBucket := TermBucket{
+		Key:      false,
+		DocCount: 0,
+	}
+
+	for _, id := range docs.ToArray() {
+		if f.dataFalse.Contains(id) {
+			falseBucket.DocCount++
+		}
+		if f.dataTrue.Contains(id) {
+			trueBucket.DocCount++
+		}
+	}
+
+	result := TermAggResult{
+		Buckets: make([]TermBucket, 0, 2),
+	}
+
+	if size == 1 {
+		if trueBucket.DocCount > falseBucket.DocCount {
+			result.Buckets = append(result.Buckets, trueBucket)
+		} else if falseBucket.DocCount > trueBucket.DocCount {
+			result.Buckets = append(result.Buckets, falseBucket)
+		}
+	} else {
+		if trueBucket.DocCount > 0 {
+			result.Buckets = append(result.Buckets, trueBucket)
+		}
+		if falseBucket.DocCount > 0 {
+			result.Buckets = append(result.Buckets, falseBucket)
+		}
+	}
+
+	return result
+}
+
 func (f *Bool) Delete(id uint32) {
 	f.dataTrue.Remove(id)
 	f.dataFalse.Remove(id)
