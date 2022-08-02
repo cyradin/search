@@ -117,30 +117,6 @@ func test_Numeric_RangeQuery[T NumericConstraint](t *testing.T) {
 	field.Add(5, 5)
 	field.Add(6, 6)
 
-	t.Run("(1..", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), 1, nil, false, false)
-		require.ElementsMatch(t, []uint32{2, 3, 4, 5, 6}, result.Docs().ToArray())
-	})
-	t.Run("[1..", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), 1, nil, true, false)
-		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
-	})
-	t.Run("..3)", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), nil, 3, false, false)
-		require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
-	})
-	t.Run("..3]", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), nil, 3, false, true)
-		require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
-	})
-	t.Run("..6]", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), nil, 6, false, true)
-		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
-	})
-	t.Run("..7]", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), nil, 6, false, true)
-		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
-	})
 	t.Run("(1..4]", func(t *testing.T) {
 		result := field.RangeQuery(context.Background(), 1, 4, false, true)
 		require.ElementsMatch(t, []uint32{2, 3, 4}, result.Docs().ToArray())
