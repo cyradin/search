@@ -15,6 +15,12 @@ type FieldOpts struct {
 	Scoring  *Scoring
 }
 
+type Range struct {
+	Key  string
+	From interface{}
+	To   interface{}
+}
+
 type Field interface {
 	encoding.BinaryMarshaler
 	encoding.BinaryUnmarshaler
@@ -31,6 +37,8 @@ type Field interface {
 	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult
 	// TermAgg get doc counts by every available value
 	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
+	// Range get doc counts by values in provided ranges
+	// RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) TermAggResult
 	// Delete document field values
 	Delete(id uint32)
 	// Data get stored field values
