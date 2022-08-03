@@ -12,8 +12,8 @@ func Test_Keyword_Add(t *testing.T) {
 		field := newKeyword()
 		field.Add(1, true)
 
-		require.EqualValues(t, 1, field.data["true"].GetCardinality())
-		require.True(t, field.data["true"].Contains(1))
+		require.EqualValues(t, 1, field.values.DocsByValue("true").GetCardinality())
+		require.True(t, field.values.DocsByValue("true").Contains(1))
 	})
 	t.Run("string", func(t *testing.T) {
 		field := newKeyword()
@@ -21,12 +21,12 @@ func Test_Keyword_Add(t *testing.T) {
 		field.Add(1, "bar")
 		field.Add(2, "foo")
 
-		require.EqualValues(t, 2, field.data["foo"].GetCardinality())
-		require.EqualValues(t, 1, field.data["bar"].GetCardinality())
-		require.True(t, field.data["foo"].Contains(1))
-		require.True(t, field.data["foo"].Contains(2))
-		require.True(t, field.data["bar"].Contains(1))
-		require.False(t, field.data["bar"].Contains(2))
+		require.EqualValues(t, 2, field.values.DocsByValue("foo").GetCardinality())
+		require.EqualValues(t, 1, field.values.DocsByValue("bar").GetCardinality())
+		require.True(t, field.values.DocsByValue("foo").Contains(1))
+		require.True(t, field.values.DocsByValue("foo").Contains(2))
+		require.True(t, field.values.DocsByValue("bar").Contains(1))
+		require.False(t, field.values.DocsByValue("bar").Contains(2))
 	})
 }
 
@@ -63,14 +63,14 @@ func Test_Keyword_Delete(t *testing.T) {
 	field.Add(2, "foo")
 
 	field.Delete(2)
-	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
-	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
+	require.EqualValues(t, 1, field.values.DocsByValue("foo").GetCardinality())
+	require.EqualValues(t, 1, field.values.DocsByValue("bar").GetCardinality())
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
-	require.Nil(t, field.data["foo"])
-	require.Nil(t, field.data["bar"])
+	require.Empty(t, field.values.DocsByValue("foo").ToArray())
+	require.Empty(t, field.values.DocsByValue("bar").ToArray())
 	require.Empty(t, field.values.ValuesByDoc(1))
 }
 
@@ -99,9 +99,9 @@ func Test_Keyword_Marshal(t *testing.T) {
 	field2 := newKeyword()
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
-	require.True(t, field2.data["foo"].Contains(1))
-	require.True(t, field2.data["bar"].Contains(1))
+	require.True(t, field2.values.DocsByValue("foo").Contains(1))
+	require.True(t, field2.values.DocsByValue("bar").Contains(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
-	require.True(t, field2.data["foo"].Contains(2))
+	require.True(t, field2.values.DocsByValue("foo").Contains(2))
 	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
 }
