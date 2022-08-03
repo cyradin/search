@@ -139,19 +139,19 @@ func Test_Bool_Add(t *testing.T) {
 		field.Add(1, false)
 		field.Add(2, true)
 
-		require.EqualValues(t, 2, field.dataTrue.GetCardinality())
-		require.EqualValues(t, 1, field.dataFalse.GetCardinality())
-		require.True(t, field.dataTrue.Contains(1))
-		require.True(t, field.dataTrue.Contains(2))
-		require.True(t, field.dataFalse.Contains(1))
-		require.False(t, field.dataFalse.Contains(2))
+		require.EqualValues(t, 2, field.values.DocsByValue(true).GetCardinality())
+		require.EqualValues(t, 1, field.values.DocsByValue(false).GetCardinality())
+		require.True(t, field.values.DocsByValue(true).Contains(1))
+		require.True(t, field.values.DocsByValue(true).Contains(2))
+		require.True(t, field.values.DocsByValue(false).Contains(1))
+		require.False(t, field.values.DocsByValue(false).Contains(2))
 	})
 	t.Run("string", func(t *testing.T) {
 		field := newBool()
 		field.Add(1, "qwe")
 
-		require.EqualValues(t, 0, field.dataTrue.GetCardinality())
-		require.EqualValues(t, 0, field.dataFalse.GetCardinality())
+		require.EqualValues(t, 0, field.values.DocsByValue(true).GetCardinality())
+		require.EqualValues(t, 0, field.values.DocsByValue(false).GetCardinality())
 	})
 }
 
@@ -188,12 +188,12 @@ func Test_Bool_Delete(t *testing.T) {
 	field.Add(2, false)
 
 	field.Delete(2)
-	require.EqualValues(t, 1, field.dataTrue.GetCardinality())
-	require.EqualValues(t, 1, field.dataFalse.GetCardinality())
+	require.EqualValues(t, 1, field.values.DocsByValue(true).GetCardinality())
+	require.EqualValues(t, 1, field.values.DocsByValue(false).GetCardinality())
 
 	field.Delete(1)
-	require.EqualValues(t, 0, field.dataTrue.GetCardinality())
-	require.EqualValues(t, 0, field.dataFalse.GetCardinality())
+	require.EqualValues(t, 0, field.values.DocsByValue(true).GetCardinality())
+	require.EqualValues(t, 0, field.values.DocsByValue(false).GetCardinality())
 }
 
 func Test_Bool_Data(t *testing.T) {
@@ -221,7 +221,7 @@ func Test_Bool_Marshal(t *testing.T) {
 	field2 := newBool()
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
-	require.True(t, field2.dataTrue.Contains(1))
-	require.True(t, field2.dataFalse.Contains(1))
-	require.True(t, field2.dataTrue.Contains(2))
+	require.True(t, field2.values.DocsByValue(true).Contains(1))
+	require.True(t, field2.values.DocsByValue(false).Contains(1))
+	require.True(t, field2.values.DocsByValue(true).Contains(2))
 }

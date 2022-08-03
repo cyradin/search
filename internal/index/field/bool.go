@@ -13,14 +13,12 @@ import (
 var _ Field = (*Bool)(nil)
 
 type Bool struct {
-	dataTrue  *roaring.Bitmap
-	dataFalse *roaring.Bitmap
+	values *docValues[bool]
 }
 
 func newBool() *Bool {
 	return &Bool{
-		dataTrue:  roaring.New(),
-		dataFalse: roaring.New(),
+		values: newDocValues[bool](),
 	}
 }
 
@@ -34,11 +32,7 @@ func (f *Bool) Add(id uint32, value interface{}) {
 		return
 	}
 
-	if v {
-		f.dataTrue.Add(id)
-	} else {
-		f.dataFalse.Add(id)
-	}
+	f.values.Add(id, v)
 }
 
 func (f *Bool) TermQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -47,7 +41,7 @@ func (f *Bool) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 		return newResult(ctx, roaring.New())
 	}
 
-	return newResult(ctx, f.get(v))
+	return newResult(ctx, f.values.DocsByValue(v))
 }
 
 func (f *Bool) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -59,39 +53,26 @@ func (f *Bool) RangeQuery(ctx context.Context, from interface{}, to interface{},
 }
 
 func (f *Bool) Delete(id uint32) {
-	f.dataTrue.Remove(id)
-	f.dataFalse.Remove(id)
+	f.values.DeleteDoc(id)
 }
 
 func (f *Bool) Data(id uint32) []interface{} {
-	result := make([]interface{}, 0, 2)
-
-	if f.dataTrue.Contains(id) {
-		result = append(result, true)
-	}
-	if f.dataFalse.Contains(id) {
-		result = append(result, false)
+	values := f.values.ValuesByDoc(id)
+	result := make([]interface{}, len(values))
+	for i, v := range values {
+		result[i] = v
 	}
 
 	return result
 }
 
-func (f *Bool) get(value bool) *roaring.Bitmap {
-	if value {
-		return f.dataTrue.Clone()
-	} else {
-		return f.dataFalse.Clone()
-	}
-}
-
 type boolData struct {
-	DataTrue  *roaring.Bitmap
-	DataFalse *roaring.Bitmap
+	Values *docValues[bool]
 }
 
 func (f *Bool) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(boolData{f.dataTrue, f.dataFalse})
+	err := gob.NewEncoder(&buf).Encode(boolData{Values: f.values})
 
 	return buf.Bytes(), err
 }
@@ -103,8 +84,7 @@ func (f *Bool) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	f.dataTrue = raw.DataTrue
-	f.dataFalse = raw.DataFalse
+	f.values = raw.Values
 
 	return nil
 }

@@ -67,7 +67,6 @@ func (f *Keyword) Data(id uint32) []interface{} {
 }
 
 type keywordData struct {
-	Data   map[string]*roaring.Bitmap
 	Values *docValues[string]
 }
 
