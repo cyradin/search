@@ -82,18 +82,6 @@ func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 	return NewSyncMtx(field), nil
 }
 
-func castSlice[T comparable](values []interface{}) []T {
-	result := make([]T, 0, len(values))
-	for _, value := range values {
-		v, err := castE[T](value)
-		if err != nil {
-			continue
-		}
-		result = append(result, v)
-	}
-	return result
-}
-
 func castE[T comparable](value interface{}) (T, error) {
 	var (
 		k   T

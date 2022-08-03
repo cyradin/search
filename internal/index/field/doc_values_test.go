@@ -7,6 +7,15 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func Benchmark_docValues_listAdd(b *testing.B) {
+	for i := 0; i < b.N; i++ {
+		v := newDocValues[int32]()
+		for j := 0; j < 100; j++ {
+			v.listAdd(int32(j))
+		}
+	}
+}
+
 func Test_docValues_IsEmpty(t *testing.T) {
 	v := newDocValues[int32]()
 	require.True(t, v.IsEmpty())

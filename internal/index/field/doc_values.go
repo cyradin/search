@@ -1,13 +1,14 @@
 package field
 
 import (
+	"fmt"
 	"sort"
 
 	"github.com/RoaringBitmap/roaring"
 )
 
 type Simple interface {
-	NumericConstraint | string
+	NumericConstraint | string | bool
 }
 
 type docValues[T Simple] struct {
@@ -16,6 +17,7 @@ type docValues[T Simple] struct {
 	Counters map[T]int
 	List     []T
 }
+
 type docValue[T Simple] map[T]struct{}
 
 func newDocValues[T Simple]() *docValues[T] {
@@ -113,24 +115,44 @@ func (v *docValues[T]) DeleteDoc(id uint32) {
 	}
 }
 
-func (f *docValues[T]) FindGt(v T) int {
-	return sort.Search(len(f.List), func(i int) bool { return f.List[i] > v })
-}
-
-func (f *docValues[T]) FindGte(v T) int {
-	return sort.Search(len(f.List), func(i int) bool { return f.List[i] >= v })
-}
-
-func (f *docValues[T]) FindLt(v T) int {
-	return sort.Search(len(f.List), func(i int) bool { return f.List[i] >= v }) - 1
-}
-
-func (f *docValues[T]) FindLte(v T) int {
-	return sort.Search(len(f.List), func(i int) bool { return f.List[i] > v }) - 1
-}
-
 func (v *docValues[T]) listAdd(value T) {
-	index := sort.Search(len(v.List), func(i int) bool { return value <= v.List[i] })
+	var index int
+	switch x := any(value).(type) {
+	case bool:
+		if len(v.List) == 0 {
+			v.List = append(v.List, value)
+		} else if len(v.List) == 1 {
+			if value == v.List[0] {
+				return
+			}
+			if any(v.List[0]).(bool) == true {
+				v.List = append(v.List, v.List[0])
+				v.List[0] = value
+			} else {
+				v.List = append(v.List, value)
+			}
+		}
+		return
+	case string:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(string) })
+	case int8:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int8) })
+	case int16:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int16) })
+	case int32:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int32) })
+	case int64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int64) })
+	case uint64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(uint64) })
+	case float32:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(float32) })
+	case float64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(float64) })
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
+	}
+
 	if index == len(v.List) {
 		v.List = append(v.List, value)
 	} else if v.List[index] != value {
@@ -140,12 +162,152 @@ func (v *docValues[T]) listAdd(value T) {
 }
 
 func (v *docValues[T]) listDel(value T) {
-	index := sort.Search(len(v.List), func(i int) bool { return value <= v.List[i] })
+	var index int
+	switch x := any(value).(type) {
+	case bool:
+		if len(v.List) == 0 {
+			return
+		}
+
+		if len(v.List) == 1 {
+			if value == v.List[0] {
+				v.List = nil
+				return
+			}
+			return
+		}
+
+		if x == any(v.List[0]).(bool) {
+			v.List = []T{v.List[1]}
+		} else {
+			v.List = []T{v.List[0]}
+		}
+		return
+	case string:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(string) })
+	case int8:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int8) })
+	case int16:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int16) })
+	case int32:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int32) })
+	case int64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(int64) })
+	case uint64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(uint64) })
+	case float32:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(float32) })
+	case float64:
+		index = sort.Search(len(v.List), func(i int) bool { return x <= any(v.List[i]).(float64) })
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
+	}
+
 	if index == len(v.List) {
 		return
 	}
 
 	if v.List[index] == value {
 		v.List = append(v.List[:index], v.List[index+1:]...)
+	}
+}
+
+func (f *docValues[T]) FindGt(v T) int {
+	switch x := any(v).(type) {
+	case bool:
+		return len(f.List)
+	case string:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(string) > x })
+	case int8:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int8) > x })
+	case int16:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int16) > x })
+	case int32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int32) > x })
+	case int64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int64) > x })
+	case uint64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(uint64) > x })
+	case float32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float32) > x })
+	case float64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float64) > x })
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
+	}
+}
+
+func (f *docValues[T]) FindGte(v T) int {
+	switch x := any(v).(type) {
+	case bool:
+		return len(f.List)
+	case string:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(string) >= x })
+	case int8:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int8) >= x })
+	case int16:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int16) >= x })
+	case int32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int32) >= x })
+	case int64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int64) >= x })
+	case uint64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(uint64) >= x })
+	case float32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float32) >= x })
+	case float64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float64) >= x })
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
+	}
+}
+
+func (f *docValues[T]) FindLt(v T) int {
+	switch x := any(v).(type) {
+	case bool:
+		return len(f.List)
+	case string:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(string) >= x }) - 1
+	case int8:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int8) >= x }) - 1
+	case int16:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int16) >= x }) - 1
+	case int32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int32) >= x }) - 1
+	case int64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int64) >= x }) - 1
+	case uint64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(uint64) >= x }) - 1
+	case float32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float32) >= x }) - 1
+	case float64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float64) >= x }) - 1
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
+	}
+}
+
+func (f *docValues[T]) FindLte(v T) int {
+	switch x := any(v).(type) {
+	case bool:
+		return len(f.List)
+	case string:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(string) > x }) - 1
+	case int8:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int8) > x }) - 1
+	case int16:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int16) > x }) - 1
+	case int32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int32) > x }) - 1
+	case int64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(int64) > x }) - 1
+	case uint64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(uint64) > x }) - 1
+	case float32:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float32) > x }) - 1
+	case float64:
+		return sort.Search(len(f.List), func(i int) bool { return any(f.List[i]).(float64) > x }) - 1
+	default:
+		panic(fmt.Sprintf("unknown type %T", x))
 	}
 }
