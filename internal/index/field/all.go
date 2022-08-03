@@ -47,10 +47,6 @@ func (f *All) RangeQuery(ctx context.Context, from interface{}, to interface{}, 
 	return newResult(ctx, roaring.New())
 }
 
-func (f *All) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
-	panic("not implemented")
-}
-
 func (f *All) Delete(id uint32) {
 	f.data.Remove(id)
 }
