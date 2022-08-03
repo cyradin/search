@@ -16,13 +16,11 @@ type NumericConstraint interface {
 }
 
 type Numeric[T NumericConstraint] struct {
-	data   map[T]*roaring.Bitmap
 	values *docValues[T]
 }
 
 func newNumeric[T NumericConstraint]() *Numeric[T] {
 	return &Numeric[T]{
-		data:   make(map[T]*roaring.Bitmap),
 		values: newDocValues[T](),
 	}
 }
@@ -57,13 +55,6 @@ func (f *Numeric[T]) Add(id uint32, value interface{}) {
 	}
 
 	f.values.Add(id, v)
-
-	m, ok := f.data[v]
-	if !ok {
-		m = roaring.New()
-		f.data[v] = m
-	}
-	m.Add(id)
 }
 
 func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -72,12 +63,7 @@ func (f *Numeric[T]) TermQuery(ctx context.Context, value interface{}) *QueryRes
 		return newResult(ctx, roaring.New())
 	}
 
-	m, ok := f.data[v]
-	if !ok {
-		return newResult(ctx, roaring.New())
-	}
-
-	return newResult(ctx, m.Clone())
+	return newResult(ctx, f.values.DocsByValue(v))
 }
 
 func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -138,44 +124,26 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
-	vals := f.values.ValuesByDoc(id)
-	for _, v := range vals {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		m.Remove(id)
-		if m.GetCardinality() == 0 {
-			delete(f.data, v)
-		}
-	}
 	f.values.DeleteDoc(id)
 }
 
 func (f *Numeric[T]) Data(id uint32) []interface{} {
-	var result []interface{}
-
-	for _, v := range f.values.ValuesByDoc(id) {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		if m.Contains(id) {
-			result = append(result, v)
-		}
+	values := f.values.ValuesByDoc(id)
+	result := make([]interface{}, len(values))
+	for i, v := range f.values.ValuesByDoc(id) {
+		result[i] = v
 	}
 
 	return result
 }
 
 type numericData[T NumericConstraint] struct {
-	Data   map[T]*roaring.Bitmap
 	Values *docValues[T]
 }
 
 func (f *Numeric[T]) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(numericData[T]{Data: f.data, Values: f.values})
+	err := gob.NewEncoder(&buf).Encode(numericData[T]{Values: f.values})
 
 	return buf.Bytes(), err
 }
@@ -187,7 +155,6 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	f.data = raw.Data
 	f.values = raw.Values
 
 	return nil
