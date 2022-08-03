@@ -73,7 +73,7 @@ func (v *docValues[T]) DocsByValue(value T) *roaring.Bitmap {
 	if !ok {
 		return roaring.New()
 	}
-	return vv
+	return vv.Clone()
 }
 
 func (v *docValues[T]) Add(id uint32, value T) {
