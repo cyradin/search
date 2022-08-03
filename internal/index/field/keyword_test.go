@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -55,21 +54,6 @@ func Test_Keyword_MatchQuery(t *testing.T) {
 	result = field.MatchQuery(context.Background(), "bar")
 	require.False(t, result.Docs().Contains(1))
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
-}
-
-func Test_Keyword_TermAgg(t *testing.T) {
-	f := newKeyword()
-	f.Add(1, "foo")
-	f.Add(2, "foo")
-	f.Add(2, "bar")
-	f.Add(3, "baz")
-
-	docs := roaring.New()
-	docs.Add(1)
-	docs.Add(2)
-
-	result := f.TermAgg(context.Background(), docs, 20)
-	require.ElementsMatch(t, []TermBucket{{Key: "foo", DocCount: 2}, {Key: "bar", DocCount: 1}}, result.Buckets)
 }
 
 func Test_Keyword_Delete(t *testing.T) {

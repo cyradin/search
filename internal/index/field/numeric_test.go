@@ -4,7 +4,6 @@ import (
 	"context"
 	"testing"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -117,35 +116,52 @@ func test_Numeric_RangeQuery[T NumericConstraint](t *testing.T) {
 	field.Add(5, 5)
 	field.Add(6, 6)
 
+	t.Run("no values", func(t *testing.T) {
+		result := field.RangeQuery(context.Background(), nil, nil, false, false)
+		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
+	})
+	t.Run("(1..", func(t *testing.T) {
+		var from int32 = 1
+		result := field.RangeQuery(context.Background(), &from, nil, false, false)
+		require.ElementsMatch(t, []uint32{2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("[1..", func(t *testing.T) {
+		var from int32 = 1
+		result := field.RangeQuery(context.Background(), &from, nil, true, false)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("..3)", func(t *testing.T) {
+		var to int32 = 3
+		result := field.RangeQuery(context.Background(), nil, &to, false, false)
+		require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
+	})
+	t.Run("..3]", func(t *testing.T) {
+		var to int32 = 3
+		result := field.RangeQuery(context.Background(), nil, &to, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
+	})
+	t.Run("..6]", func(t *testing.T) {
+		var to int32 = 6
+		result := field.RangeQuery(context.Background(), nil, &to, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
+	t.Run("..7]", func(t *testing.T) {
+		var to int32 = 6
+		result := field.RangeQuery(context.Background(), nil, &to, false, true)
+		require.ElementsMatch(t, []uint32{1, 2, 3, 4, 5, 6}, result.Docs().ToArray())
+	})
 	t.Run("(1..4]", func(t *testing.T) {
-		result := field.RangeQuery(context.Background(), 1, 4, false, true)
+		var from int32 = 1
+		var to int32 = 4
+		result := field.RangeQuery(context.Background(), &from, &to, false, true)
 		require.ElementsMatch(t, []uint32{2, 3, 4}, result.Docs().ToArray())
 	})
-}
-
-func Test_Numeric_TermAgg(t *testing.T) {
-	t.Run("int8", test_Numeric_TermAgg[int8])
-	t.Run("int16", test_Numeric_TermAgg[int16])
-	t.Run("int32", test_Numeric_TermAgg[int32])
-	t.Run("int64", test_Numeric_TermAgg[int64])
-	t.Run("uint64", test_Numeric_TermAgg[uint64])
-	t.Run("float32", test_Numeric_TermAgg[float32])
-	t.Run("float64", test_Numeric_TermAgg[float64])
-}
-
-func test_Numeric_TermAgg[T NumericConstraint](t *testing.T) {
-	f := newNumeric[T]()
-	f.Add(1, 1)
-	f.Add(2, 1)
-	f.Add(2, 2)
-	f.Add(3, 3)
-
-	docs := roaring.New()
-	docs.Add(1)
-	docs.Add(2)
-
-	result := f.TermAgg(context.Background(), docs, 20)
-	require.ElementsMatch(t, []TermBucket{{Key: T(1), DocCount: 2}, {Key: T(2), DocCount: 1}}, result.Buckets)
+	t.Run("[100, 1000]", func(t *testing.T) {
+		var from int32 = 100
+		var to int32 = 1000
+		result := field.RangeQuery(context.Background(), &from, &to, false, true)
+		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
+	})
 }
 
 func Test_Numeric_Delete(t *testing.T) {

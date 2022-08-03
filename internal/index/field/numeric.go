@@ -85,6 +85,10 @@ func (f *Numeric[T]) MatchQuery(ctx context.Context, value interface{}) *QueryRe
 }
 
 func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult {
+	if from == nil && to == nil {
+		return newResult(ctx, roaring.New())
+	}
+
 	var vFrom, vTo *T
 	if from != nil {
 		v, err := castE[T](from)
@@ -101,11 +105,36 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 		vTo = &v
 	}
 
-	return newResult(ctx, rangeQuery(ctx, f.values, vFrom, vTo, incFrom, incTo))
-}
+	cardinality := f.values.Cardinality()
+	fromIndex := 0
+	toIndex := cardinality - 1
+	if from != nil {
+		if incFrom {
+			fromIndex = f.values.FindGte(*vFrom)
+		} else {
+			fromIndex = f.values.FindGt(*vFrom)
+		}
+	}
 
-func (f *Numeric[T]) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
-	return termAgg(docs, f.values, size)
+	if to != nil {
+		if incTo {
+			toIndex = f.values.FindLte(*vTo)
+		} else {
+			toIndex = f.values.FindLt(*vTo)
+		}
+	}
+
+	if fromIndex == cardinality || toIndex == cardinality || fromIndex > toIndex {
+		return newResult(ctx, roaring.New())
+	}
+
+	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
+	for i := fromIndex; i <= toIndex; i++ {
+		v := f.values.DocsByIndex(i)
+		bm = append(bm, v)
+	}
+
+	return newResult(ctx, roaring.FastOr(bm...))
 }
 
 func (f *Numeric[T]) Delete(id uint32) {

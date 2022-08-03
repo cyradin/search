@@ -48,16 +48,24 @@ func (v *docValues[T]) ContainsDocValue(id uint32, value T) bool {
 	return ok
 }
 
-func (v *docValues[T]) ValueByIndex(i int) T {
-	return v.List[i]
-}
-
 func (v *docValues[T]) ValuesByDoc(id uint32) []T {
 	result := make([]T, 0, len(v.Values[id]))
 	for v := range v.Values[id] {
 		result = append(result, v)
 	}
 	return result
+}
+
+func (v *docValues[T]) DocsByIndex(i int) *roaring.Bitmap {
+	if i < 0 || i >= len(v.List) {
+		return roaring.New()
+	}
+
+	vv, ok := v.Docs[v.List[i]]
+	if !ok {
+		return roaring.New()
+	}
+	return vv
 }
 
 func (v *docValues[T]) DocsByValue(value T) *roaring.Bitmap {

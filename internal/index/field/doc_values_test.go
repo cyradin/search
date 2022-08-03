@@ -47,28 +47,30 @@ func Test_docValues_ContainsDocValue(t *testing.T) {
 	require.False(t, v.ContainsDocValue(1, 2))
 }
 
-func Test_docValues_ValueByIndex(t *testing.T) {
-	v := newDocValues[int32]()
-
-	v.Add(1, 1)
-	require.EqualValues(t, 1, v.ValueByIndex(0))
-
-	v.Add(1, 3)
-	require.EqualValues(t, 1, v.ValueByIndex(0))
-	require.EqualValues(t, 3, v.ValueByIndex(1))
-
-	v.Add(1, 2)
-	require.EqualValues(t, 1, v.ValueByIndex(0))
-	require.EqualValues(t, 2, v.ValueByIndex(1))
-	require.EqualValues(t, 3, v.ValueByIndex(2))
-}
-
 func Test_docValues_ValuesByDoc(t *testing.T) {
 	v := newDocValues[int32]()
 	v.Add(1, 1)
 	require.ElementsMatch(t, []int32{1}, v.ValuesByDoc(1))
 	v.Add(1, 2)
 	require.ElementsMatch(t, []int32{1, 2}, v.ValuesByDoc(1))
+}
+
+func Test_docValues_DocsByIndex(t *testing.T) {
+	v := newDocValues[int32]()
+
+	require.Empty(t, v.DocsByIndex(-1).ToArray())
+	require.Empty(t, v.DocsByIndex(1).ToArray())
+
+	v.Add(1, 1)
+	require.ElementsMatch(t, []uint32{1}, v.DocsByIndex(0).ToArray())
+
+	v.Add(1, 2)
+	require.ElementsMatch(t, []uint32{1}, v.DocsByIndex(0).ToArray())
+	require.ElementsMatch(t, []uint32{1}, v.DocsByIndex(1).ToArray())
+
+	v.Add(2, 1)
+	require.ElementsMatch(t, []uint32{1, 2}, v.DocsByIndex(0).ToArray())
+	require.ElementsMatch(t, []uint32{1}, v.DocsByIndex(1).ToArray())
 }
 
 func Test_docValues_DocsByValue(t *testing.T) {

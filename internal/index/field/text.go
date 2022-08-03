@@ -107,10 +107,6 @@ func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{},
 	return newResult(ctx, roaring.New())
 }
 
-func (f *Text) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
-	return termAgg[string](docs, f.raw, size)
-}
-
 func (f *Text) Delete(id uint32) {
 	if !f.values.ContainsDoc(id) {
 		return

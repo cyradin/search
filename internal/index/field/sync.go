@@ -4,7 +4,6 @@ import (
 	"context"
 	"sync"
 
-	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/schema"
 )
 
@@ -33,13 +32,6 @@ type syncRangeQuery struct {
 	incFrom bool
 	incTo   bool
 	ch      chan *QueryResult
-}
-
-type syncTermAgg struct {
-	ctx  context.Context
-	docs *roaring.Bitmap
-	size int
-	ch   chan TermAggResult
 }
 
 type syncDelete struct {
@@ -82,7 +74,6 @@ type SyncMonitor struct {
 	chTermQ     chan syncTermQuery
 	chMatchQ    chan syncMatchQuery
 	chRangeQ    chan syncRangeQuery
-	chTermAgg   chan syncTermAgg
 	chDelete    chan syncDelete
 	chData      chan syncData
 	chMarshal   chan syncMarshal
@@ -96,7 +87,6 @@ func NewSyncMonitor(field Field) *SyncMonitor {
 		chTermQ:     make(chan syncTermQuery),
 		chMatchQ:    make(chan syncMatchQuery),
 		chRangeQ:    make(chan syncRangeQuery),
-		chTermAgg:   make(chan syncTermAgg),
 		chDelete:    make(chan syncDelete),
 		chData:      make(chan syncData),
 		chMarshal:   make(chan syncMarshal),
@@ -153,16 +143,6 @@ func (f *SyncMonitor) RangeQuery(ctx context.Context, from interface{}, to inter
 	ch := make(chan *QueryResult)
 	v := syncRangeQuery{ctx, from, to, incFrom, incTo, ch}
 	f.chRangeQ <- v
-	return <-ch
-}
-
-func (f *SyncMonitor) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
-	if !f.started {
-		panic("monitor not started")
-	}
-	ch := make(chan TermAggResult)
-	v := syncTermAgg{ctx, docs, size, ch}
-	f.chTermAgg <- v
 	return <-ch
 }
 
@@ -233,12 +213,6 @@ func (f *SyncMonitor) monitor(ctx context.Context) {
 				go func() {
 					defer wg.Done()
 					v.ch <- f.field.RangeQuery(v.ctx, v.from, v.to, v.incFrom, v.incTo)
-				}()
-			case v := <-f.chTermAgg:
-				wg.Add(1)
-				go func() {
-					defer wg.Done()
-					v.ch <- f.field.TermAgg(v.ctx, v.docs, v.size)
 				}()
 			case v := <-f.chData:
 				wg.Add(1)
@@ -311,12 +285,6 @@ func (f *SyncMtx) RangeQuery(ctx context.Context, from interface{}, to interface
 	f.mtx.RLock()
 	defer f.mtx.RUnlock()
 	return f.field.RangeQuery(ctx, from, to, incFrom, incTo)
-}
-
-func (f *SyncMtx) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
-	f.mtx.RLock()
-	defer f.mtx.RUnlock()
-	return f.field.TermAgg(ctx, docs, size)
 }
 
 func (f *SyncMtx) Delete(id uint32) {

@@ -91,9 +91,6 @@ func Test_Text_TermAgg(t *testing.T) {
 	docs := roaring.New()
 	docs.Add(1)
 	docs.Add(2)
-
-	result := f.TermAgg(context.Background(), docs, 20)
-	require.ElementsMatch(t, []TermBucket{{Key: "foo", DocCount: 2}, {Key: "bar", DocCount: 1}}, result.Buckets)
 }
 
 func Test_Text_Delete(t *testing.T) {
