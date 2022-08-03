@@ -13,13 +13,11 @@ import (
 var _ Field = (*Keyword)(nil)
 
 type Keyword struct {
-	data   map[string]*roaring.Bitmap
 	values *docValues[string]
 }
 
 func newKeyword() *Keyword {
 	return &Keyword{
-		data:   make(map[string]*roaring.Bitmap),
 		values: newDocValues[string](),
 	}
 }
@@ -35,13 +33,6 @@ func (f *Keyword) Add(id uint32, value interface{}) {
 	}
 
 	f.values.Add(id, v)
-
-	m, ok := f.data[v]
-	if !ok {
-		m = roaring.New()
-		f.data[v] = m
-	}
-	m.Add(id)
 }
 
 func (f *Keyword) TermQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -50,12 +41,7 @@ func (f *Keyword) TermQuery(ctx context.Context, value interface{}) *QueryResult
 		return newResult(ctx, roaring.New())
 	}
 
-	m, ok := f.data[v]
-	if !ok {
-		return newResult(ctx, roaring.New())
-	}
-
-	return newResult(ctx, m.Clone())
+	return newResult(ctx, f.values.DocsByValue(v))
 }
 
 func (f *Keyword) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -67,31 +53,14 @@ func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface
 }
 
 func (f *Keyword) Delete(id uint32) {
-	vals := f.values.ValuesByDoc(id)
-	for _, v := range vals {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		m.Remove(id)
-		if m.GetCardinality() == 0 {
-			delete(f.data, v)
-		}
-	}
 	f.values.DeleteDoc(id)
 }
 
 func (f *Keyword) Data(id uint32) []interface{} {
-	var result []interface{}
-
-	for _, v := range f.values.ValuesByDoc(id) {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		if m.Contains(id) {
-			result = append(result, v)
-		}
+	values := f.values.ValuesByDoc(id)
+	result := make([]interface{}, len(values))
+	for i, v := range values {
+		result[i] = v
 	}
 
 	return result
@@ -104,7 +73,7 @@ type keywordData struct {
 
 func (f *Keyword) MarshalBinary() ([]byte, error) {
 	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(keywordData{Data: f.data, Values: f.values})
+	err := gob.NewEncoder(&buf).Encode(keywordData{Values: f.values})
 
 	return buf.Bytes(), err
 }
@@ -116,7 +85,6 @@ func (f *Keyword) UnmarshalBinary(data []byte) error {
 	if err != nil {
 		return err
 	}
-	f.data = raw.Data
 	f.values = raw.Values
 
 	return nil
