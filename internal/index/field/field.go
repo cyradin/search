@@ -79,7 +79,7 @@ func New(t schema.Type, opts ...FieldOpts) (Field, error) {
 		return nil, errs.Errorf("invalid field type %q", t)
 	}
 
-	return NewSyncMtx(field), nil
+	return field, nil
 }
 
 func castE[T comparable](value interface{}) (T, error) {

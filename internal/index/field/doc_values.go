@@ -3,6 +3,7 @@ package field
 import (
 	"fmt"
 	"sort"
+	"sync"
 
 	"github.com/RoaringBitmap/roaring"
 )
@@ -12,6 +13,7 @@ type Simple interface {
 }
 
 type docValues[T Simple] struct {
+	mtx      sync.RWMutex
 	Docs     map[T]*roaring.Bitmap
 	Values   map[uint32]docValue[T]
 	Counters map[T]int
@@ -29,19 +31,31 @@ func newDocValues[T Simple]() *docValues[T] {
 }
 
 func (v *docValues[T]) IsEmpty() bool {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	return len(v.List) == 0
 }
 
 func (v *docValues[T]) Cardinality() int {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	return len(v.List)
 }
 
 func (v *docValues[T]) ContainsDoc(id uint32) bool {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	vals, ok := v.Values[id]
 	return ok && len(vals) > 0
 }
 
 func (v *docValues[T]) ContainsDocValue(id uint32, value T) bool {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	vals, ok := v.Values[id]
 	if !ok || len(vals) == 0 {
 		return false
@@ -51,6 +65,9 @@ func (v *docValues[T]) ContainsDocValue(id uint32, value T) bool {
 }
 
 func (v *docValues[T]) ValuesByDoc(id uint32) []T {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	result := make([]T, 0, len(v.Values[id]))
 	for v := range v.Values[id] {
 		result = append(result, v)
@@ -59,6 +76,9 @@ func (v *docValues[T]) ValuesByDoc(id uint32) []T {
 }
 
 func (v *docValues[T]) DocsByIndex(i int) *roaring.Bitmap {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	if i < 0 || i >= len(v.List) {
 		return roaring.New()
 	}
@@ -71,6 +91,9 @@ func (v *docValues[T]) DocsByIndex(i int) *roaring.Bitmap {
 }
 
 func (v *docValues[T]) DocsByValue(value T) *roaring.Bitmap {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
 	vv, ok := v.Docs[value]
 	if !ok {
 		return roaring.New()
@@ -79,6 +102,9 @@ func (v *docValues[T]) DocsByValue(value T) *roaring.Bitmap {
 }
 
 func (v *docValues[T]) Add(id uint32, value T) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+
 	if v.Values[id] == nil {
 		v.Values[id] = make(map[T]struct{})
 	}
@@ -96,6 +122,9 @@ func (v *docValues[T]) Add(id uint32, value T) {
 }
 
 func (v *docValues[T]) DeleteDoc(id uint32) {
+	v.mtx.Lock()
+	defer v.mtx.Unlock()
+
 	vals, ok := v.Values[id]
 	if !ok {
 		return
@@ -213,6 +242,9 @@ func (v *docValues[T]) listDel(value T) {
 }
 
 func (f *docValues[T]) FindGt(v T) int {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	switch x := any(v).(type) {
 	case bool:
 		return len(f.List)
@@ -238,6 +270,9 @@ func (f *docValues[T]) FindGt(v T) int {
 }
 
 func (f *docValues[T]) FindGte(v T) int {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	switch x := any(v).(type) {
 	case bool:
 		return len(f.List)
@@ -263,6 +298,9 @@ func (f *docValues[T]) FindGte(v T) int {
 }
 
 func (f *docValues[T]) FindLt(v T) int {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	switch x := any(v).(type) {
 	case bool:
 		return len(f.List)
@@ -288,6 +326,9 @@ func (f *docValues[T]) FindLt(v T) int {
 }
 
 func (f *docValues[T]) FindLte(v T) int {
+	f.mtx.RLock()
+	defer f.mtx.RUnlock()
+
 	switch x := any(v).(type) {
 	case bool:
 		return len(f.List)
