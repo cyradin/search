@@ -203,10 +203,10 @@ func Test_Bool_Data(t *testing.T) {
 	field.Add(2, false)
 
 	result := field.Data(1)
-	require.EqualValues(t, []interface{}{true, false}, result)
+	require.ElementsMatch(t, []interface{}{true, false}, result)
 
 	result = field.Data(2)
-	require.EqualValues(t, []interface{}{false}, result)
+	require.ElementsMatch(t, []interface{}{false}, result)
 }
 
 func Test_Bool_Marshal(t *testing.T) {
