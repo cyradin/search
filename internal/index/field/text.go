@@ -13,7 +13,6 @@ import (
 type Text struct {
 	analyzer func([]string) []string
 	scoring  *Scoring
-	data     map[string]*roaring.Bitmap
 	values   *docValues[string]
 	raw      *docValues[string]
 }
@@ -22,7 +21,6 @@ var _ Field = (*Text)(nil)
 
 func newText(analyzer func([]string) []string, scoring *Scoring) *Text {
 	return &Text{
-		data:     make(map[string]*roaring.Bitmap),
 		values:   newDocValues[string](),
 		raw:      newDocValues[string](),
 		analyzer: analyzer,
@@ -47,12 +45,6 @@ func (f *Text) Add(id uint32, value interface{}) {
 
 	for _, vv := range terms {
 		f.values.Add(id, vv)
-		m, ok := f.data[vv]
-		if !ok {
-			m = roaring.New()
-			f.data[vv] = m
-		}
-		m.Add(id)
 	}
 }
 
@@ -61,13 +53,9 @@ func (f *Text) TermQuery(ctx context.Context, value interface{}) *QueryResult {
 	if err != nil {
 		return newResult(ctx, roaring.New())
 	}
+	docs := f.values.DocsByValue(v)
 
-	m, ok := f.data[v]
-	if !ok {
-		return newResult(ctx, roaring.New())
-	}
-
-	return newResultWithScoring(ctx, m.Clone(), f.scoring, WithTokens([]string{v}))
+	return newResultWithScoring(ctx, docs, f.scoring, WithTokens([]string{v}))
 }
 
 func (f *Text) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
@@ -84,15 +72,11 @@ func (f *Text) MatchQuery(ctx context.Context, value interface{}) *QueryResult {
 			continue
 		}
 
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-
+		docs := f.values.DocsByValue(v)
 		if result == nil {
-			result = m.Clone()
+			result = docs
 		} else {
-			result.Or(m)
+			result.Or(docs)
 		}
 	}
 
@@ -119,17 +103,6 @@ func (f *Text) Delete(id uint32) {
 
 	f.values.DeleteDoc(id)
 	f.raw.DeleteDoc(id)
-
-	for _, v := range vals {
-		m, ok := f.data[v]
-		if !ok {
-			continue
-		}
-		m.Remove(id)
-		if m.GetCardinality() == 0 {
-			delete(f.data, v)
-		}
-	}
 }
 
 func (f *Text) Data(id uint32) []interface{} {
@@ -145,7 +118,6 @@ func (f *Text) Data(id uint32) []interface{} {
 }
 
 type textData struct {
-	Data    map[string]*roaring.Bitmap
 	Values  *docValues[string]
 	Raw     *docValues[string]
 	Scoring []byte
@@ -158,7 +130,7 @@ func (f *Text) MarshalBinary() ([]byte, error) {
 	}
 
 	var buf bytes.Buffer
-	err = gob.NewEncoder(&buf).Encode(textData{Data: f.data, Values: f.values, Scoring: scoringData, Raw: f.raw})
+	err = gob.NewEncoder(&buf).Encode(textData{Values: f.values, Scoring: scoringData, Raw: f.raw})
 
 	return buf.Bytes(), nil
 }
@@ -175,7 +147,6 @@ func (f *Text) UnmarshalBinary(data []byte) error {
 		return err
 	}
 
-	f.data = raw.Data
 	f.values = raw.Values
 	f.raw = raw.Raw
 
