@@ -31,10 +31,6 @@ func Test_Text_Add(t *testing.T) {
 		field := newText(testAnalyzer, NewScoring())
 
 		field.Add(1, value)
-		bm, ok := field.data["value_addition"]
-		require.True(t, ok)
-		require.True(t, bm.Contains(1))
-		require.EqualValues(t, 1, bm.GetCardinality())
 		require.ElementsMatch(t, []string{"value"}, field.raw.ValuesByDoc(1))
 		require.ElementsMatch(t, []string{"value_addition"}, field.values.ValuesByDoc(1))
 	})
@@ -43,11 +39,6 @@ func Test_Text_Add(t *testing.T) {
 		field := newText(testAnalyzer, NewScoring())
 
 		field.Add(1, true)
-		bm, ok := field.data["true_addition"]
-
-		require.True(t, ok)
-		require.True(t, bm.Contains(1))
-		require.EqualValues(t, 1, bm.GetCardinality())
 		require.ElementsMatch(t, []string{"true"}, field.raw.ValuesByDoc(1))
 		require.ElementsMatch(t, []string{"true_addition"}, field.values.ValuesByDoc(1))
 	})
@@ -100,15 +91,11 @@ func Test_Text_Delete(t *testing.T) {
 	field.Add(2, "foo")
 
 	field.Delete(2)
-	require.EqualValues(t, 1, field.data["foo"].GetCardinality())
-	require.EqualValues(t, 1, field.data["bar"].GetCardinality())
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
 
 	field.Delete(1)
-	require.Nil(t, field.data["foo"])
-	require.Nil(t, field.data["bar"])
 	require.Empty(t, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(1))
 }
@@ -138,11 +125,8 @@ func Test_Text_Marshal(t *testing.T) {
 	field2 := newText(testAnalyzer2, NewScoring())
 	err = field2.UnmarshalBinary(data)
 	require.NoError(t, err)
-	require.True(t, field2.data["foo"].Contains(1))
-	require.True(t, field2.data["bar"].Contains(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
-	require.True(t, field2.data["foo"].Contains(2))
 	require.ElementsMatch(t, []string{"foo"}, field.values.ValuesByDoc(2))
 	require.ElementsMatch(t, []string{"foo"}, field.raw.ValuesByDoc(2))
 	require.Equal(t, field.scoring.data, field2.scoring.data)
