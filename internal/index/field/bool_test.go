@@ -8,6 +8,7 @@ import (
 	"sync"
 	"testing"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/stretchr/testify/require"
 )
 
@@ -207,6 +208,28 @@ func Test_Bool_Data(t *testing.T) {
 
 	result = field.Data(2)
 	require.ElementsMatch(t, []interface{}{false}, result)
+}
+
+func Test_Bool_TermAgg(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+
+	field := newBool()
+	field.Add(1, true)
+	result := field.TermAgg(context.Background(), bm, 20)
+	require.Equal(t, []TermBucket{
+		{Key: true, Docs: bm},
+	}, result.Buckets)
+}
+
+func Test_Bool_RangeAgg(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+
+	field := newBool()
+	field.Add(1, true)
+	result := field.RangeAgg(context.Background(), bm, []Range{{From: 1, To: 2, Key: "key"}})
+	require.Equal(t, []RangeBucket{{From: 1, To: 2, Key: "key", Docs: roaring.New()}}, result.Buckets)
 }
 
 func Test_Bool_Marshal(t *testing.T) {

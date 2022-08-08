@@ -91,36 +91,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 		vTo = &v
 	}
 
-	cardinality := f.values.Cardinality()
-	fromIndex := 0
-	toIndex := cardinality - 1
-	if from != nil {
-		if incFrom {
-			fromIndex = f.values.FindGte(*vFrom)
-		} else {
-			fromIndex = f.values.FindGt(*vFrom)
-		}
-	}
-
-	if to != nil {
-		if incTo {
-			toIndex = f.values.FindLte(*vTo)
-		} else {
-			toIndex = f.values.FindLt(*vTo)
-		}
-	}
-
-	if fromIndex == cardinality || toIndex == cardinality || fromIndex > toIndex {
-		return newResult(ctx, roaring.New())
-	}
-
-	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
-	for i := fromIndex; i <= toIndex; i++ {
-		v := f.values.DocsByIndex(i)
-		bm = append(bm, v)
-	}
-
-	return newResult(ctx, roaring.FastOr(bm...))
+	return newResult(ctx, rangeQuery(ctx, f.values, vFrom, vTo, incFrom, incTo))
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
@@ -135,6 +106,40 @@ func (f *Numeric[T]) Data(id uint32) []interface{} {
 	}
 
 	return result
+}
+
+func (f *Numeric[T]) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
+	return termAgg(docs, f.values, size)
+}
+
+func (f *Numeric[T]) RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) RangeAggResult {
+	rr := make([]rangeAggRange[T], len(ranges))
+	for i, r := range ranges {
+		var from, to *T
+
+		if r.From != nil {
+			v, err := castE[T](r.From)
+			if err != nil {
+				continue
+			}
+			from = &v
+		}
+		if r.To != nil {
+			v, err := castE[T](r.To)
+			if err != nil {
+				continue
+			}
+			to = &v
+		}
+
+		rr[i] = rangeAggRange[T]{
+			From: from,
+			To:   to,
+			Key:  r.Key,
+		}
+	}
+
+	return rangeAgg(ctx, docs, f.values, rr)
 }
 
 type numericData[T NumericConstraint] struct {
@@ -158,4 +163,41 @@ func (f *Numeric[T]) UnmarshalBinary(data []byte) error {
 	f.values = raw.Values
 
 	return nil
+}
+
+func rangeQuery[T NumericConstraint](ctx context.Context, data *docValues[T], from *T, to *T, incFrom, incTo bool) *roaring.Bitmap {
+	if from == nil && to == nil {
+		return roaring.New()
+	}
+
+	cardinality := data.Cardinality()
+	fromIndex := 0
+	toIndex := cardinality - 1
+	if from != nil {
+		if incFrom {
+			fromIndex = data.FindGte(*from)
+		} else {
+			fromIndex = data.FindGt(*from)
+		}
+	}
+
+	if to != nil {
+		if incTo {
+			toIndex = data.FindLte(*to)
+		} else {
+			toIndex = data.FindLt(*to)
+		}
+	}
+
+	if fromIndex == cardinality || toIndex == cardinality || fromIndex > toIndex {
+		return roaring.New()
+	}
+
+	bm := make([]*roaring.Bitmap, 0, toIndex-fromIndex+1)
+	for i := fromIndex; i <= toIndex; i++ {
+		v := data.DocsByIndex(i)
+		bm = append(bm, v)
+	}
+
+	return roaring.FastOr(bm...)
 }
