@@ -71,19 +71,6 @@ func Test_Text_MatchQuery(t *testing.T) {
 	})
 }
 
-func Test_Text_TermAgg(t *testing.T) {
-	scoring := NewScoring()
-	f := newText(testAnalyzer2, scoring)
-	f.Add(1, "foo")
-	f.Add(2, "foo")
-	f.Add(2, "bar")
-	f.Add(3, "baz")
-
-	docs := roaring.New()
-	docs.Add(1)
-	docs.Add(2)
-}
-
 func Test_Text_Delete(t *testing.T) {
 	field := newText(testAnalyzer2, NewScoring())
 	field.Add(1, "foo")
@@ -111,6 +98,28 @@ func Test_Text_Data(t *testing.T) {
 
 	result = field.Data(2)
 	require.ElementsMatch(t, []string{"foo"}, result)
+}
+
+func Test_Text_TermAgg(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+
+	field := newText(testAnalyzer, NewScoring())
+	field.Add(1, "foo")
+	result := field.TermAgg(context.Background(), bm, 20)
+	require.Equal(t, []TermBucket{
+		{Key: "foo_addition", Docs: bm},
+	}, result.Buckets)
+}
+
+func Test_Text_RangeAgg(t *testing.T) {
+	bm := roaring.New()
+	bm.Add(1)
+
+	field := newText(testAnalyzer, NewScoring())
+	field.Add(1, "foo")
+	result := field.RangeAgg(context.Background(), bm, []Range{{From: 1, To: 2, Key: "key"}})
+	require.Equal(t, []RangeBucket{{From: 1, To: 2, Key: "key", Docs: roaring.New()}}, result.Buckets)
 }
 
 func Test_Text_Marshal(t *testing.T) {

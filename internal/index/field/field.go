@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding"
 
+	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
 	"github.com/spf13/cast"
@@ -38,6 +39,11 @@ type Field interface {
 	Delete(id uint32)
 	// Data get stored field values
 	Data(id uint32) []interface{}
+
+	// TermAgg get docs by top N values
+	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
+	// RangeAgg get docs within ranges
+	RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) RangeAggResult
 }
 
 func New(t schema.Type, opts ...FieldOpts) (Field, error) {
