@@ -26,14 +26,12 @@ const (
 	queryRange queryType = "range"
 )
 
-func queryTypes() []queryType {
-	return []queryType{
-		queryTerm,
-		queryTerms,
-		queryBool,
-		queryMatch,
-		queryRange,
-	}
+var queryTypes = map[queryType]struct{}{
+	queryTerm:  {},
+	queryTerms: {},
+	queryBool:  {},
+	queryMatch: {},
+	queryRange: {},
 }
 
 type queryResult struct {
@@ -91,14 +89,8 @@ func build(ctx context.Context, req Query) (internalQuery, error) {
 		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(req)
-			var querytypeValid bool
-			for _, qt := range queryTypes() {
-				if key == string(qt) {
-					querytypeValid = true
-					break
-				}
-			}
-			if !querytypeValid {
+
+			if _, ok := queryTypes[queryType(key)]; !ok {
 				return errs.UnknownValue(ctx, key)
 			}
 
