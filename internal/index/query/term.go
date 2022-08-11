@@ -3,7 +3,7 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -16,18 +16,18 @@ type termQuery struct {
 
 func newTermQuery(ctx context.Context, query Query) (*termQuery, error) {
 	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(errs.Required(ctx)),
-		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
+		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(value.(Query))
-			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
 
 			v, ok := val.(map[string]interface{})
 			if !ok {
-				return errs.ObjectRequired(ctx, key)
+				return valid.NewErrObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.NotNil.ErrorObject(errs.Required(ctx))),
+				validation.Key("query", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))),
 			))
 		}),
 	)
@@ -58,24 +58,24 @@ type termsQuery struct {
 
 func newTermsQuery(ctx context.Context, query Query) (*termsQuery, error) {
 	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(errs.Required(ctx)),
-		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
+		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(value.(Query))
-			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
 
 			v, ok := val.(map[string]interface{})
 			if !ok {
-				return errs.ObjectRequired(ctx, key)
+				return valid.NewErrObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v, validation.Map(
 				validation.Key(
 					"query",
-					validation.NotNil.ErrorObject(errs.Required(ctx)),
+					validation.NotNil.ErrorObject(valid.NewErrRequired(ctx)),
 					validation.WithContext(func(ctx context.Context, value interface{}) error {
 						_, err := interfaceToSlice[interface{}](value)
 						if err != nil {
-							return errs.ArrayRequired(ctx, key)
+							return valid.NewErrArrayRequired(ctx, key)
 						}
 						return nil
 					}),

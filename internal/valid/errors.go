@@ -1,4 +1,4 @@
-package errs
+package valid
 
 import (
 	"context"
@@ -9,35 +9,35 @@ import (
 
 const PathParam = "path"
 
-func Params(path string) map[string]interface{} {
+func ErrParams(path string) map[string]interface{} {
 	return map[string]interface{}{
 		PathParam: path,
 	}
 }
 
-func Required(ctx context.Context) validation.Error {
+func NewErrRequired(ctx context.Context) validation.Error {
 	return validation.NewError("validation_required", "cannot be blank").
-		SetParams(Params(Path(ctx)))
+		SetParams(ErrParams(Path(ctx)))
 }
 
-func SingleKeyRequired(ctx context.Context) validation.Error {
+func NewErrSingleKeyRequired(ctx context.Context) validation.Error {
 	return validation.NewError("validation_length_invalid", "the length must be exactly 1").
-		SetParams(Params(Path(ctx)))
+		SetParams(ErrParams(Path(ctx)))
 }
 
-func ArrayRequired(ctx context.Context, key string) validation.Error {
+func NewErrArrayRequired(ctx context.Context, key string) validation.Error {
 	return validation.NewError("validation_array_required", "must be an array").
-		SetParams(Params(PathJoin(Path(ctx), key)))
+		SetParams(ErrParams(PathJoin(Path(ctx), key)))
 }
 
-func ObjectRequired(ctx context.Context, key string) validation.Error {
+func NewErrObjectRequired(ctx context.Context, key string) validation.Error {
 	return validation.NewError("validation_object_required", "must be an object").
-		SetParams(Params(PathJoin(Path(ctx), key)))
+		SetParams(ErrParams(PathJoin(Path(ctx), key)))
 }
 
-func UnknownValue(ctx context.Context, key string) validation.Error {
+func NewErrUnknownValue(ctx context.Context, key string) validation.Error {
 	return validation.NewError("validation_unknown_value", "unknown value").
-		SetParams(Params(PathJoin(Path(ctx), key)))
+		SetParams(ErrParams(PathJoin(Path(ctx), key)))
 }
 
 func PathJoin(path string, parts ...string) string {

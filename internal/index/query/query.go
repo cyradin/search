@@ -7,6 +7,7 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -85,18 +86,18 @@ type internalQuery interface {
 
 func build(ctx context.Context, req Query) (internalQuery, error) {
 	err := validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(errs.Required(ctx)),
-		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
+		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(req)
 
 			if _, ok := queryTypes[queryType(key)]; !ok {
-				return errs.UnknownValue(ctx, key)
+				return valid.NewErrUnknownValue(ctx, key)
 			}
 
 			_, ok := val.(map[string]interface{})
 			if !ok {
-				return errs.ObjectRequired(ctx, key)
+				return valid.NewErrObjectRequired(ctx, key)
 			}
 
 			return nil
@@ -107,7 +108,7 @@ func build(ctx context.Context, req Query) (internalQuery, error) {
 
 	key, value := firstVal(req)
 	req = value.(map[string]interface{})
-	ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+	ctx = valid.WithPath(ctx, valid.Path(ctx), key)
 
 	qType := queryType(key)
 	switch qType {

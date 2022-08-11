@@ -3,8 +3,8 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/valid"
 )
 
 type Result struct {
@@ -28,7 +28,7 @@ type Fields map[string]field.Field
 
 func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
 	ctx = withFields(ctx, fields)
-	ctx = errs.WithPath(ctx, "query")
+	ctx = valid.WithPath(ctx, "query")
 	q, err := build(ctx, query)
 	if err != nil {
 		return Result{}, err
