@@ -13,10 +13,6 @@ func NewErrJsonNumber(ctx context.Context) validation.Error {
 		SetParams(ErrParams(Path(ctx)))
 }
 
-func NewErrJsonNumberParseInt(ctx context.Context) validation.Error {
-	return validation.NewError("validation_int_required", "unable to parse as integer value")
-}
-
 func JsonNumber() validation.RuleWithContextFunc {
 	return func(ctx context.Context, value interface{}) error {
 		_, ok := value.(json.Number)
@@ -67,6 +63,11 @@ func JsonNumberIntMin(min int) validation.RuleWithContextFunc {
 			validation.ErrMinGreaterThanRequired.Code(),
 			validation.ErrMinGreaterThanRequired.Message(),
 		).SetParams(ErrParams(Path(ctx)))
+
+		err = validation.Required.ErrorObject(eo).Validate(v)
+		if err != nil {
+			return err
+		}
 
 		return validation.Min(min).ErrorObject(eo).Validate(v)
 	}

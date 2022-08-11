@@ -79,7 +79,7 @@ func Test_JsonNumberIntMin(t *testing.T) {
 
 	t.Run("must return error if value < min", func(t *testing.T) {
 		cb := JsonNumberIntMin(5)
-		err := cb(context.Background(), json.Number("1"))
+		err := cb(context.Background(), json.Number("0"))
 		require.Error(t, err)
 	})
 
