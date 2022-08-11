@@ -64,11 +64,6 @@ func JsonNumberIntMin(min int) validation.RuleWithContextFunc {
 			validation.ErrMinGreaterThanRequired.Message(),
 		).SetParams(ErrParams(Path(ctx)))
 
-		err = validation.Required.ErrorObject(eo).Validate(v)
-		if err != nil {
-			return err
-		}
-
 		return validation.Min(min).ErrorObject(eo).Validate(v)
 	}
 }
