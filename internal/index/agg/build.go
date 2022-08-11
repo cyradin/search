@@ -7,12 +7,13 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
 func multipleAggDefinitionsErr(ctx context.Context, aggs ...string) validation.Error {
 	return validation.NewError("validation_aggs_multiple_definitions_not_allowed", fmt.Sprintf("multiple agg definitions not allowed: %s", strings.Join(aggs, ", "))).
-		SetParams(errs.Params(errs.Path(ctx)))
+		SetParams(valid.ErrParams(valid.Path(ctx)))
 }
 
 type internalAgg interface {
@@ -43,19 +44,18 @@ func build(ctx context.Context, req Aggs) (map[string]internalAgg, error) {
 	result := make(map[string]internalAgg, len(req))
 	for key, value := range req {
 		req := value.(map[string]interface{})
-		ctx := errs.WithPath(ctx, errs.Path(ctx), key)
+		ctx := valid.WithPath(ctx, valid.Path(ctx), key)
 
 		aType, err := getAggType(req)
 		if err != nil {
 			panic(err) // must not be executed because of validation made earlier
 		}
+		agg, subAgg := getAggData(req)
 
-		var (
-			r internalAgg
-		)
+		var r internalAgg
 		switch aggType(aType) {
 		case aggTerms:
-			r, err = newTermAgg(ctx, req)
+			r, err = newTermsAgg(ctx, agg, subAgg)
 		default:
 			panic(errs.Errorf("unknown agg type %q", key)) // must not be executed because of validation made earlier
 		}
@@ -73,16 +73,16 @@ func build(ctx context.Context, req Aggs) (map[string]internalAgg, error) {
 func validateAggs(ctx context.Context, req Aggs) error {
 	rules := make([]*validation.KeyRules, 0, len(req))
 	for k := range req {
-		ctx = errs.WithPath(ctx, k)
+		ctx = valid.WithPath(ctx, k)
 		rules = append(
 			rules,
 			validation.Key(
 				k,
-				validation.Required.ErrorObject(errs.Required(ctx)),
+				validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
 				validation.WithContext(func(ctx context.Context, value interface{}) error {
 					aggs, ok := value.(map[string]interface{})
 					if !ok {
-						return errs.ObjectRequired(ctx, k)
+						return valid.NewErrObjectRequired(ctx, k)
 					}
 
 					var aggKey string
@@ -92,7 +92,7 @@ func validateAggs(ctx context.Context, req Aggs) error {
 						}
 
 						if _, ok := aggTypes[aggType(k)]; !ok {
-							return errs.UnknownValue(ctx, k)
+							return valid.NewErrUnknownValue(ctx, k)
 						}
 
 						if aggKey != "" {
@@ -102,7 +102,7 @@ func validateAggs(ctx context.Context, req Aggs) error {
 						aggKey = k
 						_, ok := v.(map[string]interface{})
 						if !ok {
-							return errs.ObjectRequired(ctx, k)
+							return valid.NewErrObjectRequired(ctx, k)
 						}
 					}
 
@@ -113,7 +113,7 @@ func validateAggs(ctx context.Context, req Aggs) error {
 	}
 
 	return validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(errs.Required(ctx)),
+		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
 		validation.Map(rules...).AllowExtraKeys(),
 	)
 }
@@ -134,5 +134,19 @@ func getAggType(req Aggs) (string, error) {
 		return k, nil
 	}
 
-	return "", fmt.Errorf("failed to determine agg type")
+	return "", errs.Errorf("failed to determine agg type")
+}
+
+func getAggData(req Aggs) (map[string]interface{}, map[string]interface{}) {
+	var agg map[string]interface{}
+	var subAggs map[string]interface{}
+	for k, v := range req {
+		if k == "aggs" {
+			subAggs = v.(map[string]interface{})
+			continue
+		}
+		agg = v.(map[string]interface{})
+	}
+
+	return agg, subAggs
 }

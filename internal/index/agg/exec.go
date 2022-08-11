@@ -4,7 +4,7 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/valid"
 )
 
 type Result map[string]interface{}
@@ -16,7 +16,7 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req Aggs, fields Fields) (R
 	}
 
 	ctx = withFields(ctx, fields)
-	ctx = errs.WithPath(ctx, "aggs")
+	ctx = valid.WithPath(ctx, "aggs")
 
 	aggs, err := build(ctx, req)
 	if err != nil {

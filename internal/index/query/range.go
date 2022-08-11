@@ -3,7 +3,7 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/spf13/cast"
 )
@@ -16,23 +16,23 @@ type rangeQuery struct {
 
 func newRangeQuery(ctx context.Context, query Query) (*rangeQuery, error) {
 	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(errs.Required(ctx)),
-		validation.Length(1, 1).ErrorObject(errs.SingleKeyRequired(ctx)),
+		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
+		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
 		validation.WithContext(func(ctx context.Context, value interface{}) error {
 			key, val := firstVal(value.(Query))
-			ctx = errs.WithPath(ctx, errs.Path(ctx), key)
+			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
 
 			v, ok := val.(map[string]interface{})
 			if !ok {
-				return errs.ObjectRequired(ctx, key)
+				return valid.NewErrObjectRequired(ctx, key)
 			}
 			return validation.ValidateWithContext(ctx, v,
-				validation.Required.ErrorObject(errs.Required(ctx)),
+				validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
 				validation.Map(
-					validation.Key("from", validation.NotNil.ErrorObject(errs.Required(ctx))).Optional(),
-					validation.Key("includeLower", validation.NotNil.ErrorObject(errs.Required(ctx))).Optional(),
-					validation.Key("to", validation.NotNil.ErrorObject(errs.Required(ctx))).Optional(),
-					validation.Key("includeUpper", validation.NotNil.ErrorObject(errs.Required(ctx))).Optional(),
+					validation.Key("from", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
+					validation.Key("includeLower", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
+					validation.Key("to", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
+					validation.Key("includeUpper", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
 				),
 			)
 		}),

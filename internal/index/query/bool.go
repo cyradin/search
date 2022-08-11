@@ -3,8 +3,8 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
+	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -24,21 +24,21 @@ func newBoolQuery(ctx context.Context, query Query) (*boolQuery, error) {
 		validation.Key(string(queryBoolMust), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errs.ArrayRequired(ctx, string(queryBoolMust))
+				return valid.NewErrArrayRequired(ctx, string(queryBoolMust))
 			}
 			return nil
 		})).Optional(),
 		validation.Key(string(queryBoolShould), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errs.ArrayRequired(ctx, string(queryBoolShould))
+				return valid.NewErrArrayRequired(ctx, string(queryBoolShould))
 			}
 			return nil
 		})).Optional(),
 		validation.Key(string(queryBoolFilter), validation.WithContext(func(ctx context.Context, value interface{}) error {
 			_, err := interfaceToSlice[map[string]interface{}](value)
 			if err != nil {
-				return errs.ArrayRequired(ctx, string(queryBoolFilter))
+				return valid.NewErrArrayRequired(ctx, string(queryBoolFilter))
 			}
 			return nil
 		})).Optional(),
@@ -56,7 +56,7 @@ func newBoolQuery(ctx context.Context, query Query) (*boolQuery, error) {
 
 		children := make([]internalQuery, len(values))
 		for i, v := range values {
-			ctx := errs.WithPath(ctx, errs.Path(ctx), key)
+			ctx := valid.WithPath(ctx, valid.Path(ctx), key)
 			child, err := build(ctx, v)
 			if err != nil {
 				return nil, err

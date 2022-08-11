@@ -9,6 +9,12 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func mustDecodeRequest(t *testing.T, query string) map[string]interface{} {
+	result, err := decodeRequest(query)
+	require.NoError(t, err)
+	return result
+}
+
 func decodeRequest(query string) (map[string]interface{}, error) {
 	result := make(map[string]interface{})
 
@@ -36,7 +42,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request agg is not an object", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": 1
 		}`)
 
@@ -46,7 +52,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request agg definition is not an object", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": 1
 			}
@@ -58,7 +64,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request agg contains multiple definitions", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
@@ -82,7 +88,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request contains invalid agg type", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"invalid": {
 					"size": 10,
@@ -97,7 +103,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must not return validation error if request is a valid aggregation", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
@@ -112,7 +118,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must not return validation error if request contains subaggregations", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
@@ -135,7 +141,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request contains invalid agg in subggregations", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
@@ -151,7 +157,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request contains invalid agg type in subggregations", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
@@ -169,7 +175,7 @@ func Test_build(t *testing.T) {
 	})
 
 	t.Run("must return validation error if request contains invalid agg definition in subggregations", func(t *testing.T) {
-		aggs, err := decodeRequest(`{
+		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
 					"size": 10,
