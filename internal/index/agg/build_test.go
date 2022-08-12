@@ -117,7 +117,7 @@ func Test_build(t *testing.T) {
 		require.NotNil(t, result)
 	})
 
-	t.Run("must not return validation error if request contains subaggregations", func(t *testing.T) {
+	t.Run("must not return validation error if request contains valid subaggregations", func(t *testing.T) {
 		aggs := mustDecodeRequest(t, `{
 			"aggname": {
 				"terms": {
@@ -125,8 +125,8 @@ func Test_build(t *testing.T) {
 					"field": "value"
 				},
 				"aggs": {
-					"aggname": {
-						"term": {
+					"subaggname": {
+						"terms": {
 							"size": 10,
 							"field": "value"
 						}

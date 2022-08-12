@@ -72,22 +72,26 @@ func build(ctx context.Context, req Aggs) (map[string]internalAgg, error) {
 
 func validateAggs(ctx context.Context, req Aggs) error {
 	rules := make([]*validation.KeyRules, 0, len(req))
-	for k := range req {
-		ctx = valid.WithPath(ctx, k)
+	for key := range req {
+		ctx = valid.WithPath(ctx, key)
 		rules = append(
 			rules,
 			validation.Key(
-				k,
+				key,
 				validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
 				validation.WithContext(func(ctx context.Context, value interface{}) error {
 					aggs, ok := value.(map[string]interface{})
 					if !ok {
-						return valid.NewErrObjectRequired(ctx, k)
+						return valid.NewErrObjectRequired(ctx, key)
 					}
 
 					var aggKey string
 					for k, v := range aggs {
-						if k == "aggs" {
+						_, ok := v.(map[string]interface{})
+						if !ok {
+							return valid.NewErrObjectRequired(ctx, k)
+						}
+						if k == AggsKey {
 							continue
 						}
 
@@ -100,10 +104,6 @@ func validateAggs(ctx context.Context, req Aggs) error {
 						}
 
 						aggKey = k
-						_, ok := v.(map[string]interface{})
-						if !ok {
-							return valid.NewErrObjectRequired(ctx, k)
-						}
 					}
 
 					return nil
@@ -128,7 +128,7 @@ func firstVal(m map[string]interface{}) (string, interface{}) {
 
 func getAggType(req Aggs) (string, error) {
 	for k := range req {
-		if k == "aggs" {
+		if k == AggsKey {
 			continue
 		}
 		return k, nil
@@ -141,7 +141,7 @@ func getAggData(req Aggs) (map[string]interface{}, map[string]interface{}) {
 	var agg map[string]interface{}
 	var subAggs map[string]interface{}
 	for k, v := range req {
-		if k == "aggs" {
+		if k == AggsKey {
 			subAggs = v.(map[string]interface{})
 			continue
 		}

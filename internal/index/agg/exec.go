@@ -7,6 +7,8 @@ import (
 	"github.com/cyradin/search/internal/valid"
 )
 
+const AggsKey = "aggs"
+
 type Result map[string]interface{}
 type Aggs map[string]interface{}
 
@@ -16,7 +18,7 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req Aggs, fields Fields) (R
 	}
 
 	ctx = withFields(ctx, fields)
-	ctx = valid.WithPath(ctx, "aggs")
+	ctx = valid.WithPath(ctx, AggsKey)
 
 	aggs, err := build(ctx, req)
 	if err != nil {
