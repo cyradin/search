@@ -42,8 +42,6 @@ type Field interface {
 
 	// TermAgg get docs by top N values
 	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
-	// RangeAgg get docs within ranges
-	RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) RangeAggResult
 }
 
 func New(t schema.Type, opts ...FieldOpts) (Field, error) {

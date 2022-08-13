@@ -100,16 +100,6 @@ func Test_Keyword_TermAgg(t *testing.T) {
 	}, result.Buckets)
 }
 
-func Test_Keyword_RangeAgg(t *testing.T) {
-	bm := roaring.New()
-	bm.Add(1)
-
-	field := newKeyword()
-	field.Add(1, true)
-	result := field.RangeAgg(context.Background(), bm, []Range{{From: 1, To: 2, Key: "key"}})
-	require.Equal(t, []RangeBucket{{From: 1, To: 2, Key: "key", Docs: roaring.New()}}, result.Buckets)
-}
-
 func Test_Keyword_Marshal(t *testing.T) {
 	field := newKeyword()
 	field.Add(1, "foo")
