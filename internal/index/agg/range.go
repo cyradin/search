@@ -49,6 +49,35 @@ func (r RangeAggRange) Validate() error {
 }
 
 func (a *RangeAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error) {
-	// @todo
-	return nil, nil
+	fields := fields(ctx)
+	f, ok := fields[a.Field]
+	if !ok {
+		return RangeResult{}, nil
+	}
+
+	result := RangeResult{Buckets: make([]RangeBucket, len(a.Ranges))}
+	for i, r := range a.Ranges {
+		res := f.RangeQuery(ctx, r.From, r.To, true, true)
+		rangeDocs := res.Docs()
+		rangeDocs.And(docs)
+
+		result.Buckets[i].From = res.From()
+		result.Buckets[i].To = res.To()
+		result.Buckets[i].Key = r.Key
+		result.Buckets[i].DocCount = int(rangeDocs.GetCardinality())
+
+		if len(a.Aggs) > 0 {
+			result.Buckets[i].Aggs = make(map[string]interface{}, len(a.Aggs))
+		}
+
+		for key, subAgg := range a.Aggs {
+			subAggResult, err := subAgg.Exec(ctx, rangeDocs)
+			if err != nil {
+				return nil, err
+			}
+			result.Buckets[i].Aggs[key] = subAggResult
+		}
+	}
+
+	return result, nil
 }
