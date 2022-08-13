@@ -7,91 +7,62 @@ import (
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_newTermAgg(t *testing.T) {
+func Test_TermsAgg_Validate(t *testing.T) {
 	t.Run("must return error if request is an empty object", func(t *testing.T) {
-		query := `{}`
-		req := mustDecodeRequest(t, query)
+		v := new(TermsAgg)
+		mustUnmarshal(t, `{}`, v)
 
-		q, err := newTermsAgg(context.Background(), req, nil)
+		err := validation.Validate(v)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
 
-	t.Run("must return error if request does not contain 'size' key", func(t *testing.T) {
-		query := `{
+	t.Run("must return error if request 'size' is < 0", func(t *testing.T) {
+		v := new(TermsAgg)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"size": -1
+		}`, v)
+
+		err := validation.Validate(v)
+		require.Error(t, err)
+	})
+
+	t.Run("must return error if request 'field' is empty", func(t *testing.T) {
+		v := new(TermsAgg)
+		mustUnmarshal(t, `{
+			"size": 10
+		}`, v)
+
+		err := validation.Validate(v)
+		require.Error(t, err)
+	})
+
+	t.Run("must not return error if request is valid", func(t *testing.T) {
+		v := new(TermsAgg)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"size": 10
+		}`, v)
+
+		err := validation.Validate(v)
+		assert.NoError(t, err)
+
+		v = new(TermsAgg)
+		mustUnmarshal(t, `{
 			"field": "field"
-		}`
-		req := mustDecodeRequest(t, query)
+		}`, v)
 
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-
-	t.Run("must return error if request size key is < 0", func(t *testing.T) {
-		query := `{
-				"field": "field",
-				"size": -1
-			}`
-		req := mustDecodeRequest(t, query)
-
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-
-	t.Run("must return error if request does not contain 'field' key", func(t *testing.T) {
-		query := `{
-				"size": 1
-			}`
-		req := mustDecodeRequest(t, query)
-
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-
-	t.Run("must return error if request 'field' value is not a string", func(t *testing.T) {
-		query := `{
-				"field": true,
-				"size": 1
-			}`
-		req := mustDecodeRequest(t, query)
-
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-
-	t.Run("must return error if request 'field' value is empty", func(t *testing.T) {
-		query := `{
-				"field": "",
-				"size": 1
-			}`
-		req := mustDecodeRequest(t, query)
-
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-
-	t.Run("must not return error if request is a valid term aggregation", func(t *testing.T) {
-		query := `{
-				"field": "field",
-				"size": 1
-			}`
-		req := mustDecodeRequest(t, query)
-
-		q, err := newTermsAgg(context.Background(), req, nil)
-		require.NoError(t, err)
-		require.NotNil(t, q)
+		err = validation.Validate(v)
+		assert.NoError(t, err)
 	})
 }
 
-func Test_termsAgg_exec(t *testing.T) {
+func Test_TermsAgg_Exec(t *testing.T) {
 	t.Run("must return valid agg result", func(t *testing.T) {
 		bm := roaring.New()
 		bm.Add(1)
@@ -109,20 +80,16 @@ func Test_termsAgg_exec(t *testing.T) {
 			},
 		)
 
-		query := `{
+		agg := new(TermsAgg)
+		mustUnmarshal(t, `{
 			"field": "field",
 			"size": 10
-		}`
-		req := mustDecodeRequest(t, query)
+		}`, agg)
 
-		agg, err := newTermsAgg(ctx, req, nil)
-		require.NoError(t, err)
-		require.NotNil(t, agg)
-
-		result, err := agg.exec(ctx, bm)
+		result, err := agg.Exec(ctx, bm)
 		require.NoError(t, err)
 
-		require.Equal(t, Terms{Buckets: []TermsBucket{
+		require.Equal(t, TermsResult{Buckets: []TermsBucket{
 			{DocCount: 2, Key: "foo"},
 			{DocCount: 1, Key: "bar"},
 		}}, result)
@@ -151,33 +118,26 @@ func Test_termsAgg_exec(t *testing.T) {
 			},
 		)
 
-		query := `{
-			"field": "field",
-			"size": 10
-		}`
-		req := mustDecodeRequest(t, query)
-
-		subAggs := `{
-			"agg":	{
-				"terms": {
-					"field": "field2",
-					"size": 10
+		agg := new(TermsAgg)
+		mustUnmarshal(t, `{
+				"field": "field",
+				"size": 10,
+				"aggs": {
+					"agg":	{
+						"type": "terms",
+						"field": "field2",
+						"size": 10
+					}
 				}
-			}
-		}`
-		subAggsReq := mustDecodeRequest(t, subAggs)
+			}`, agg)
 
-		agg, err := newTermsAgg(ctx, req, subAggsReq)
-		require.NoError(t, err)
-		require.NotNil(t, agg)
-
-		result, err := agg.exec(ctx, bm)
+		result, err := agg.Exec(ctx, bm)
 		require.NoError(t, err)
 
-		require.Equal(t, Terms{Buckets: []TermsBucket{
+		require.Equal(t, TermsResult{Buckets: []TermsBucket{
 			{
-				DocCount: 2, Key: "foo", SubAggs: map[string]interface{}{
-					"agg": Terms{
+				DocCount: 2, Key: "foo", Aggs: map[string]interface{}{
+					"agg": TermsResult{
 						Buckets: []TermsBucket{
 							{Key: "asdfgh", DocCount: 1},
 							{Key: "qwerty", DocCount: 1},
@@ -186,8 +146,8 @@ func Test_termsAgg_exec(t *testing.T) {
 				},
 			},
 			{
-				DocCount: 1, Key: "bar", SubAggs: map[string]interface{}{
-					"agg": Terms{
+				DocCount: 1, Key: "bar", Aggs: map[string]interface{}{
+					"agg": TermsResult{
 						Buckets: []TermsBucket{
 							{Key: "asdfgh", DocCount: 1},
 						},

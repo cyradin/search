@@ -75,6 +75,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 		return newResult(ctx, roaring.New())
 	}
 
+	opts := make([]ResultOpt, 0, 2)
 	var vFrom, vTo *T
 	if from != nil {
 		v, err := castE[T](from)
@@ -82,6 +83,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 			return newResult(ctx, roaring.New())
 		}
 		vFrom = &v
+		opts = append(opts, WithFrom(v))
 	}
 	if to != nil {
 		v, err := castE[T](to)
@@ -89,9 +91,10 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 			return newResult(ctx, roaring.New())
 		}
 		vTo = &v
+		opts = append(opts, WithTo(v))
 	}
 
-	return newResult(ctx, rangeQuery(ctx, f.values, vFrom, vTo, incFrom, incTo))
+	return newResult(ctx, rangeQuery(ctx, f.values, vFrom, vTo, incFrom, incTo), opts...)
 }
 
 func (f *Numeric[T]) Delete(id uint32) {
@@ -110,36 +113,6 @@ func (f *Numeric[T]) Data(id uint32) []interface{} {
 
 func (f *Numeric[T]) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
 	return termAgg(docs, f.values, size)
-}
-
-func (f *Numeric[T]) RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) RangeAggResult {
-	rr := make([]rangeAggRange[T], len(ranges))
-	for i, r := range ranges {
-		var from, to *T
-
-		if r.From != nil {
-			v, err := castE[T](r.From)
-			if err != nil {
-				continue
-			}
-			from = &v
-		}
-		if r.To != nil {
-			v, err := castE[T](r.To)
-			if err != nil {
-				continue
-			}
-			to = &v
-		}
-
-		rr[i] = rangeAggRange[T]{
-			From: from,
-			To:   to,
-			Key:  r.Key,
-		}
-	}
-
-	return rangeAgg(ctx, docs, f.values, rr)
 }
 
 type numericData[T NumericConstraint] struct {

@@ -28,6 +28,8 @@ type QueryResult struct {
 	scoringDisabled bool
 	docs            *roaring.Bitmap
 	boost           float64
+	from            interface{}
+	to              interface{}
 }
 
 func newResult(ctx context.Context, docs *roaring.Bitmap, opts ...ResultOpt) *QueryResult {
@@ -84,6 +86,26 @@ func (r *QueryResult) Score(id uint32) float64 {
 	}
 
 	return score * r.boost
+}
+
+func (r *QueryResult) From() interface{} {
+	return r.from
+}
+
+func (r *QueryResult) To() interface{} {
+	return r.to
+}
+
+func WithFrom(from interface{}) ResultOpt {
+	return func(r *QueryResult) {
+		r.from = from
+	}
+}
+
+func WithTo(to interface{}) ResultOpt {
+	return func(r *QueryResult) {
+		r.to = to
+	}
 }
 
 func WithTokens(tokens []string) ResultOpt {

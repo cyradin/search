@@ -2,7 +2,6 @@ package field
 
 import (
 	"container/heap"
-	"context"
 
 	"github.com/RoaringBitmap/roaring"
 )
@@ -78,50 +77,4 @@ func termAgg[T Simple](docs *roaring.Bitmap, data *docValues[T], size int) TermA
 	return TermAggResult{
 		Buckets: buckets,
 	}
-}
-
-type rangeAggRange[T NumericConstraint] struct {
-	Key  string
-	From *T
-	To   *T
-}
-
-type RangeBucket struct {
-	Key  string          `json:"key"`
-	From interface{}     `json:"from"`
-	To   interface{}     `json:"to"`
-	Docs *roaring.Bitmap `json:"docCount"`
-}
-
-type RangeAggResult struct {
-	Buckets []RangeBucket
-}
-
-func rangeAgg[T NumericConstraint](ctx context.Context, docs *roaring.Bitmap, data *docValues[T], ranges []rangeAggRange[T]) RangeAggResult {
-	result := RangeAggResult{
-		Buckets: make([]RangeBucket, 0, len(ranges)),
-	}
-
-	for _, r := range ranges {
-		if docs == nil || docs.IsEmpty() || (r.From == nil && r.To == nil) {
-			result.Buckets = append(result.Buckets, RangeBucket{
-				From: any(r.From),
-				To:   any(r.To),
-				Key:  r.Key,
-				Docs: roaring.New(),
-			})
-			continue
-		}
-
-		d := rangeQuery(ctx, data, r.From, r.To, true, true)
-		d.And(docs)
-		result.Buckets = append(result.Buckets, RangeBucket{
-			From: r.From,
-			To:   r.To,
-			Key:  r.Key,
-			Docs: d,
-		})
-	}
-
-	return result
 }

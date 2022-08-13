@@ -258,37 +258,6 @@ func test_Numeric_TermAgg[T NumericConstraint](t *testing.T) {
 	}, result.Buckets)
 }
 
-func Test_Numeric_RangeAgg(t *testing.T) {
-	t.Run("int8", test_Numeric_RangeAgg[int8])
-	t.Run("int16", test_Numeric_RangeAgg[int16])
-	t.Run("int32", test_Numeric_RangeAgg[int32])
-	t.Run("int64", test_Numeric_RangeAgg[int64])
-	t.Run("uint64", test_Numeric_RangeAgg[uint64])
-	t.Run("float32", test_Numeric_RangeAgg[float32])
-	t.Run("float64", test_Numeric_RangeAgg[float64])
-}
-
-func test_Numeric_RangeAgg[T NumericConstraint](t *testing.T) {
-	field := newNumeric[T]()
-	field.Add(1, 1)
-	field.Add(1, 2)
-	field.Add(2, 1)
-
-	bm1 := roaring.New()
-	bm1.Add(1)
-	bm1.Add(2)
-
-	v1 := T(1)
-	v2 := T(2)
-
-	result := field.RangeAgg(context.Background(), bm1, []Range{
-		{From: v1, To: v2, Key: "key"},
-	})
-	require.EqualValues(t, []RangeBucket{
-		{Key: "key", Docs: bm1, From: &v1, To: &v2},
-	}, result.Buckets)
-}
-
 func Test_Numeric_Marshal(t *testing.T) {
 	t.Run("int8", test_Numeric_Marshal[int8])
 	t.Run("int16", test_Numeric_Marshal[int16])

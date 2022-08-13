@@ -121,22 +121,6 @@ func (f *Text) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) Term
 	return termAgg(docs, f.values, size)
 }
 
-func (f *Text) RangeAgg(ctx context.Context, docs *roaring.Bitmap, ranges []Range) RangeAggResult {
-	buckets := make([]RangeBucket, len(ranges))
-	for i, r := range ranges {
-		buckets[i] = RangeBucket{
-			Key:  r.Key,
-			From: r.From,
-			To:   r.To,
-			Docs: roaring.New(),
-		}
-	}
-
-	return RangeAggResult{
-		Buckets: buckets,
-	}
-}
-
 type textData struct {
 	Values  *docValues[string]
 	Raw     *docValues[string]

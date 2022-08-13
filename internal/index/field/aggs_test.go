@@ -2,12 +2,10 @@ package field
 
 import (
 	"container/heap"
-	"context"
 	"fmt"
 	"testing"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -119,85 +117,5 @@ func Test_termAgg(t *testing.T) {
 			require.Equal(t, result.Buckets[int32(i)].Key, key)
 			require.ElementsMatch(t, result.Buckets[int32(i)].Docs.ToArray(), data.DocsByValue(key).ToArray())
 		}
-	})
-}
-
-func Test_rangeAgg(t *testing.T) {
-	v := newDocValues[int32]()
-	v.Add(1, 1)
-	v.Add(2, 2)
-	v.Add(3, 3)
-	v.Add(4, 4)
-	v.Add(5, 5)
-	v.Add(6, 6)
-
-	var from int32 = 1
-	var to int32 = 4
-	ranges := []rangeAggRange[int32]{
-		{
-			Key: "empty",
-		},
-		{
-			Key:  "1..4",
-			From: &from,
-			To:   &to,
-		},
-	}
-
-	checkResult := func(t *testing.T, expected RangeAggResult, result RangeAggResult) {
-		require.Len(t, result.Buckets, len(expected.Buckets))
-		for i, v := range result.Buckets {
-			assert.EqualValues(t, expected.Buckets[i].Key, v.Key)
-			if expected.Buckets[i].From == nil {
-				assert.Nil(t, v.From)
-			} else {
-				assert.EqualValues(t, expected.Buckets[i].From, v.From)
-			}
-			if expected.Buckets[i].To == nil {
-				assert.Nil(t, v.To)
-			} else {
-				assert.EqualValues(t, expected.Buckets[i].To, v.To)
-			}
-
-			fmt.Println(v.Docs.GetCardinality())
-			fmt.Println(expected.Buckets[i].Docs.GetCardinality())
-
-			assert.EqualValues(t, expected.Buckets[i].Docs.GetCardinality(), v.Docs.GetCardinality())
-		}
-	}
-
-	t.Run("must return empty buckets if nil bitmap provided", func(t *testing.T) {
-		result := rangeAgg(context.Background(), nil, v, ranges)
-		expected := RangeAggResult{Buckets: []RangeBucket{
-			{Key: "empty", Docs: roaring.New()},
-			{Key: "1..4", From: &from, To: &to, Docs: roaring.New()},
-		}}
-		checkResult(t, expected, result)
-	})
-	t.Run("must return empty buckets if empty bitmap provided", func(t *testing.T) {
-		result := rangeAgg(context.Background(), roaring.New(), v, ranges)
-		expected := RangeAggResult{Buckets: []RangeBucket{
-			{Key: "empty", Docs: roaring.New()},
-			{Key: "1..4", From: &from, To: &to, Docs: roaring.New()},
-		}}
-		checkResult(t, expected, result)
-	})
-	t.Run("must return correct buckets", func(t *testing.T) {
-		bm := roaring.New()
-		bm.Add(1)
-		bm.Add(2)
-		bm.Add(3)
-
-		result := rangeAgg(context.Background(), bm, v, ranges)
-		expected := RangeAggResult{Buckets: []RangeBucket{
-			{Key: "empty", Docs: roaring.New()},
-			{
-				Key:  "1..4",
-				From: &from,
-				To:   &to,
-				Docs: bm,
-			},
-		}}
-		checkResult(t, expected, result)
 	})
 }
