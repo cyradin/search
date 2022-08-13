@@ -1,152 +1,71 @@
 package agg
 
 import (
-	"context"
 	"fmt"
-	"strings"
 
-	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/errs"
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	jsoniter "github.com/json-iterator/go"
 )
 
-func multipleAggDefinitionsErr(ctx context.Context, aggs ...string) validation.Error {
-	return validation.NewError("validation_aggs_multiple_definitions_not_allowed", fmt.Sprintf("multiple agg definitions not allowed: %s", strings.Join(aggs, ", "))).
-		SetParams(valid.ErrParams(valid.Path(ctx)))
+type AggType struct {
+	Type string `json:"type"`
 }
 
-type internalAgg interface {
-	exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error)
-}
+type Aggs map[string]Agg
 
-type aggType string
-
-const (
-	aggTerms aggType = "terms"
-	aggRange aggType = "range"
-)
-
-var aggTypes = map[aggType]struct{}{
-	aggTerms: {},
-	aggRange: {},
-}
-
-func build(ctx context.Context, req Aggs) (map[string]internalAgg, error) {
-	if req == nil || len(req) == 0 {
-		return make(map[string]internalAgg), nil
-	}
-	err := validateAggs(ctx, req)
+func (s *Aggs) UnmarshalJSON(data []byte) error {
+	d := make(AggsRequest)
+	err := jsoniter.Unmarshal(data, &d)
 	if err != nil {
-		return nil, err
+		return err
 	}
 
-	result := make(map[string]internalAgg, len(req))
+	res, err := build(d)
+	if err != nil {
+		return err
+	}
+
+	*s = res
+	return nil
+}
+
+func build(req AggsRequest) (Aggs, error) {
+	if len(req) == 0 {
+		return make(Aggs), nil
+	}
+
+	result := make(map[string]Agg, len(req))
 	for key, value := range req {
-		req := value.(map[string]interface{})
-		ctx := valid.WithPath(ctx, valid.Path(ctx), key)
+		var (
+			agg Agg
+			err error
+		)
 
-		aType, err := getAggType(req)
+		aggType := new(AggType)
+		err = jsoniter.Unmarshal(value, aggType)
 		if err != nil {
-			panic(err) // must not be executed because of validation made earlier
+			return nil, err
 		}
-		agg, subAgg := getAggData(req)
 
-		var r internalAgg
-		switch aggType(aType) {
-		case aggTerms:
-			r, err = newTermsAgg(ctx, agg, subAgg)
+		switch aggType.Type {
+		case "terms":
+			agg = new(TermsAgg)
+			err = jsoniter.Unmarshal(value, agg)
 		default:
-			panic(errs.Errorf("unknown agg type %q", key)) // must not be executed because of validation made earlier
+			return nil, fmt.Errorf("unknown agg type %q", aggType.Type)
 		}
 
 		if err != nil {
 			return nil, err
 		}
 
-		result[key] = r
+		err = validation.Validate(agg)
+		if err != nil {
+			return nil, err
+		}
+
+		result[key] = agg
 	}
 
 	return result, nil
-}
-
-func validateAggs(ctx context.Context, req Aggs) error {
-	rules := make([]*validation.KeyRules, 0, len(req))
-	for key := range req {
-		ctx = valid.WithPath(ctx, key)
-		rules = append(
-			rules,
-			validation.Key(
-				key,
-				validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-				validation.WithContext(func(ctx context.Context, value interface{}) error {
-					aggs, ok := value.(map[string]interface{})
-					if !ok {
-						return valid.NewErrObjectRequired(ctx, key)
-					}
-
-					var aggKey string
-					for k, v := range aggs {
-						_, ok := v.(map[string]interface{})
-						if !ok {
-							return valid.NewErrObjectRequired(ctx, k)
-						}
-						if k == AggsKey {
-							continue
-						}
-
-						if _, ok := aggTypes[aggType(k)]; !ok {
-							return valid.NewErrUnknownValue(ctx, k)
-						}
-
-						if aggKey != "" {
-							return multipleAggDefinitionsErr(ctx, aggKey, k)
-						}
-
-						aggKey = k
-					}
-
-					return nil
-				}),
-			),
-		)
-	}
-
-	return validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Map(rules...).AllowExtraKeys(),
-	)
-}
-
-func firstVal(m map[string]interface{}) (string, interface{}) {
-	for k, v := range m {
-		return k, v
-	}
-
-	return "", nil
-}
-
-func getAggType(req Aggs) (string, error) {
-	for k := range req {
-		if k == AggsKey {
-			continue
-		}
-		return k, nil
-	}
-
-	return "", errs.Errorf("failed to determine agg type")
-}
-
-func getAggData(req Aggs) (map[string]interface{}, map[string]interface{}) {
-	var agg map[string]interface{}
-	var subAggs map[string]interface{}
-	for k, v := range req {
-		if k == AggsKey {
-			subAggs = v.(map[string]interface{})
-			continue
-		}
-		agg = v.(map[string]interface{})
-	}
-
-	return agg, subAggs
 }

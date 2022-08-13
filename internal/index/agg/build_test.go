@@ -1,199 +1,112 @@
 package agg
 
 import (
-	"context"
-	"strings"
 	"testing"
 
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
 
-func mustDecodeRequest(t *testing.T, query string) map[string]interface{} {
-	result, err := decodeRequest(query)
+func mustUnmarshal(t *testing.T, src string, dst interface{}) {
+	err := jsoniter.Unmarshal([]byte(src), dst)
 	require.NoError(t, err)
-	return result
-}
-
-func decodeRequest(query string) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-
-	dec := jsoniter.NewDecoder(strings.NewReader(query))
-	dec.UseNumber()
-	err := dec.Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
 }
 
 func Test_build(t *testing.T) {
 	t.Run("must return empty result if request is nil", func(t *testing.T) {
-		result, err := build(context.Background(), nil)
+		result, err := build(nil)
 		require.NoError(t, err)
-		require.Equal(t, map[string]internalAgg{}, result)
+		require.Equal(t, Aggs{}, result)
 	})
 
 	t.Run("must return empty result if request is an empty map", func(t *testing.T) {
-		result, err := build(context.Background(), make(Aggs))
+		result, err := build(make(AggsRequest))
 		require.NoError(t, err)
-		require.Equal(t, map[string]internalAgg{}, result)
+		require.Equal(t, Aggs{}, result)
 	})
 
 	t.Run("must return validation error if request agg is not an object", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
-			"aggname": 1
-		}`)
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
+				"aggname": 1
+			}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
 
-	t.Run("must return validation error if request agg definition is not an object", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
-			"aggname": {
-				"terms": 1
-			}
-		}`)
+	t.Run("must return validation error if request agg type is empty", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
+			"aggname": {}
+		}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
 
-	t.Run("must return validation error if request agg contains multiple definitions", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
+	t.Run("must return validation error if request agg type not a string", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
 			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				},
-				"range": {
-					"field": "value",
-					"ranges": [
-						{
-							"from": 50,
-							"to": 100
-						}
-					]
-				}
+				"type": {}
 			}
-		}`)
+		}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
 
-	t.Run("must return validation error if request contains invalid agg type", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
+	t.Run("must return validation error if request agg type is unknown", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
 			"aggname": {
-				"invalid": {
-					"size": 10,
-					"field": "value"
-				}
+				"type": "invalid"
 			}
-		}`)
+		}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
 
 	t.Run("must not return validation error if request is a valid aggregation", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
 			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				}
+				"type": "terms",
+				"size": 10,
+				"field": "value"
 			}
-		}`)
+		}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 
 	t.Run("must not return validation error if request contains valid subaggregations", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
 			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				},
+				"type": "terms",
+				"size": 10,
+				"field": "value",
 				"aggs": {
 					"subaggname": {
-						"terms": {
-							"size": 10,
-							"field": "value"
-						}
+						"type": "terms",
+						"size": 10,
+						"field": "value"
 					}
 				}
 			}
-		}`)
+		}`, &req)
 
-		result, err := build(context.Background(), aggs)
+		result, err := build(req)
 		require.NoError(t, err)
 		require.NotNil(t, result)
-	})
-
-	t.Run("must return validation error if request contains invalid agg in subggregations", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
-			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				},
-				"aggs": 1
-			}
-		}`)
-
-		result, err := build(context.Background(), aggs)
-		require.Error(t, err)
-		require.Nil(t, result)
-	})
-
-	t.Run("must return validation error if request contains invalid agg type in subggregations", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
-			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				},
-				"aggs": {
-					"aggname": 1
-				}
-			}
-		}`)
-
-		result, err := build(context.Background(), aggs)
-		require.Error(t, err)
-		require.Nil(t, result)
-	})
-
-	t.Run("must return validation error if request contains invalid agg definition in subggregations", func(t *testing.T) {
-		aggs := mustDecodeRequest(t, `{
-			"aggname": {
-				"terms": {
-					"size": 10,
-					"field": "value"
-				},
-				"aggs": {
-					"aggname": {
-						"invalid": {
-							"size": 10,
-							"field": "value"
-						}
-					}
-				}
-			}
-		}`)
-
-		result, err := build(context.Background(), aggs)
-		require.Error(t, err)
-		require.Nil(t, result)
 	})
 }

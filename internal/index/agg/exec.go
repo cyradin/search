@@ -5,14 +5,19 @@ import (
 
 	"github.com/RoaringBitmap/roaring"
 	"github.com/cyradin/search/internal/valid"
+	jsoniter "github.com/json-iterator/go"
 )
+
+type Agg interface {
+	Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error)
+}
 
 const AggsKey = "aggs"
 
 type Result map[string]interface{}
-type Aggs map[string]interface{}
+type AggsRequest map[string]jsoniter.RawMessage
 
-func Exec(ctx context.Context, docs *roaring.Bitmap, req Aggs, fields Fields) (Result, error) {
+func Exec(ctx context.Context, docs *roaring.Bitmap, req AggsRequest, fields Fields) (Result, error) {
 	if docs == nil {
 		docs = roaring.New()
 	}
@@ -20,14 +25,14 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req Aggs, fields Fields) (R
 	ctx = withFields(ctx, fields)
 	ctx = valid.WithPath(ctx, AggsKey)
 
-	aggs, err := build(ctx, req)
+	aggs, err := build(req)
 	if err != nil {
 		return nil, err
 	}
 
 	result := make(Result, len(aggs))
 	for key, agg := range aggs {
-		r, err := agg.exec(ctx, docs)
+		r, err := agg.Exec(ctx, docs)
 		if err != nil {
 			return nil, err
 		}

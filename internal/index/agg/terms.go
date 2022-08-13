@@ -4,70 +4,46 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
-	"github.com/spf13/cast"
 )
 
-var _ internalAgg = (*termsAgg)(nil)
+var _ Agg = (*TermsAgg)(nil)
 
 const TermsAggDefaultSize = 10
 
-type Terms struct {
+type TermsResult struct {
 	Buckets []TermsBucket
 }
 
 type TermsBucket struct {
 	Key      interface{}            `json:"key"`
 	DocCount int                    `json:"docCount"`
-	SubAggs  map[string]interface{} `json:"subAggs,omitempty"`
+	Aggs     map[string]interface{} `json:"aggs,omitempty"`
 }
 
-type termsAgg struct {
-	size    int
-	field   string
-	subAggs map[string]internalAgg
+type TermsAgg struct {
+	Size  int    `json:"size"`
+	Field string `json:"field"`
+	Aggs  Aggs   `json:"aggs"`
 }
 
-func newTermsAgg(ctx context.Context, req Aggs, subAggsReq Aggs) (*termsAgg, error) {
-	err := validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Map(
-			validation.Key("size", validation.WithContext(valid.JsonNumberIntMin(0))),
-			validation.Key("field", validation.Required, validation.WithContext(valid.String())),
-		),
+func (a *TermsAgg) Validate() error {
+	return validation.ValidateStruct(a,
+		validation.Field(&a.Size, validation.Min(0)),
+		validation.Field(&a.Field, validation.Required),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	subAggs, err := build(ctx, subAggsReq)
-	if err != nil {
-		return nil, err
-	}
-
-	sz := cast.ToInt(req["size"])
-	if sz == 0 {
-		sz = TermsAggDefaultSize
-	}
-
-	return &termsAgg{
-		size:    sz,
-		field:   cast.ToString(req["field"]),
-		subAggs: subAggs,
-	}, nil
 }
 
-func (a *termsAgg) exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error) {
+func (a *TermsAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error) {
 	fields := fields(ctx)
-	field, ok := fields[a.field]
+	field, ok := fields[a.Field]
 	if !ok {
-		return nil, nil
+		return TermsResult{}, nil
 	}
 
-	res := field.TermAgg(ctx, docs, a.size)
+	res := field.TermAgg(ctx, docs, a.Size)
 
-	result := Terms{
+	result := TermsResult{
 		Buckets: make([]TermsBucket, len(res.Buckets)),
 	}
 	for i, b := range res.Buckets {
@@ -76,14 +52,14 @@ func (a *termsAgg) exec(ctx context.Context, docs *roaring.Bitmap) (interface{},
 			DocCount: int(b.Docs.GetCardinality()),
 		}
 
-		if len(a.subAggs) > 0 {
-			result.Buckets[i].SubAggs = make(map[string]interface{}, len(a.subAggs))
-			for key, subAgg := range a.subAggs {
-				subAggResult, err := subAgg.exec(ctx, b.Docs)
+		if len(a.Aggs) > 0 {
+			result.Buckets[i].Aggs = make(map[string]interface{}, len(a.Aggs))
+			for key, subAgg := range a.Aggs {
+				subAggResult, err := subAgg.Exec(ctx, b.Docs)
 				if err != nil {
 					return nil, err
 				}
-				result.Buckets[i].SubAggs[key] = subAggResult
+				result.Buckets[i].Aggs[key] = subAggResult
 			}
 		}
 	}
