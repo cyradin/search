@@ -73,7 +73,7 @@ func Test_build(t *testing.T) {
 		require.Nil(t, result)
 	})
 
-	t.Run("must not return validation error if request is a valid aggregation", func(t *testing.T) {
+	t.Run("must not return validation error if request is a valid terms aggregation", func(t *testing.T) {
 		req := make(AggsRequest)
 		mustUnmarshal(t, `{
 			"aggname": {
@@ -102,6 +102,27 @@ func Test_build(t *testing.T) {
 						"field": "value"
 					}
 				}
+			}
+		}`, &req)
+
+		result, err := build(req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
+
+	t.Run("must not return validation error if request is a valid range aggregation", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
+			"aggname": {
+				"type": "range",
+				"ranges": [
+					{
+						"key": "key",
+						"from": 10,
+						"to": 50
+					}
+				],
+				"field": "value"
 			}
 		}`, &req)
 
