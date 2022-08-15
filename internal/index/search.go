@@ -65,13 +65,15 @@ func (d *Documents) execAggs(ctx context.Context, q Search, qr query.Result, fie
 }
 
 type SearchResult struct {
-	Took int64      `json:"took"`
-	Hits SearchHits `json:"hits"`
+	Took int64                  `json:"took"`
+	Hits SearchHits             `json:"hits"`
+	Aggs map[string]interface{} `json:"aggs"`
 }
 
 func NewSearchResult(qr query.Result, ar agg.Result, took int64) SearchResult {
 	return SearchResult{
 		Hits: NewSearchHits(qr),
+		Aggs: ar,
 		Took: took,
 	}
 }

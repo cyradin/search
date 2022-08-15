@@ -12,7 +12,7 @@ var _ Agg = (*TermsAgg)(nil)
 const TermsAggDefaultSize = 10
 
 type TermsResult struct {
-	Buckets []TermsBucket
+	Buckets []TermsBucket `json:"buckets"`
 }
 
 type TermsBucket struct {
