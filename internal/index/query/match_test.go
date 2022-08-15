@@ -77,13 +77,6 @@ func Test_matchQuery_exec(t *testing.T) {
 	require.NoError(t, err)
 	f2.Add(1, "foo bar")
 
-	ctx := withFields(context.Background(),
-		map[string]field.Field{
-			"keyword": f1,
-			"text":    f2,
-		},
-	)
-
 	t.Run("must return empty result if field not found", func(t *testing.T) {
 		query := new(MatchQuery)
 		mustUnmarshal(t, `{
@@ -91,7 +84,7 @@ func Test_matchQuery_exec(t *testing.T) {
 			"query": "value"
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -104,7 +97,7 @@ func Test_matchQuery_exec(t *testing.T) {
 				"query": "value1"
 			}`, query)
 
-			result, err := query.Exec(ctx)
+			result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 			require.NoError(t, err)
 			require.True(t, result.Docs().IsEmpty())
 		})
@@ -115,7 +108,7 @@ func Test_matchQuery_exec(t *testing.T) {
 				"query": "baz"
 			}`, query)
 
-			result, err := query.Exec(ctx)
+			result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 			require.NoError(t, err)
 			require.True(t, result.Docs().IsEmpty())
 		})
@@ -129,7 +122,7 @@ func Test_matchQuery_exec(t *testing.T) {
 				"query": "value"
 			}`, query)
 
-			result, err := query.Exec(ctx)
+			result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 			require.NoError(t, err)
 			require.False(t, result.Docs().IsEmpty())
 			require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -143,7 +136,7 @@ func Test_matchQuery_exec(t *testing.T) {
 					"query": "bar baz"
 				}`, query)
 
-				result, err := query.Exec(ctx)
+				result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 				require.NoError(t, err)
 				require.False(t, result.Docs().IsEmpty())
 				require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -156,7 +149,7 @@ func Test_matchQuery_exec(t *testing.T) {
 					"query": "foo bar"
 				}`, query)
 
-				result, err := query.Exec(ctx)
+				result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 				require.NoError(t, err)
 				require.False(t, result.Docs().IsEmpty())
 				require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -169,7 +162,7 @@ func Test_matchQuery_exec(t *testing.T) {
 					"query": "foo"
 				}`, query)
 
-				result, err := query.Exec(ctx)
+				result, err := query.Exec(context.Background(), Fields{"keyword": f1, "text": f2})
 				require.NoError(t, err)
 				require.False(t, result.Docs().IsEmpty())
 				require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())

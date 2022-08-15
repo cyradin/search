@@ -1,44 +1,12 @@
 package index
 
 import (
-	"context"
-	"time"
-
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/index/query"
 	"github.com/cyradin/search/internal/index/schema"
-	jsoniter "github.com/json-iterator/go"
 )
 
 type DocSource map[string]interface{}
-
-type Search struct {
-	Query  jsoniter.RawMessage `json:"query"`
-	Limit  int                 `json:"limit"`
-	Offset int                 `json:"offset"`
-}
-
-type SearchResult struct {
-	Took int        `json:"took"`
-	Hits SearchHits `json:"hits"`
-}
-
-type SearchHits struct {
-	Total    SearchTotal `json:"total"`
-	Hits     []SearchHit `json:"hits"`
-	MaxScore float64     `json:"maxScore"`
-}
-
-type SearchTotal struct {
-	Value    int    `json:"value"`
-	Relation string `json:"relation"`
-}
-
-type SearchHit struct {
-	ID    uint32  `json:"id"`
-	Score float64 `json:"score"`
-}
 
 type Documents struct {
 	fields *field.Storage
@@ -116,37 +84,4 @@ func (d *Documents) Delete(index Index, id uint32) error {
 	fieldIndex.Delete(id)
 
 	return nil
-}
-
-func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
-	fieldIndex, err := d.fields.GetIndex(index.Name)
-	if err != nil {
-		return SearchResult{}, err
-	}
-
-	t := time.Now()
-	result, err := query.Exec(ctx, query.QueryRequest(q.Query), fieldIndex.Fields())
-	took := time.Since(t).Microseconds()
-	if err != nil {
-		return SearchResult{}, err
-	}
-
-	hits := make([]SearchHit, len(result.Hits))
-	for i, item := range result.Hits {
-		hits[i] = SearchHit{
-			ID:    item.ID,
-			Score: item.Score,
-		}
-	}
-
-	return SearchResult{
-		Hits: SearchHits{
-			Total: SearchTotal{
-				Value:    result.Total.Value,
-				Relation: result.Total.Relation,
-			},
-			Hits: hits,
-		},
-		Took: int(took),
-	}, nil
 }

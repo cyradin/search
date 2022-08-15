@@ -35,7 +35,7 @@ func (q *BoolQuery) UnmarshalJSON(data []byte) error {
 
 	q.Must = make([]Query, len(d.Must))
 	for i, r := range d.Must {
-		v, err := build(QueryRequest(r))
+		v, err := Build(QueryRequest(r))
 		if err != nil {
 			return err
 		}
@@ -44,7 +44,7 @@ func (q *BoolQuery) UnmarshalJSON(data []byte) error {
 
 	q.Should = make([]Query, len(d.Should))
 	for i, r := range d.Should {
-		v, err := build(QueryRequest(r))
+		v, err := Build(QueryRequest(r))
 		if err != nil {
 			return err
 		}
@@ -53,7 +53,7 @@ func (q *BoolQuery) UnmarshalJSON(data []byte) error {
 
 	q.Filter = make([]Query, len(d.Filter))
 	for i, r := range d.Filter {
-		v, err := build(QueryRequest(r))
+		v, err := Build(QueryRequest(r))
 		if err != nil {
 			return err
 		}
@@ -67,89 +67,88 @@ func (q *BoolQuery) Validate() error {
 	return nil
 }
 
-func (q *BoolQuery) Exec(ctx context.Context) (*queryResult, error) {
-	fields := fields(ctx)
-
+func (q *BoolQuery) Exec(ctx context.Context, fields Fields) (Result, error) {
 	if len(q.Should) == 0 && len(q.Must) == 0 && len(q.Filter) == 0 {
 		if ff, ok := fields[field.AllField]; ok {
-			return newResult(ff.TermQuery(ctx, true)), nil
+			return NewResult(ff.TermQuery(ctx, true)), nil
 		}
 
-		return newEmptyResult(), nil
+		return NewEmptyResult(), nil
 	}
 
 	var (
-		shouldResult, filterResult, mustResult *queryResult
+		shouldResult, filterResult, mustResult Result
 		err                                    error
 	)
 
 	if q.Parallel {
-		shouldResult, filterResult, mustResult, err = q.runParallel(ctx)
+		shouldResult, filterResult, mustResult, err = q.runParallel(ctx, fields)
 	} else {
-		shouldResult, filterResult, mustResult, err = q.runSync(ctx)
+		shouldResult, filterResult, mustResult, err = q.runSync(ctx, fields)
 	}
 	if err != nil {
-		return newEmptyResult(), err
+		return NewEmptyResult(), err
 	}
 
-	var result *queryResult
-	if shouldResult != nil {
+	var result Result
+	if !shouldResult.IsEmpty() {
 		result = shouldResult
 	}
-	if mustResult != nil {
-		if result == nil {
+	if !mustResult.IsEmpty() {
+		if result.IsEmpty() {
 			result = mustResult
 		} else {
 			result.And(mustResult)
 		}
 	}
-	if filterResult != nil {
-		if result == nil {
+	if !filterResult.IsEmpty() {
+		if result.IsEmpty() {
 			result = filterResult
 		} else {
 			result.And(filterResult)
 		}
 	}
 
+	if result.IsEmpty() {
+		return NewEmptyResult(), nil
+	}
+
 	return result, nil
 }
 
-func (q *BoolQuery) runParallel(ctx context.Context) (*queryResult, *queryResult, *queryResult, error) {
+func (q *BoolQuery) runParallel(ctx context.Context, fields Fields) (shouldResult Result, filterResult Result, mustResult Result, err error) {
 	errors := make(chan error)
 
 	ctx, cancel := context.WithCancel(ctx)
 	defer cancel()
 
-	chShould := q.runAsyncQueries(ctx, q.Should, errors)
-	chMust := q.runAsyncQueries(ctx, q.Must, errors)
-	chFilter := q.runAsyncQueries(ctx, q.Filter, errors)
-
-	var shouldResult *queryResult
-	var filterResult *queryResult
-	var mustResult *queryResult
+	chShould := q.runAsyncQueries(ctx, fields, q.Should, errors)
+	chMust := q.runAsyncQueries(ctx, fields, q.Must, errors)
+	chFilter := q.runAsyncQueries(ctx, fields, q.Filter, errors)
 
 	for i := 0; i < len(q.Should)+len(q.Must)+len(q.Filter); i++ {
 		select {
 		case r := <-chShould:
-			if shouldResult == nil {
+			if shouldResult.IsEmpty() {
 				shouldResult = r
 			} else {
 				shouldResult.Or(r)
 			}
 		case r := <-chMust:
-			if mustResult == nil {
+			if mustResult.IsEmpty() {
 				mustResult = r
 			} else {
 				mustResult.And(r)
 			}
 		case r := <-chFilter:
-			if filterResult == nil {
+			if filterResult.IsEmpty() {
 				filterResult = r
 			} else {
 				filterResult.And(r)
 			}
-		case err := <-errors:
-			return nil, nil, nil, err
+		case e := <-errors:
+			err = e
+			return
 		}
 	}
 
@@ -157,13 +156,13 @@ func (q *BoolQuery) runParallel(ctx context.Context) (*queryResult, *queryResult
 
 }
 
-func (q *BoolQuery) runAsyncQueries(ctx context.Context, queries []Query, errors chan<- error) <-chan *queryResult {
-	ch := make(chan *queryResult)
+func (q *BoolQuery) runAsyncQueries(ctx context.Context, fields Fields, queries []Query, errors chan<- error) <-chan Result {
+	ch := make(chan Result)
 
 	go func() {
 		for _, query := range queries {
 			go func(ctx context.Context, query Query) {
-				res, err := query.Exec(ctx)
+				res, err := query.Exec(ctx, fields)
 				if err != nil {
 					errors <- err
 				}
@@ -175,39 +174,36 @@ func (q *BoolQuery) runAsyncQueries(ctx context.Context, queries []Query, errors
 	return ch
 }
 
-func (q *BoolQuery) runSync(ctx context.Context) (*queryResult, *queryResult, *queryResult, error) {
-	shouldResult, err := q.runSyncQueries(ctx, q.Should, func(src *queryResult, dst *queryResult) { src.Or(dst) })
+func (q *BoolQuery) runSync(ctx context.Context, fields Fields) (shouldResult Result, filterResult Result, mustResult Result, err error) {
+	shouldResult, err = q.runSyncQueries(ctx, fields, q.Should, func(src Result, dst Result) { src.Or(dst) })
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
-	filterResult, err := q.runSyncQueries(ctx, q.Filter, func(src *queryResult, dst *queryResult) { src.And(dst) })
+	filterResult, err = q.runSyncQueries(ctx, fields, q.Filter, func(src Result, dst Result) { src.And(dst) })
 	if err != nil {
-		return nil, nil, nil, err
+		return
 	}
 
-	mustResult, err := q.runSyncQueries(ctx, q.Must, func(src *queryResult, dst *queryResult) { src.And(dst) })
-	if err != nil {
-		return nil, nil, nil, err
-	}
-
-	return shouldResult, filterResult, mustResult, nil
+	mustResult, err = q.runSyncQueries(ctx, fields, q.Must, func(src Result, dst Result) { src.And(dst) })
+	return
 }
 
 func (q *BoolQuery) runSyncQueries(
 	ctx context.Context,
+	fields Fields,
 	queries []Query,
-	apply func(src *queryResult, dst *queryResult),
-) (*queryResult, error) {
-	var result *queryResult
+	apply func(src Result, dst Result),
+) (Result, error) {
+	var result Result
 
 	for _, query := range queries {
-		r, err := query.Exec(ctx)
+		r, err := query.Exec(ctx, fields)
 		if err != nil {
-			return newEmptyResult(), err
+			return NewEmptyResult(), err
 		}
 
-		if result == nil {
+		if result.IsEmpty() {
 			result = r
 			continue
 		}

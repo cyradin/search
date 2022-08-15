@@ -2,6 +2,7 @@ package query
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 
 	"github.com/RoaringBitmap/roaring"
@@ -10,39 +11,55 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-type queryResult struct {
+type Query interface {
+	Exec(ctx context.Context, fields Fields) (Result, error)
+}
+
+type Total struct {
+	Value    int
+	Relation string
+}
+
+type QueryRequest jsoniter.RawMessage
+type Fields map[string]field.Field
+
+type Result struct {
 	docs    *roaring.Bitmap
 	results []*field.QueryResult
 }
 
-func newEmptyResult() *queryResult {
-	return &queryResult{
+func (r Result) IsEmpty() bool {
+	return len(r.results) == 0
+}
+
+func NewEmptyResult() Result {
+	return Result{
 		docs: roaring.New(),
 	}
 }
 
-func newResult(res *field.QueryResult) *queryResult {
-	return &queryResult{
+func NewResult(res *field.QueryResult) Result {
+	return Result{
 		docs:    res.Docs(),
 		results: []*field.QueryResult{res},
 	}
 }
 
-func (r *queryResult) And(res *queryResult) {
+func (r *Result) And(res Result) {
 	r.docs.And(res.Docs())
 	r.results = append(r.results, res.results...)
 }
 
-func (r *queryResult) Or(res *queryResult) {
+func (r *Result) Or(res Result) {
 	r.docs.Or(res.Docs())
 	r.results = append(r.results, res.results...)
 }
 
-func (r *queryResult) Docs() *roaring.Bitmap {
+func (r *Result) Docs() *roaring.Bitmap {
 	return r.docs
 }
 
-func (r *queryResult) Score(id uint32) float64 {
+func (r *Result) Score(id uint32) float64 {
 	if !r.docs.Contains(id) {
 		return 0
 	}
@@ -59,7 +76,7 @@ type QueryType struct {
 	Type string `json:"type"`
 }
 
-func build(req QueryRequest) (Query, error) {
+func Build(req QueryRequest) (Query, error) {
 	queryType := new(QueryType)
 
 	dec := jsoniter.NewDecoder(bytes.NewBuffer(req))
