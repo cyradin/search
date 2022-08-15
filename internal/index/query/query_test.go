@@ -15,11 +15,11 @@ func mustUnmarshal(t *testing.T, src string, dst interface{}) {
 	require.NoError(t, err)
 }
 
-func Test_build(t *testing.T) {
+func Test_Build(t *testing.T) {
 	t.Run("must return error if query is empty", func(t *testing.T) {
 		query := []byte(`{}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
@@ -29,7 +29,7 @@ func Test_build(t *testing.T) {
 			"type": "invalid"
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
@@ -40,7 +40,7 @@ func Test_build(t *testing.T) {
 			"field": "field"
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
@@ -52,7 +52,7 @@ func Test_build(t *testing.T) {
 			"query": "query"
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -64,7 +64,7 @@ func Test_build(t *testing.T) {
 			"query": ["query"]
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -74,7 +74,7 @@ func Test_build(t *testing.T) {
 			"type": "bool"
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -86,7 +86,7 @@ func Test_build(t *testing.T) {
 			"query": "query"
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
@@ -98,7 +98,7 @@ func Test_build(t *testing.T) {
 			"from": 10
 		}`)
 
-		result, err := build(query)
+		result, err := Build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})

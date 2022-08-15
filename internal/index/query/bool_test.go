@@ -75,13 +75,9 @@ func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 			}
 		}
 
-		ctx := withFields(context.Background(), Fields{
-			"field": f,
-		})
-
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				q, err := build(query)
+				q, err := Build(query)
 
 				bq := q.(*BoolQuery)
 				if err != nil {
@@ -91,7 +87,9 @@ func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 					bq.Parallel = true
 				}
 
-				result, err := bq.Exec(ctx)
+				result, err := bq.Exec(context.Background(), Fields{
+					"field": f,
+				})
 				if err != nil {
 					panic(err)
 				}
@@ -183,13 +181,11 @@ func Test_BoolQuery_Exec(t *testing.T) {
 	f2.Add(2, false)
 	f2.Add(3, true)
 
-	ctx := withFields(context.Background(), map[string]field.Field{"field": f1, field.AllField: f2})
-
 	t.Run("must return all documents for empty query", func(t *testing.T) {
 		query := new(BoolQuery)
 		mustUnmarshal(t, `{}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
@@ -211,7 +207,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
@@ -233,7 +229,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
@@ -255,7 +251,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -289,7 +285,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
@@ -311,7 +307,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
@@ -333,7 +329,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -367,7 +363,7 @@ func Test_BoolQuery_Exec(t *testing.T) {
 			]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f1, field.AllField: f2})
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())

@@ -62,11 +62,6 @@ func Test_TermQuery_Exec(t *testing.T) {
 	f, err := field.New(schema.TypeKeyword)
 	require.NoError(t, err)
 	f.Add(1, "value")
-	ctx := withFields(context.Background(),
-		map[string]field.Field{
-			"field": f,
-		},
-	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
 		query := new(TermQuery)
@@ -75,7 +70,7 @@ func Test_TermQuery_Exec(t *testing.T) {
 			"query": "value"
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -87,7 +82,7 @@ func Test_TermQuery_Exec(t *testing.T) {
 			"query": "value1"
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -99,7 +94,7 @@ func Test_TermQuery_Exec(t *testing.T) {
 			"query": "value"
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.False(t, result.Docs().IsEmpty())
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
@@ -168,11 +163,6 @@ func Test_TermsQuery_Exec(t *testing.T) {
 	f, err := field.New(schema.TypeKeyword)
 	require.NoError(t, err)
 	f.Add(1, "value")
-	ctx := withFields(context.Background(),
-		map[string]field.Field{
-			"field": f,
-		},
-	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
 		query := new(TermsQuery)
@@ -181,7 +171,7 @@ func Test_TermsQuery_Exec(t *testing.T) {
 			"query": ["value"]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -193,7 +183,7 @@ func Test_TermsQuery_Exec(t *testing.T) {
 			"query": ["value1"]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -205,7 +195,7 @@ func Test_TermsQuery_Exec(t *testing.T) {
 			"query": ["value"]
 		}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.False(t, result.Docs().IsEmpty())
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())

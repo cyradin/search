@@ -31,12 +31,11 @@ func (q *RangeQuery) Validate() error {
 	)
 }
 
-func (q *RangeQuery) Exec(ctx context.Context) (*queryResult, error) {
-	fields := fields(ctx)
+func (q *RangeQuery) Exec(ctx context.Context, fields Fields) (Result, error) {
 	field, ok := fields[q.Field]
 	if !ok {
-		return newEmptyResult(), nil
+		return NewEmptyResult(), nil
 	}
 
-	return newResult(field.RangeQuery(ctx, q.From, q.To, q.IncludeTo, q.IncludeFrom)), nil
+	return NewResult(field.RangeQuery(ctx, q.From, q.To, q.IncludeTo, q.IncludeFrom)), nil
 }

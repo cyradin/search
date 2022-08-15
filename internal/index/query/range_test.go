@@ -92,11 +92,6 @@ func Test_RangeQuery_Exec(t *testing.T) {
 	f.Add(3, 3)
 	f.Add(4, 4)
 	f.Add(5, 5)
-	ctx := withFields(context.Background(),
-		map[string]field.Field{
-			"field": f,
-		},
-	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
 		query := new(RangeQuery)
@@ -106,7 +101,7 @@ func Test_RangeQuery_Exec(t *testing.T) {
 				"to": 3
 			}`, query)
 
-		result, err := query.Exec(ctx)
+		result, err := query.Exec(context.Background(), Fields{"field": f})
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
@@ -122,7 +117,7 @@ func Test_RangeQuery_Exec(t *testing.T) {
 				"includeTo": true
 			}`, query)
 
-			result, err := query.Exec(ctx)
+			result, err := query.Exec(context.Background(), Fields{"field": f})
 			require.NoError(t, err)
 			require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
 		})
@@ -135,7 +130,7 @@ func Test_RangeQuery_Exec(t *testing.T) {
 				"to": 4
 			}`, query)
 
-			result, err := query.Exec(ctx)
+			result, err := query.Exec(context.Background(), Fields{"field": f})
 			require.NoError(t, err)
 			require.ElementsMatch(t, []uint32{2, 3}, result.Docs().ToArray())
 		})

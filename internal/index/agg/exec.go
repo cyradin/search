@@ -4,7 +4,6 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/valid"
 	jsoniter "github.com/json-iterator/go"
 )
 
@@ -23,7 +22,6 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req AggsRequest, fields Fie
 	}
 
 	ctx = withFields(ctx, fields)
-	ctx = valid.WithPath(ctx, AggsKey)
 
 	aggs, err := build(req)
 	if err != nil {

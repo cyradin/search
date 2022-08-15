@@ -25,14 +25,13 @@ func (q *TermQuery) Validate() error {
 	)
 }
 
-func (q *TermQuery) Exec(ctx context.Context) (*queryResult, error) {
-	fields := fields(ctx)
+func (q *TermQuery) Exec(ctx context.Context, fields Fields) (Result, error) {
 	field, ok := fields[q.Field]
 	if !ok {
-		return newEmptyResult(), nil
+		return NewEmptyResult(), nil
 	}
 
-	return newResult(field.TermQuery(ctx, q.Query)), nil
+	return NewResult(field.TermQuery(ctx, q.Query)), nil
 }
 
 type TermsQuery struct {
@@ -50,17 +49,16 @@ func (q *TermsQuery) Validate() error {
 	)
 }
 
-func (q *TermsQuery) Exec(ctx context.Context) (*queryResult, error) {
-	fields := fields(ctx)
+func (q *TermsQuery) Exec(ctx context.Context, fields Fields) (Result, error) {
 	field, ok := fields[q.Field]
 	if !ok {
-		return newEmptyResult(), nil
+		return NewEmptyResult(), nil
 	}
 
-	var result *queryResult
+	var result Result
 	for _, v := range q.Query {
-		r := newResult(field.TermQuery(ctx, v))
-		if result == nil {
+		r := NewResult(field.TermQuery(ctx, v))
+		if result.IsEmpty() {
 			result = r
 			continue
 		}

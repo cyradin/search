@@ -24,12 +24,11 @@ func (q *MatchQuery) Validate() error {
 	)
 }
 
-func (q *MatchQuery) Exec(ctx context.Context) (*queryResult, error) {
-	fields := fields(ctx)
+func (q *MatchQuery) Exec(ctx context.Context, fields Fields) (Result, error) {
 	field, ok := fields[q.Field]
 	if !ok {
-		return newEmptyResult(), nil
+		return NewEmptyResult(), nil
 	}
 
-	return newResult(field.MatchQuery(ctx, q.Query)), nil
+	return NewResult(field.MatchQuery(ctx, q.Query)), nil
 }

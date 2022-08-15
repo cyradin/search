@@ -124,28 +124,44 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 		return SearchResult{}, err
 	}
 
-	t := time.Now()
-	result, err := query.Exec(ctx, query.QueryRequest(q.Query), fieldIndex.Fields())
-	took := time.Since(t).Microseconds()
+	qb, err := query.Build(query.QueryRequest(q.Query))
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	hits := make([]SearchHit, len(result.Hits))
-	for i, item := range result.Hits {
+	t := time.Now()
+	qr, err := qb.Exec(ctx, fieldIndex.Fields())
+	if err != nil {
+		return SearchResult{}, err
+	}
+	took := time.Since(t).Microseconds()
+
+	if err != nil {
+		return SearchResult{}, err
+	}
+
+	total := qr.Docs().GetCardinality()
+	hits := make([]SearchHit, total)
+	maxScore := 0.0
+	for i, id := range qr.Docs().ToArray() {
+		score := qr.Score(id)
+		if maxScore < score {
+			maxScore = score
+		}
 		hits[i] = SearchHit{
-			ID:    item.ID,
-			Score: item.Score,
+			ID:    id,
+			Score: score,
 		}
 	}
 
 	return SearchResult{
 		Hits: SearchHits{
 			Total: SearchTotal{
-				Value:    result.Total.Value,
-				Relation: result.Total.Relation,
+				Value:    int(total),
+				Relation: "eq",
 			},
-			Hits: hits,
+			Hits:     hits,
+			MaxScore: maxScore,
 		},
 		Took: int(took),
 	}, nil
