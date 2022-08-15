@@ -37,16 +37,6 @@ func Test_MatchQuery_Validate(t *testing.T) {
 		err := validation.Validate(query)
 		require.Error(t, err)
 	})
-	t.Run("must return error if request query is empty", func(t *testing.T) {
-		query := new(MatchQuery)
-		mustUnmarshal(t, `{
-			"field": "field",
-			"query": ""
-		}`, query)
-
-		err := validation.Validate(query)
-		require.Error(t, err)
-	})
 	t.Run("must return error if request query not a stringable value", func(t *testing.T) {
 		query := new(MatchQuery)
 		mustUnmarshal(t, `{

@@ -17,7 +17,7 @@ type MatchQuery struct {
 func (q *MatchQuery) Validate() error {
 	return validation.ValidateStruct(q,
 		validation.Field(&q.Field, validation.Required, validation.Length(1, 255)),
-		validation.Field(&q.Query, validation.Required, validation.By(func(value interface{}) error {
+		validation.Field(&q.Query, validation.NotNil, validation.By(func(value interface{}) error {
 			_, err := cast.ToStringE(value)
 			return err
 		})),
