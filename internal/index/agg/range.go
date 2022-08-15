@@ -48,8 +48,7 @@ func (r RangeAggRange) Validate() error {
 	)
 }
 
-func (a *RangeAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error) {
-	fields := fields(ctx)
+func (a *RangeAgg) Exec(ctx context.Context, fields Fields, docs *roaring.Bitmap) (interface{}, error) {
 	f, ok := fields[a.Field]
 	if !ok {
 		return RangeResult{}, nil
@@ -71,7 +70,7 @@ func (a *RangeAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{},
 		}
 
 		for key, subAgg := range a.Aggs {
-			subAggResult, err := subAgg.Exec(ctx, rangeDocs)
+			subAggResult, err := subAgg.Exec(ctx, fields, rangeDocs)
 			if err != nil {
 				return nil, err
 			}

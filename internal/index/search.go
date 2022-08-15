@@ -2,7 +2,6 @@ package index
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	"github.com/cyradin/search/internal/index/agg"
@@ -32,8 +31,6 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 	if err != nil {
 		return SearchResult{}, err
 	}
-
-	fmt.Println(qr.Docs().ToArray())
 
 	ar, err := d.execAggs(ctx, q, qr, fields)
 	if err != nil {

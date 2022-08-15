@@ -4,11 +4,14 @@ import (
 	"context"
 
 	"github.com/RoaringBitmap/roaring"
+	"github.com/cyradin/search/internal/index/field"
 	jsoniter "github.com/json-iterator/go"
 )
 
+type Fields map[string]field.Field
+
 type Agg interface {
-	Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error)
+	Exec(ctx context.Context, fields Fields, docs *roaring.Bitmap) (interface{}, error)
 }
 
 const AggsKey = "aggs"
@@ -21,8 +24,6 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req AggsRequest, fields Fie
 		docs = roaring.New()
 	}
 
-	ctx = withFields(ctx, fields)
-
 	aggs, err := build(req)
 	if err != nil {
 		return nil, err
@@ -30,7 +31,7 @@ func Exec(ctx context.Context, docs *roaring.Bitmap, req AggsRequest, fields Fie
 
 	result := make(Result, len(aggs))
 	for key, agg := range aggs {
-		r, err := agg.Exec(ctx, docs)
+		r, err := agg.Exec(ctx, fields, docs)
 		if err != nil {
 			return nil, err
 		}

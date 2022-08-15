@@ -125,12 +125,6 @@ func Test_RangeAgg_Exec(t *testing.T) {
 	bm.Add(3)
 	bm.Add(4)
 
-	ctx := withFields(context.Background(),
-		map[string]field.Field{
-			"field": f1,
-		},
-	)
-
 	t.Run("must return correct results", func(t *testing.T) {
 		agg := new(RangeAgg)
 		mustUnmarshal(t, `{
@@ -157,7 +151,7 @@ func Test_RangeAgg_Exec(t *testing.T) {
 			"field": "field"
 		}`, agg)
 
-		result, err := agg.Exec(ctx, bm)
+		result, err := agg.Exec(context.Background(), Fields{"field": f1}, bm)
 		require.NoError(t, err)
 
 		require.Equal(t, RangeResult{Buckets: []RangeBucket{
@@ -188,7 +182,7 @@ func Test_RangeAgg_Exec(t *testing.T) {
 			}
 		}`, agg)
 
-		result, err := agg.Exec(ctx, bm)
+		result, err := agg.Exec(context.Background(), Fields{"field": f1}, bm)
 		require.NoError(t, err)
 
 		require.Equal(t, RangeResult{Buckets: []RangeBucket{

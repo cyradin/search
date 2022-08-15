@@ -34,8 +34,7 @@ func (a *TermsAgg) Validate() error {
 	)
 }
 
-func (a *TermsAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{}, error) {
-	fields := fields(ctx)
+func (a *TermsAgg) Exec(ctx context.Context, fields Fields, docs *roaring.Bitmap) (interface{}, error) {
 	field, ok := fields[a.Field]
 	if !ok {
 		return TermsResult{}, nil
@@ -55,7 +54,7 @@ func (a *TermsAgg) Exec(ctx context.Context, docs *roaring.Bitmap) (interface{},
 		if len(a.Aggs) > 0 {
 			result.Buckets[i].Aggs = make(map[string]interface{}, len(a.Aggs))
 			for key, subAgg := range a.Aggs {
-				subAggResult, err := subAgg.Exec(ctx, b.Docs)
+				subAggResult, err := subAgg.Exec(ctx, fields, b.Docs)
 				if err != nil {
 					return nil, err
 				}

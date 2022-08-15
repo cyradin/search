@@ -74,11 +74,6 @@ func Test_TermsAgg_Exec(t *testing.T) {
 		f.Add(1, "foo")
 		f.Add(2, "foo")
 		f.Add(2, "bar")
-		ctx := withFields(context.Background(),
-			map[string]field.Field{
-				"field": f,
-			},
-		)
 
 		agg := new(TermsAgg)
 		mustUnmarshal(t, `{
@@ -86,7 +81,7 @@ func Test_TermsAgg_Exec(t *testing.T) {
 			"size": 10
 		}`, agg)
 
-		result, err := agg.Exec(ctx, bm)
+		result, err := agg.Exec(context.Background(), Fields{"field": f}, bm)
 		require.NoError(t, err)
 
 		require.Equal(t, TermsResult{Buckets: []TermsBucket{
@@ -111,13 +106,6 @@ func Test_TermsAgg_Exec(t *testing.T) {
 		f2.Add(1, "qwerty")
 		f2.Add(2, "asdfgh")
 
-		ctx := withFields(context.Background(),
-			map[string]field.Field{
-				"field":  f1,
-				"field2": f2,
-			},
-		)
-
 		agg := new(TermsAgg)
 		mustUnmarshal(t, `{
 				"field": "field",
@@ -131,7 +119,7 @@ func Test_TermsAgg_Exec(t *testing.T) {
 				}
 			}`, agg)
 
-		result, err := agg.Exec(ctx, bm)
+		result, err := agg.Exec(context.Background(), Fields{"field": f1, "field2": f2}, bm)
 		require.NoError(t, err)
 
 		require.Equal(t, TermsResult{Buckets: []TermsBucket{
