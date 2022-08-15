@@ -15,17 +15,13 @@ func Test_Exec(t *testing.T) {
 		require.NoError(t, err)
 		f.Add(1, true)
 
-		req, err := decodeQuery(`{
-			"term": {
-				"field": {
-					"query": 1
-				}
-			}
+		query := []byte(`{
+			"type": "term",
+			"field": "field",
+			"query": 1
 		}`)
-		require.NoError(t, err)
-		require.NoError(t, err)
 
-		result, err := Exec(context.Background(), req, map[string]field.Field{"field": f})
+		result, err := Exec(context.Background(), query, map[string]field.Field{"field": f})
 		require.NoError(t, err)
 		require.EqualValues(t, Result{Hits: []Hit{{ID: 1, Score: 1}}, Total: Total{Value: 1, Relation: "eq"}, MaxScore: 1}, result)
 	})

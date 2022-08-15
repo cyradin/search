@@ -3,64 +3,40 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/spf13/cast"
 )
 
-var _ internalQuery = (*rangeQuery)(nil)
+var _ Query = (*RangeQuery)(nil)
 
-type rangeQuery struct {
-	query Query
+type RangeQuery struct {
+	Field       string
+	From        interface{} `json:"from"`
+	To          interface{} `json:"to"`
+	IncludeFrom bool        `json:"includeFrom"`
+	IncludeTo   bool        `json:"includeTo"`
 }
 
-func newRangeQuery(ctx context.Context, query Query) (*rangeQuery, error) {
-	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
-		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Query))
-			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
-
-			v, ok := val.(map[string]interface{})
-			if !ok {
-				return valid.NewErrObjectRequired(ctx, key)
-			}
-			return validation.ValidateWithContext(ctx, v,
-				validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-				validation.Map(
-					validation.Key("from", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
-					validation.Key("includeLower", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
-					validation.Key("to", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
-					validation.Key("includeUpper", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))).Optional(),
-				),
-			)
-		}),
+func (q *RangeQuery) Validate() error {
+	return validation.ValidateStruct(q,
+		validation.Field(&q.Field, validation.Required, validation.Length(1, 255)),
+		validation.Field(&q.From, validation.Required.When(q.To == nil), validation.By(func(value interface{}) error {
+			_, err := cast.ToFloat64E(value)
+			return err
+		})),
+		validation.Field(&q.To, validation.Required.When(q.From == nil), validation.By(func(value interface{}) error {
+			_, err := cast.ToFloat64E(value)
+			return err
+		})),
 	)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &rangeQuery{
-		query: query,
-	}, nil
 }
 
-func (q *rangeQuery) exec(ctx context.Context) (*queryResult, error) {
-	key, val := firstVal(q.query)
+func (q *RangeQuery) Exec(ctx context.Context) (*queryResult, error) {
 	fields := fields(ctx)
-	field, ok := fields[key]
+	field, ok := fields[q.Field]
 	if !ok {
 		return newEmptyResult(), nil
 	}
 
-	vv := val.(map[string]interface{})
-
-	from := vv["from"]
-	to := vv["to"]
-	includeLower := cast.ToBool(vv["includeLower"])
-	includeUpper := cast.ToBool(vv["includeUpper"])
-
-	return newResult(field.RangeQuery(ctx, from, to, includeLower, includeUpper)), nil
+	return newResult(field.RangeQuery(ctx, q.From, q.To, q.IncludeTo, q.IncludeFrom)), nil
 }

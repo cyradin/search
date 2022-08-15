@@ -1,13 +1,15 @@
 package query
 
 import (
+	"bytes"
 	"context"
-	"encoding/json"
 	"fmt"
 	"testing"
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
+	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
 
@@ -22,48 +24,35 @@ func Benchmark_boolQuery_parallel(b *testing.B) {
 }
 
 func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
-	q := `{
+	query := []byte(`{
+		"type": "bool",
 		"should": [
 			{
-				"term": {
-					"field": {
-						"query": "should1"
-					}
-				}
+				"type": "term",
+				"field": "field",
+				"query": "should1"
 			},
 			{
-				"term": {
-					"field": {
-						"query": "should2"
-					}
-				}
+				"type": "term",
+				"field": "field",
+				"query": "should2"
 			}
 		],
 		"must": [
 			{
-				"term": {
-					"field": {
-						"query": "must"
-					}
-				}
+				"type": "term",
+				"field": "field",
+				"query": "must"
 			}
 		],
 		"filter": [
 			{
-				"term": {
-					"field": {
-						"query": "filter"
-					}
-				}
+				"type": "term",
+				"field": "field",
+				"query": "filter"
 			}
 		]
-	}`
-
-	query := make(map[string]interface{})
-	err := json.Unmarshal([]byte(q), &query)
-	if err != nil {
-		panic(err)
-	}
+	}`)
 
 	for _, cnt := range counts {
 		f, err := field.New(schema.TypeKeyword)
@@ -92,15 +81,17 @@ func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 
 		b.Run(fmt.Sprintf("doc_cnt_%d", cnt), func(b *testing.B) {
 			for i := 0; i < b.N; i++ {
-				bq, err := newBoolQuery(ctx, query)
+				q, err := build(query)
+
+				bq := q.(*BoolQuery)
 				if err != nil {
 					panic(err)
 				}
 				if parallel {
-					bq.parallel = true
+					bq.Parallel = true
 				}
 
-				result, err := bq.exec(ctx)
+				result, err := bq.Exec(ctx)
 				if err != nil {
 					panic(err)
 				}
@@ -113,105 +104,74 @@ func bench_boolQuery(b *testing.B, counts []int, parallel bool) {
 	}
 }
 
-func Test_newBoolQuery(t *testing.T) {
+func Test_BoolQuery_Validate(t *testing.T) {
 	t.Run("must not return error if request is an empty object", func(t *testing.T) {
-		query := "{}"
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{}`, query)
 
-		q, err := newBoolQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.NoError(t, err)
-		require.NotNil(t, q)
 	})
-	t.Run("must return error if request contains extra keys", func(t *testing.T) {
-		query := `{
-				"should": [],
-				"field": []
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
 
-		q, err := newBoolQuery(context.Background(), req)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
-	t.Run("must return error if request field is not an array", func(t *testing.T) {
-		query := `{
-				"should": {
-					"query": "hello"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
-
-		q, err := newBoolQuery(context.Background(), req)
-		require.Error(t, err)
-		require.Nil(t, q)
-	})
 	t.Run("must not return error if request field is an empty array", func(t *testing.T) {
-		query := `{
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
 				"should": []
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+			}`, query)
 
-		q, err := newBoolQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.NoError(t, err)
-		require.NotNil(t, q)
 	})
-	t.Run("must return error if request field contains invalid subquery", func(t *testing.T) {
-		query := `{
-				"should": [
-					{
-						"term": 1
-					}
-				]
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
 
-		q, err := newBoolQuery(context.Background(), req)
+	t.Run("must return error if request field contains invalid subquery", func(t *testing.T) {
+		query := new(BoolQuery)
+
+		dec := jsoniter.NewDecoder(bytes.NewBuffer([]byte(`{
+			"should": [
+				{
+					"term": 1
+				}
+			]
+		}`)))
+		dec.UseNumber()
+		err := dec.Decode(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
 	t.Run("must not return error if request is a valid query", func(t *testing.T) {
-		query := `{
-				"should": [
-					{
-						"term": {
-							"query": "value"
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"should": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": "query"
+				}
+			],
+			"must": [
+				{
+					"type": "bool",
+					"should": [
+						{
+							"type": "term",
+							"field": "field",
+							"query": "query"
 						}
-					}
-				],
-				"must": [
-					{
-						"bool": {
-							"should": [
-								{
-									"term": {
-										"query": "value"
-									}
-								}
-							]
-						}
-					}
-				],
-				"filter": [
-					{
-						"bool": {}
-					}
-				]
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+					]
+				}
+			],
+			"filter": [
+				{
+					"type": "bool"
+				}
+			]
+		}`, query)
 
-		q, err := newBoolQuery(context.Background(), req)
-		require.Error(t, err)
-		require.Nil(t, q)
+		err := validation.Validate(query)
+		require.NoError(t, err)
 	})
 }
 
-func Test_boolQuery_exec(t *testing.T) {
+func Test_BoolQuery_Exec(t *testing.T) {
 	f1, err := field.New(schema.TypeBool)
 	require.NoError(t, err)
 	f1.Add(1, true)
@@ -226,246 +186,188 @@ func Test_boolQuery_exec(t *testing.T) {
 	ctx := withFields(context.Background(), map[string]field.Field{"field": f1, field.AllField: f2})
 
 	t.Run("must return all documents for empty query", func(t *testing.T) {
-		query, err := decodeQuery(`{}`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
 	})
 	t.Run("must return documents for should query if documents match at least one query", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"should": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"should": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1, 2}, result.Docs().ToArray())
 	})
 	t.Run("must return no documents for must query if no documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"must": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"must": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
 	})
 	t.Run("must return documents for must query if some documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"must": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"must": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
 	})
 	t.Run("must return no documents for must+should query if no documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"should": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				],
-				"must": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"must": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			],
+			"should": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
 	})
 	t.Run("must return no documents for filter query if no documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"filter": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"filter": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())
 	})
 	t.Run("must return documents for filter query if some documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"filter": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"filter": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
 	})
 	t.Run("must return no documents for filter+should query if no documents match all queries", func(t *testing.T) {
-		query, err := decodeQuery(`
-			{
-				"should": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				],
-				"must": [
-					{
-						"term": {
-							"field": {
-								"query": true
-							}
-						}
-					},
-					{
-						"term": {
-							"field": {
-								"query": false
-							}
-						}
-					}
-				]
-			}
-			`)
-		require.NoError(t, err)
-		bq, err := newBoolQuery(ctx, query)
-		require.NoError(t, err)
-		result, err := bq.exec(ctx)
+		query := new(BoolQuery)
+		mustUnmarshal(t, `{
+			"filter": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			],
+			"should": [
+				{
+					"type": "term",
+					"field": "field",
+					"query": true
+				},
+				{
+					"type": "term",
+					"field": "field",
+					"query": false
+				}
+			]
+		}`, query)
+
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 		require.ElementsMatch(t, []uint32{}, result.Docs().ToArray())

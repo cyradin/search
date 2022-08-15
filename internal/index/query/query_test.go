@@ -1,201 +1,104 @@
 package query
 
 import (
-	"context"
-	"strings"
+	"bytes"
 	"testing"
 
-	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/index/schema"
 	jsoniter "github.com/json-iterator/go"
 	"github.com/stretchr/testify/require"
 )
 
-func decodeQuery(query string) (map[string]interface{}, error) {
-	result := make(map[string]interface{})
-
-	dec := jsoniter.NewDecoder(strings.NewReader(query))
+func mustUnmarshal(t *testing.T, src string, dst interface{}) {
+	dec := jsoniter.NewDecoder(bytes.NewBuffer([]byte(src)))
 	dec.UseNumber()
-	err := dec.Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
-}
-
-func decodeQuerySlice(query string) ([]map[string]interface{}, error) {
-	var result []map[string]interface{}
-
-	dec := jsoniter.NewDecoder(strings.NewReader(query))
-	dec.UseNumber()
-	err := dec.Decode(&result)
-	if err != nil {
-		return nil, err
-	}
-
-	return result, nil
+	err := dec.Decode(dst)
+	require.NoError(t, err)
 }
 
 func Test_build(t *testing.T) {
 	t.Run("must return error if query is empty", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
+		query := []byte(`{}`)
 
-		query, err := decodeQuery(`{}`)
-		require.NoError(t, err)
-
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
-	t.Run("must return error if query contains multiple root fields", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
 
-		query, err := decodeQuery(`{
-			"term": {
-				"field": 1
-			},
-			"terms": {
-				"field": [1]
-			}
-		}`)
-		require.NoError(t, err)
-
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
-		require.Error(t, err)
-		require.Nil(t, result)
-	})
-	t.Run("must return error if query is invalid", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"term": {
-				"field": 1
-			}
-		}`)
-		require.NoError(t, err)
-
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
-		require.Error(t, err)
-		require.Nil(t, result)
-	})
 	t.Run("must return error if query type is unknown", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"invalid": {
-				"field": 1
-			}
+		query := []byte(`{
+			"type": "invalid"
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.Error(t, err)
 		require.Nil(t, result)
 	})
+
+	t.Run("must return error if query is invalid", func(t *testing.T) {
+		query := []byte(`{
+			"type": "term",
+			"field": "field"
+		}`)
+
+		result, err := build(query)
+		require.Error(t, err)
+		require.Nil(t, result)
+	})
+
 	t.Run("must not return error if query is a valid term query", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"term": {
-				"field": {
-					"query": "value"
-				}
-			}
+		query := []byte(`{
+			"type": "term",
+			"field": "field",
+			"query": "query"
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
+
 	t.Run("must not return error if query is a valid terms query", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"terms": {
-				"field": {
-					"query": ["value"]
-				}
-			}
+		query := []byte(`{
+			"type": "terms",
+			"field": "field",
+			"query": ["query"]
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
+
 	t.Run("must not return error if query is a valid bool query", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"bool": {
-				"should": [
-					{
-						"terms": {
-							"field": {
-								"query": ["value"]
-							}
-						}
-					}
-				]
-			}
+		query := []byte(`{
+			"type": "bool"
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 
 	t.Run("must not return error if query is a valid match query", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"match": {
-				"field": {
-					"query": "hello"
-				}
-			}
+		query := []byte(`{
+			"type": "match",
+			"field": "field",
+			"query": "query"
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
 
 	t.Run("must not return error if query is a valid range query", func(t *testing.T) {
-		f1, err := field.New(schema.TypeBool)
-		require.NoError(t, err)
-
-		query, err := decodeQuery(`{
-			"range": {
-				"field": {
-					"from": 1
-				}
-			}
+		query := []byte(`{
+			"type": "range",
+			"field": "field",
+			"from": 10
 		}`)
-		require.NoError(t, err)
 
-		ctx := withFields(context.Background(), map[string]field.Field{"field": f1})
-		result, err := build(ctx, query)
+		result, err := build(query)
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})

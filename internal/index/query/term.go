@@ -3,109 +3,62 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/spf13/cast"
 )
 
-var _ internalQuery = (*termQuery)(nil)
-var _ internalQuery = (*termsQuery)(nil)
+var _ Query = (*TermQuery)(nil)
+var _ Query = (*TermsQuery)(nil)
 
-type termQuery struct {
-	query Query
+type TermQuery struct {
+	Field string      `json:"field"`
+	Query interface{} `json:"query"`
 }
 
-func newTermQuery(ctx context.Context, query Query) (*termQuery, error) {
-	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
-		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Query))
-			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
-
-			v, ok := val.(map[string]interface{})
-			if !ok {
-				return valid.NewErrObjectRequired(ctx, key)
-			}
-			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))),
-			))
-		}),
+func (q *TermQuery) Validate() error {
+	return validation.ValidateStruct(q,
+		validation.Field(&q.Field, validation.Required, validation.Length(1, 255)),
+		validation.Field(&q.Query, validation.NotNil, validation.By(func(value interface{}) error {
+			_, err := cast.ToStringE(value)
+			return err
+		})),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &termQuery{
-		query: query,
-	}, nil
 }
 
-func (q *termQuery) exec(ctx context.Context) (*queryResult, error) {
-	key, val := firstVal(q.query)
+func (q *TermQuery) Exec(ctx context.Context) (*queryResult, error) {
 	fields := fields(ctx)
-	field, ok := fields[key]
+	field, ok := fields[q.Field]
 	if !ok {
 		return newEmptyResult(), nil
 	}
-	v := val.(map[string]interface{})["query"]
 
-	return newResult(field.TermQuery(ctx, v)), nil
+	return newResult(field.TermQuery(ctx, q.Query)), nil
 }
 
-type termsQuery struct {
-	query Query
+type TermsQuery struct {
+	Field string        `json:"field"`
+	Query []interface{} `json:"query"`
 }
 
-func newTermsQuery(ctx context.Context, query Query) (*termsQuery, error) {
-	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
-		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Query))
-			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
-
-			v, ok := val.(map[string]interface{})
-			if !ok {
-				return valid.NewErrObjectRequired(ctx, key)
-			}
-			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key(
-					"query",
-					validation.NotNil.ErrorObject(valid.NewErrRequired(ctx)),
-					validation.WithContext(func(ctx context.Context, value interface{}) error {
-						_, err := interfaceToSlice[interface{}](value)
-						if err != nil {
-							return valid.NewErrArrayRequired(ctx, key)
-						}
-						return nil
-					}),
-				),
-			))
-		}),
+func (q *TermsQuery) Validate() error {
+	return validation.ValidateStruct(q,
+		validation.Field(&q.Field, validation.Required, validation.Length(1, 255)),
+		validation.Field(&q.Query, validation.Required, validation.Each(validation.By(func(value interface{}) error {
+			_, err := cast.ToStringE(value)
+			return err
+		}))),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &termsQuery{
-		query: query,
-	}, nil
 }
 
-func (q *termsQuery) exec(ctx context.Context) (*queryResult, error) {
-	key, val := firstVal(q.query)
+func (q *TermsQuery) Exec(ctx context.Context) (*queryResult, error) {
 	fields := fields(ctx)
-	field, ok := fields[key]
+	field, ok := fields[q.Field]
 	if !ok {
 		return newEmptyResult(), nil
-	}
-	values, err := interfaceToSlice[interface{}](val.(map[string]interface{})["query"])
-	if err != nil {
-		return nil, err
 	}
 
 	var result *queryResult
-	for _, v := range values {
+	for _, v := range q.Query {
 		r := newResult(field.TermQuery(ctx, v))
 		if result == nil {
 			result = r
