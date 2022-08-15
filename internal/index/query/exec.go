@@ -4,8 +4,12 @@ import (
 	"context"
 
 	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/valid"
+	jsoniter "github.com/json-iterator/go"
 )
+
+type Query interface {
+	Exec(ctx context.Context) (*queryResult, error)
+}
 
 type Result struct {
 	Hits     []Hit
@@ -23,18 +27,17 @@ type Hit struct {
 	Score float64
 }
 
-type Query map[string]interface{}
+type QueryRequest jsoniter.RawMessage
 type Fields map[string]field.Field
 
-func Exec(ctx context.Context, query Query, fields Fields) (Result, error) {
+func Exec(ctx context.Context, query QueryRequest, fields Fields) (Result, error) {
 	ctx = withFields(ctx, fields)
-	ctx = valid.WithPath(ctx, "query")
-	q, err := build(ctx, query)
+	q, err := build(query)
 	if err != nil {
 		return Result{}, err
 	}
 
-	result, err := q.exec(ctx)
+	result, err := q.Exec(ctx)
 	if err != nil {
 		return Result{}, err
 	}

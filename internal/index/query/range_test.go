@@ -6,75 +6,85 @@ import (
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_newRangeQuery(t *testing.T) {
+func Test_RangeQuery_Validate(t *testing.T) {
 	t.Run("must return error if request is an empty object", func(t *testing.T) {
-		query := "{}"
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(RangeQuery)
+		mustUnmarshal(t, `{}`, query)
 
-		q, err := newRangeQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request contains multiple keys", func(t *testing.T) {
-		query := `{
-				"field1": {},
-				"field2": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request field is not defined", func(t *testing.T) {
+		query := new(RangeQuery)
+		mustUnmarshal(t, `{
+			"from": "10"
+		}`, query)
 
-		q, err := newRangeQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request field is empty", func(t *testing.T) {
-		query := `{
-				"field1": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request 'from' and 'to' are empty", func(t *testing.T) {
+		query := new(RangeQuery)
+		mustUnmarshal(t, `{
+			"field": "field"
+		}`, query)
 
-		q, err := newRangeQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
-	})
-	t.Run("must return error if request field contains extra keys", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"from": 1,
-					"qwerty": 1
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
-
-		q, err := newRangeQuery(context.Background(), req)
-		require.Error(t, err)
-		require.Nil(t, q)
 	})
 	t.Run("must not return error if request is a valid query", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"from": 1,
-					"includeLower": true,
-					"to": 100,
-					"includeUpper": true
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		t.Run("only from", func(t *testing.T) {
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"from": 10
+			}`, query)
 
-		q, err := newRangeQuery(context.Background(), req)
-		require.NoError(t, err)
-		require.NotNil(t, q)
+			err := validation.Validate(query)
+			require.NoError(t, err)
+		})
+		t.Run("only to", func(t *testing.T) {
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"to": 50
+			}`, query)
+
+			err := validation.Validate(query)
+			require.NoError(t, err)
+		})
+		t.Run("both from and to to", func(t *testing.T) {
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"to": 10,
+				"to": 50
+			}`, query)
+
+			err := validation.Validate(query)
+			require.NoError(t, err)
+		})
+		t.Run("both from and to including range limits", func(t *testing.T) {
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"to": 10,
+				"to": 50,
+				"includeFrom": true,
+				"includeTo": true
+			}`, query)
+
+			err := validation.Validate(query)
+			require.NoError(t, err)
+		})
 	})
 }
 
-func Test_rangeQuery_exec(t *testing.T) {
+func Test_RangeQuery_Exec(t *testing.T) {
 	f, err := field.New(schema.TypeInteger)
 	require.NoError(t, err)
 	f.Add(1, 1)
@@ -89,57 +99,43 @@ func Test_rangeQuery_exec(t *testing.T) {
 	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"from": 2
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(RangeQuery)
+		mustUnmarshal(t, `{
+				"field": "field1",
+				"from": 1,
+				"to": 3
+			}`, query)
 
-		q, err := newRangeQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := q.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
 
 	t.Run("must return valid result", func(t *testing.T) {
 		t.Run("[1, 3]", func(t *testing.T) {
-			query := `{
-				"field": {
-					"from": 1,
-					"to": 3,
-					"includeLower": true,
-					"includeUpper": true
-				}
-			}`
-			req, err := decodeQuery(query)
-			require.NoError(t, err)
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"from": 1,
+				"to": 3,
+				"includeFrom": true,
+				"includeTo": true
+			}`, query)
 
-			tq, err := newRangeQuery(ctx, req)
-			require.NoError(t, err)
-
-			result, err := tq.exec(ctx)
+			result, err := query.Exec(ctx)
 			require.NoError(t, err)
 			require.ElementsMatch(t, []uint32{1, 2, 3}, result.Docs().ToArray())
 		})
 
 		t.Run("(1, 4)", func(t *testing.T) {
-			query := `{
-				"field": {
-					"from": 1,
-					"to": 4
-				}
-			}`
-			req, err := decodeQuery(query)
-			require.NoError(t, err)
+			query := new(RangeQuery)
+			mustUnmarshal(t, `{
+				"field": "field",
+				"from": 1,
+				"to": 4
+			}`, query)
 
-			tq, err := newRangeQuery(ctx, req)
-			require.NoError(t, err)
-
-			result, err := tq.exec(ctx)
+			result, err := query.Exec(ctx)
 			require.NoError(t, err)
 			require.ElementsMatch(t, []uint32{2, 3}, result.Docs().ToArray())
 		})

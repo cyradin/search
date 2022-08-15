@@ -6,72 +6,59 @@ import (
 
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
+	validation "github.com/go-ozzo/ozzo-validation/v4"
 	"github.com/stretchr/testify/require"
 )
 
-func Test_newTermQuery(t *testing.T) {
+func Test_TermQuery_Validate(t *testing.T) {
 	t.Run("must return error if request is an empty object", func(t *testing.T) {
-		query := "{}"
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermQuery)
+		mustUnmarshal(t, `{}`, query)
 
-		q, err := newTermQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request contains multiple keys", func(t *testing.T) {
-		query := `{
-				"field1": {},
-				"field2": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request field is not defined", func(t *testing.T) {
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"query": "query"
+		}`, query)
 
-		q, err := newTermQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request field is empty", func(t *testing.T) {
-		query := `{
-				"field1": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request query is not defined", func(t *testing.T) {
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field"
+		}`, query)
 
-		q, err := newTermQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request field contains extra keys", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": "hello",
-					"qwerty": "hello"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request query not a stringable value", func(t *testing.T) {
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": []
+		}`, query)
 
-		q, err := newTermQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must not return error if request is a valid query", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": "hello"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must not return error if request is valid", func(t *testing.T) {
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": "query"
+		}`, query)
 
-		q, err := newTermQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.NoError(t, err)
-		require.NotNil(t, q)
 	})
 }
 
-func Test_termQuery_exec(t *testing.T) {
+func Test_TermQuery_Exec(t *testing.T) {
 	f, err := field.New(schema.TypeKeyword)
 	require.NoError(t, err)
 	f.Add(1, "value")
@@ -82,135 +69,102 @@ func Test_termQuery_exec(t *testing.T) {
 	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": "value"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field1",
+			"query": "value"
+		}`, query)
 
-		tq, err := newTermQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
 
 	t.Run("must return empty result if value not found", func(t *testing.T) {
-		query := `{
-				"field": {
-					"query": "value1"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": "value1"
+		}`, query)
 
-		tq, err := newTermQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
 
 	t.Run("must return non-empty result if value is found", func(t *testing.T) {
-		query := `{
-				"field": {
-					"query": "value"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": "value"
+		}`, query)
 
-		tq, err := newTermQuery(ctx, req)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
-		require.NoError(t, err)
-
 		require.False(t, result.Docs().IsEmpty())
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())
 	})
 }
 
-func Test_newTermsQuery(t *testing.T) {
+func Test_TermsQuery_Validate(t *testing.T) {
 	t.Run("must return error if request is an empty object", func(t *testing.T) {
-		query := "{}"
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request contains multiple keys", func(t *testing.T) {
-		query := `{
-				"field1": {},
-				"field2": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request field is not defined", func(t *testing.T) {
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"query": ["query"]
+		}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request field is empty", func(t *testing.T) {
-		query := `{
-				"field1": {}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request query is not defined", func(t *testing.T) {
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field"
+		}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request field contains extra keys", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": "hello",
-					"qwerty": "hello"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request query is empty", func(t *testing.T) {
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": []
+		}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must return error if request query is not an array", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": "hello"
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must return error if request query items are not stringable values", func(t *testing.T) {
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": [{}]
+		}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.Error(t, err)
-		require.Nil(t, q)
 	})
-	t.Run("must not return error if request query is a valid query", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": ["hello"]
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+	t.Run("must not return error if request is valid", func(t *testing.T) {
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": ["query"]
+		}`, query)
 
-		q, err := newTermsQuery(context.Background(), req)
+		err := validation.Validate(query)
 		require.NoError(t, err)
-		require.NotNil(t, q)
 	})
 }
 
-func Test_termsQuery_exec(t *testing.T) {
+func Test_TermsQuery_Exec(t *testing.T) {
 	f, err := field.New(schema.TypeKeyword)
 	require.NoError(t, err)
 	f.Add(1, "value")
@@ -221,52 +175,37 @@ func Test_termsQuery_exec(t *testing.T) {
 	)
 
 	t.Run("must return empty result if field not found", func(t *testing.T) {
-		query := `{
-				"field1": {
-					"query": ["value1"]
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field1",
+			"query": ["value"]
+		}`, query)
 
-		tq, err := newTermsQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
 
 	t.Run("must return empty result if value not found", func(t *testing.T) {
-		query := `{
-				"field": {
-					"query": ["value1"]
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": ["value1"]
+		}`, query)
 
-		tq, err := newTermsQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.True(t, result.Docs().IsEmpty())
 	})
 
 	t.Run("must return non-empty result if value is found", func(t *testing.T) {
-		query := `{
-				"field": {
-					"query": ["value"]
-				}
-			}`
-		req, err := decodeQuery(query)
-		require.NoError(t, err)
+		query := new(TermsQuery)
+		mustUnmarshal(t, `{
+			"field": "field",
+			"query": ["value"]
+		}`, query)
 
-		tq, err := newTermsQuery(ctx, req)
-		require.NoError(t, err)
-
-		result, err := tq.exec(ctx)
+		result, err := query.Exec(ctx)
 		require.NoError(t, err)
 		require.False(t, result.Docs().IsEmpty())
 		require.ElementsMatch(t, []uint32{1}, result.Docs().ToArray())

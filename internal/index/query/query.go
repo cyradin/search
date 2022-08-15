@@ -1,39 +1,14 @@
 package query
 
 import (
-	"context"
-	"reflect"
+	"bytes"
+	"fmt"
 
 	"github.com/RoaringBitmap/roaring"
-	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	jsoniter "github.com/json-iterator/go"
 )
-
-type queryType string
-
-const (
-	queryTerm  queryType = "term"
-	queryTerms queryType = "terms"
-
-	queryBool       queryType = "bool"
-	queryBoolShould queryType = "should"
-	queryBoolMust   queryType = "must"
-	queryBoolFilter queryType = "filter"
-
-	queryMatch queryType = "match"
-
-	queryRange queryType = "range"
-)
-
-var queryTypes = map[queryType]struct{}{
-	queryTerm:  {},
-	queryTerms: {},
-	queryBool:  {},
-	queryMatch: {},
-	queryRange: {},
-}
 
 type queryResult struct {
 	docs    *roaring.Bitmap
@@ -80,79 +55,47 @@ func (r *queryResult) Score(id uint32) float64 {
 	return result
 }
 
-type internalQuery interface {
-	exec(ctx context.Context) (*queryResult, error)
+type QueryType struct {
+	Type string `json:"type"`
 }
 
-func build(ctx context.Context, req Query) (internalQuery, error) {
-	err := validation.ValidateWithContext(ctx, req,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
-		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(req)
+func build(req QueryRequest) (Query, error) {
+	queryType := new(QueryType)
 
-			if _, ok := queryTypes[queryType(key)]; !ok {
-				return valid.NewErrUnknownValue(ctx, key)
-			}
-
-			_, ok := val.(map[string]interface{})
-			if !ok {
-				return valid.NewErrObjectRequired(ctx, key)
-			}
-
-			return nil
-		}))
+	dec := jsoniter.NewDecoder(bytes.NewBuffer(req))
+	dec.UseNumber()
+	err := dec.Decode(queryType)
 	if err != nil {
 		return nil, err
 	}
 
-	key, value := firstVal(req)
-	req = value.(map[string]interface{})
-	ctx = valid.WithPath(ctx, valid.Path(ctx), key)
-
-	qType := queryType(key)
-	switch qType {
-	case queryTerm:
-		return newTermQuery(ctx, req)
-	case queryTerms:
-		return newTermsQuery(ctx, req)
-	case queryBool:
-		return newBoolQuery(ctx, req)
-	case queryMatch:
-		return newMatchQuery(ctx, req)
-	case queryRange:
-		return newRangeQuery(ctx, req)
+	var query Query
+	switch queryType.Type {
+	case "term":
+		query = new(TermQuery)
+	case "terms":
+		query = new(TermsQuery)
+	case "bool":
+		query = new(BoolQuery)
+	case "match":
+		query = new(MatchQuery)
+	case "range":
+		query = new(RangeQuery)
+	default:
+		return nil, fmt.Errorf("unknown query type %q", queryType.Type)
 	}
 
-	// must not be executed because of validation made earlier
-	panic(errs.Errorf("unknown query type %q", key))
-}
-
-func firstVal(m map[string]interface{}) (string, interface{}) {
-	for k, v := range m {
-		return k, v
+	dec = jsoniter.NewDecoder(bytes.NewBuffer(req))
+	dec.UseNumber()
+	err = dec.Decode(query)
+	if err != nil {
+		return nil, err
 	}
 
-	return "", nil
-}
-
-func interfaceToSlice[T any](value interface{}) ([]T, error) {
-	if reflect.TypeOf(value).Kind() != reflect.Slice {
-		return nil, errs.Errorf("value is not a slice")
+	err = validation.Validate(query)
+	if err != nil {
+		return nil, err
 	}
 
-	s := reflect.ValueOf(value)
-	result := make([]T, s.Len())
-	for i := 0; i < s.Len(); i++ {
-		val := s.Index(i).Interface()
-		vv, ok := val.(T)
-		if !ok {
-			tt := new(T)
-			return nil, errs.Errorf("invalid #%d element value: required %#v, got %#v", i, tt, val)
-		}
-
-		result[i] = vv
-	}
-
-	return result, nil
+	return query, nil
 }

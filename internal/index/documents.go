@@ -8,14 +8,15 @@ import (
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
 	"github.com/cyradin/search/internal/index/schema"
+	jsoniter "github.com/json-iterator/go"
 )
 
 type DocSource map[string]interface{}
 
 type Search struct {
-	Query  map[string]interface{} `json:"query"`
-	Limit  int                    `json:"limit"`
-	Offset int                    `json:"offset"`
+	Query  jsoniter.RawMessage `json:"query"`
+	Limit  int                 `json:"limit"`
+	Offset int                 `json:"offset"`
 }
 
 type SearchResult struct {
@@ -124,7 +125,7 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 	}
 
 	t := time.Now()
-	result, err := query.Exec(ctx, q.Query, fieldIndex.Fields())
+	result, err := query.Exec(ctx, query.QueryRequest(q.Query), fieldIndex.Fields())
 	took := time.Since(t).Microseconds()
 	if err != nil {
 		return SearchResult{}, err

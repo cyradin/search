@@ -3,51 +3,33 @@ package query
 import (
 	"context"
 
-	"github.com/cyradin/search/internal/valid"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
+	"github.com/spf13/cast"
 )
 
-var _ internalQuery = (*matchQuery)(nil)
+var _ Query = (*MatchQuery)(nil)
 
-type matchQuery struct {
-	query Query
+type MatchQuery struct {
+	Field string      `json:"field"`
+	Query interface{} `json:"query"`
 }
 
-func newMatchQuery(ctx context.Context, query Query) (*matchQuery, error) {
-	err := validation.ValidateWithContext(ctx, query,
-		validation.Required.ErrorObject(valid.NewErrRequired(ctx)),
-		validation.Length(1, 1).ErrorObject(valid.NewErrSingleKeyRequired(ctx)),
-		validation.WithContext(func(ctx context.Context, value interface{}) error {
-			key, val := firstVal(value.(Query))
-			ctx = valid.WithPath(ctx, valid.Path(ctx), key)
-
-			v, ok := val.(map[string]interface{})
-			if !ok {
-				return valid.NewErrObjectRequired(ctx, key)
-			}
-			return validation.ValidateWithContext(ctx, v, validation.Map(
-				validation.Key("query", validation.NotNil.ErrorObject(valid.NewErrRequired(ctx))),
-			))
-		}),
+func (q *MatchQuery) Validate() error {
+	return validation.ValidateStruct(q,
+		validation.Field(&q.Field, validation.Required, validation.Length(1, 255)),
+		validation.Field(&q.Query, validation.Required, validation.By(func(value interface{}) error {
+			_, err := cast.ToStringE(value)
+			return err
+		})),
 	)
-	if err != nil {
-		return nil, err
-	}
-
-	return &matchQuery{
-		query: query,
-	}, nil
 }
 
-func (q *matchQuery) exec(ctx context.Context) (*queryResult, error) {
-	key, val := firstVal(q.query)
+func (q *MatchQuery) Exec(ctx context.Context) (*queryResult, error) {
 	fields := fields(ctx)
-	f, ok := fields[key]
+	field, ok := fields[q.Field]
 	if !ok {
 		return newEmptyResult(), nil
 	}
 
-	v := val.(map[string]interface{})["query"]
-
-	return newResult(f.MatchQuery(ctx, v)), nil
+	return newResult(field.MatchQuery(ctx, q.Query)), nil
 }
