@@ -40,6 +40,10 @@ func (a *TermsAgg) Exec(ctx context.Context, fields Fields, docs *roaring.Bitmap
 		return TermsResult{}, nil
 	}
 
+	if a.Size == 0 {
+		a.Size = TermsAggDefaultSize
+	}
+
 	res := field.TermAgg(ctx, docs, a.Size)
 
 	result := TermsResult{
