@@ -191,7 +191,6 @@ func Test_RangeAgg_Exec(t *testing.T) {
 					Buckets: []TermsBucket{
 						{Key: int32(1), DocCount: 2},
 						{Key: int32(2), DocCount: 2},
-						// @todo do not return values outside range in subaggs
 						{Key: int32(3), DocCount: 1},
 						{Key: int32(4), DocCount: 1},
 					},
