@@ -117,6 +117,14 @@ func (f *Text) Data(id uint32) []interface{} {
 	return result
 }
 
+func (f *Text) MinValue() (interface{}, *roaring.Bitmap) {
+	return f.values.MinValue()
+}
+
+func (f *Text) MaxValue() (interface{}, *roaring.Bitmap) {
+	return f.values.MaxValue()
+}
+
 func (f *Text) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
 	return termAgg(docs, f.values, size)
 }

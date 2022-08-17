@@ -40,6 +40,11 @@ type Field interface {
 	// Data get stored field values
 	Data(id uint32) []interface{}
 
+	// MinValue get min value of the field
+	MinValue() (interface{}, *roaring.Bitmap)
+	// MaxValue get max value of the field
+	MaxValue() (interface{}, *roaring.Bitmap)
+
 	// TermAgg get docs by top N values
 	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
 }
