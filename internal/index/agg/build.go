@@ -54,6 +54,8 @@ func build(req AggsRequest) (Aggs, error) {
 			agg = new(RangeAgg)
 		case "filter":
 			agg = new(FilterAgg)
+		case "min":
+			agg = new(MinAgg)
 		default:
 			return nil, fmt.Errorf("unknown agg type %q", aggType.Type)
 		}
