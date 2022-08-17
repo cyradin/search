@@ -50,14 +50,15 @@ func build(req AggsRequest) (Aggs, error) {
 		switch aggType.Type {
 		case "terms":
 			agg = new(TermsAgg)
-			err = jsoniter.Unmarshal(value, agg)
 		case "range":
 			agg = new(RangeAgg)
-			err = jsoniter.Unmarshal(value, agg)
+		case "filter":
+			agg = new(FilterAgg)
 		default:
 			return nil, fmt.Errorf("unknown agg type %q", aggType.Type)
 		}
 
+		err = jsoniter.Unmarshal(value, agg)
 		if err != nil {
 			return nil, err
 		}
