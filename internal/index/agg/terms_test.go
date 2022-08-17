@@ -90,7 +90,7 @@ func Test_TermsAgg_Exec(t *testing.T) {
 		}}, result)
 	})
 
-	t.Run("must return valid agg result with subAggs", func(t *testing.T) {
+	t.Run("must return valid agg result with sub-aggs", func(t *testing.T) {
 		bm := roaring.New()
 		bm.Add(1)
 		bm.Add(2)

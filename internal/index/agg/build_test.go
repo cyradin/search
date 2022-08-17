@@ -130,4 +130,18 @@ func Test_build(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
+
+	t.Run("must not return validation error if request is a valid filter aggregation", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
+			"aggname": {
+				"type": "filter",
+				"filter": {"type": "terms", "field": "field", "query": [1,2,3]}
+			}
+		}`, &req)
+
+		result, err := build(req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
 }
