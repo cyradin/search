@@ -103,6 +103,7 @@ func (f *Text) DeleteDoc(id uint32) {
 
 	f.values.DeleteDoc(id)
 	f.raw.DeleteDoc(id)
+	f.scoring.Delete(id)
 }
 
 func (f *Text) Data(id uint32) []interface{} {

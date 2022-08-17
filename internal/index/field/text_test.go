@@ -81,10 +81,13 @@ func Test_Text_DeleteDoc(t *testing.T) {
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
+	require.NotEmpty(t, field.scoring.IndexDocCount())
 
 	field.DeleteDoc(1)
 	require.Empty(t, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(1))
+
+	require.Empty(t, field.scoring.IndexDocCount())
 }
 
 func Test_Text_Data(t *testing.T) {
