@@ -158,4 +158,18 @@ func Test_build(t *testing.T) {
 		require.NoError(t, err)
 		require.NotNil(t, result)
 	})
+
+	t.Run("must not return validation error if request is a valid max aggregation", func(t *testing.T) {
+		req := make(AggsRequest)
+		mustUnmarshal(t, `{
+			"aggname": {
+				"type": "max",
+				"field": "field"
+			}
+		}`, &req)
+
+		result, err := build(req)
+		require.NoError(t, err)
+		require.NotNil(t, result)
+	})
 }
