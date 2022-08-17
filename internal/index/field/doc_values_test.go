@@ -136,6 +136,88 @@ func Test_docValues_Delete(t *testing.T) {
 	require.Len(t, v.Docs, 0)
 }
 
+func Test_docValues_MinValue(t *testing.T) {
+	t.Run("bool", func(t *testing.T) {
+		v := newDocValues[bool]()
+
+		vv, ok := v.MinValue()
+		assert.Equal(t, false, vv)
+		assert.Equal(t, false, ok)
+
+		v.Add(1, true)
+
+		vv, ok = v.MinValue()
+		assert.Equal(t, true, vv)
+		assert.Equal(t, true, ok)
+
+		v.Add(2, false)
+
+		vv, ok = v.MinValue()
+		assert.Equal(t, false, vv)
+		assert.Equal(t, true, ok)
+	})
+	t.Run("int32", func(t *testing.T) {
+		v := newDocValues[int32]()
+
+		vv, ok := v.MinValue()
+		assert.Equal(t, int32(0), vv)
+		assert.Equal(t, false, ok)
+
+		v.Add(1, 1)
+
+		vv, ok = v.MinValue()
+		assert.Equal(t, int32(1), vv)
+		assert.Equal(t, true, ok)
+
+		v.Add(2, 100)
+
+		vv, ok = v.MinValue()
+		assert.Equal(t, int32(1), vv)
+		assert.Equal(t, true, ok)
+	})
+}
+
+func Test_docValues_MaxValue(t *testing.T) {
+	t.Run("bool", func(t *testing.T) {
+		v := newDocValues[bool]()
+
+		vv, ok := v.MaxValue()
+		assert.Equal(t, false, vv)
+		assert.Equal(t, false, ok)
+
+		v.Add(1, true)
+
+		vv, ok = v.MaxValue()
+		assert.Equal(t, true, vv)
+		assert.Equal(t, true, ok)
+
+		v.Add(2, false)
+
+		vv, ok = v.MaxValue()
+		assert.Equal(t, true, vv)
+		assert.Equal(t, true, ok)
+	})
+	t.Run("int32", func(t *testing.T) {
+		v := newDocValues[int32]()
+
+		vv, ok := v.MaxValue()
+		assert.Equal(t, int32(0), vv)
+		assert.Equal(t, false, ok)
+
+		v.Add(1, 1)
+
+		vv, ok = v.MaxValue()
+		assert.Equal(t, int32(1), vv)
+		assert.Equal(t, true, ok)
+
+		v.Add(2, 100)
+
+		vv, ok = v.MaxValue()
+		assert.Equal(t, int32(100), vv)
+		assert.Equal(t, true, ok)
+	})
+}
+
 func Test_docValues_FindGt(t *testing.T) {
 	v := newDocValues[int32]()
 	v.Add(1, 10)

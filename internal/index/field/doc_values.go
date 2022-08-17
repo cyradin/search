@@ -144,6 +144,30 @@ func (v *docValues[T]) DeleteDoc(id uint32) {
 	}
 }
 
+func (v *docValues[T]) MinValue() (T, bool) {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
+	if len(v.List) == 0 {
+		var empty T
+		return empty, false
+	}
+
+	return v.List[0], true
+}
+
+func (v *docValues[T]) MaxValue() (T, bool) {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
+	if len(v.List) == 0 {
+		var empty T
+		return empty, false
+	}
+
+	return v.List[len(v.List)-1], true
+}
+
 func (v *docValues[T]) listAdd(value T) {
 	var index int
 	switch x := any(value).(type) {
@@ -154,7 +178,7 @@ func (v *docValues[T]) listAdd(value T) {
 			if value == v.List[0] {
 				return
 			}
-			if any(v.List[0]).(bool) == true {
+			if any(v.List[0]).(bool) {
 				v.List = append(v.List, v.List[0])
 				v.List[0] = value
 			} else {
