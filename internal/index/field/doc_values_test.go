@@ -118,7 +118,7 @@ func Test_docValues_Add(t *testing.T) {
 	require.Len(t, v.Docs, 2)
 }
 
-func Test_docValues_Delete(t *testing.T) {
+func Test_docValues_DeleteDoc(t *testing.T) {
 	v := newDocValues[int32]()
 	v.Add(1, 1)
 	v.Add(2, 2)

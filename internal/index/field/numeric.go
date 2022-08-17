@@ -97,7 +97,7 @@ func (f *Numeric[T]) RangeQuery(ctx context.Context, from interface{}, to interf
 	return newResult(ctx, rangeQuery(ctx, f.values, vFrom, vTo, incFrom, incTo), opts...)
 }
 
-func (f *Numeric[T]) Delete(id uint32) {
+func (f *Numeric[T]) DeleteDoc(id uint32) {
 	f.values.DeleteDoc(id)
 }
 

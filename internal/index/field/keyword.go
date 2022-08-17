@@ -52,7 +52,7 @@ func (f *Keyword) RangeQuery(ctx context.Context, from interface{}, to interface
 	return newResult(ctx, roaring.New())
 }
 
-func (f *Keyword) Delete(id uint32) {
+func (f *Keyword) DeleteDoc(id uint32) {
 	f.values.DeleteDoc(id)
 }
 

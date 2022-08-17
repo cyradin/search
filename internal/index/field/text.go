@@ -91,7 +91,7 @@ func (f *Text) RangeQuery(ctx context.Context, from interface{}, to interface{},
 	return newResult(ctx, roaring.New())
 }
 
-func (f *Text) Delete(id uint32) {
+func (f *Text) DeleteDoc(id uint32) {
 	if !f.values.ContainsDoc(id) {
 		return
 	}

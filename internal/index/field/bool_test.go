@@ -182,17 +182,17 @@ func Test_Bool_MatchQuery(t *testing.T) {
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
 }
 
-func Test_Bool_Delete(t *testing.T) {
+func Test_Bool_DeleteDoc(t *testing.T) {
 	field := newBool()
 	field.Add(1, true)
 	field.Add(1, false)
 	field.Add(2, false)
 
-	field.Delete(2)
+	field.DeleteDoc(2)
 	require.EqualValues(t, 1, field.values.DocsByValue(true).GetCardinality())
 	require.EqualValues(t, 1, field.values.DocsByValue(false).GetCardinality())
 
-	field.Delete(1)
+	field.DeleteDoc(1)
 	require.EqualValues(t, 0, field.values.DocsByValue(true).GetCardinality())
 	require.EqualValues(t, 0, field.values.DocsByValue(false).GetCardinality())
 }

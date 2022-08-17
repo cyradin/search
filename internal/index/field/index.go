@@ -83,7 +83,7 @@ func (s *Index) Get(id uint32) (map[string]interface{}, error) {
 
 func (s *Index) Delete(id uint32) {
 	for _, field := range s.fields {
-		field.Delete(id)
+		field.DeleteDoc(id)
 	}
 }
 

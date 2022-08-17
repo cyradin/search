@@ -31,7 +31,7 @@ func (f *All) Type() schema.Type {
 	return schema.TypeAll
 }
 
-func (f *All) Add(id uint32, value interface{}) {
+func (f *All) Add(id uint32, values interface{}) {
 	f.data.Add(id)
 }
 
@@ -47,7 +47,7 @@ func (f *All) RangeQuery(ctx context.Context, from interface{}, to interface{}, 
 	return newResult(ctx, roaring.New())
 }
 
-func (f *All) Delete(id uint32) {
+func (f *All) DeleteDoc(id uint32) {
 	f.data.Remove(id)
 }
 

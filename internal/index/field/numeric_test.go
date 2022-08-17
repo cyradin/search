@@ -165,7 +165,7 @@ func test_Numeric_RangeQuery[T NumericConstraint](t *testing.T) {
 	})
 }
 
-func Test_Numeric_Delete(t *testing.T) {
+func Test_Numeric_DeleteDoc(t *testing.T) {
 	t.Run("int8", test_Numeric_Delete[int8])
 	t.Run("int16", test_Numeric_Delete[int16])
 	t.Run("int32", test_Numeric_Delete[int32])
@@ -187,7 +187,7 @@ func test_Numeric_Delete[T NumericConstraint](t *testing.T) {
 	field.Add(2, 30)
 	field.Add(2, 60)
 
-	field.Delete(2)
+	field.DeleteDoc(2)
 	require.EqualValues(t, 1, field.values.DocsByValue(2).GetCardinality())
 	require.EqualValues(t, 1, field.values.DocsByValue(10).GetCardinality())
 	require.EqualValues(t, 1, field.values.DocsByValue(20).GetCardinality())
@@ -198,7 +198,7 @@ func test_Numeric_Delete[T NumericConstraint](t *testing.T) {
 	require.ElementsMatch(t, []T{2, 10, 20, 50}, field.values.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
 
-	field.Delete(1)
+	field.DeleteDoc(1)
 	require.Empty(t, field.values.DocsByValue(1).GetCardinality())
 	require.Empty(t, field.values.DocsByValue(10).GetCardinality())
 	require.Empty(t, field.values.DocsByValue(20).GetCardinality())

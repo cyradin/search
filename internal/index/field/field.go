@@ -36,7 +36,7 @@ type Field interface {
 	// RangeQuery get documents by values from .. to ...
 	RangeQuery(ctx context.Context, from interface{}, to interface{}, incFrom, incTo bool) *QueryResult
 	// Delete document field values
-	Delete(id uint32)
+	DeleteDoc(id uint32)
 	// Data get stored field values
 	Data(id uint32) []interface{}
 

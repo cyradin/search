@@ -57,19 +57,19 @@ func Test_Keyword_MatchQuery(t *testing.T) {
 	require.EqualValues(t, 0, result.Docs().GetCardinality())
 }
 
-func Test_Keyword_Delete(t *testing.T) {
+func Test_Keyword_DeleteDoc(t *testing.T) {
 	field := newKeyword()
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
 
-	field.Delete(2)
+	field.DeleteDoc(2)
 	require.EqualValues(t, 1, field.values.DocsByValue("foo").GetCardinality())
 	require.EqualValues(t, 1, field.values.DocsByValue("bar").GetCardinality())
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
 
-	field.Delete(1)
+	field.DeleteDoc(1)
 	require.Empty(t, field.values.DocsByValue("foo").ToArray())
 	require.Empty(t, field.values.DocsByValue("bar").ToArray())
 	require.Empty(t, field.values.ValuesByDoc(1))

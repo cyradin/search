@@ -71,18 +71,18 @@ func Test_Text_MatchQuery(t *testing.T) {
 	})
 }
 
-func Test_Text_Delete(t *testing.T) {
+func Test_Text_DeleteDoc(t *testing.T) {
 	field := newText(testAnalyzer2, NewScoring())
 	field.Add(1, "foo")
 	field.Add(1, "bar")
 	field.Add(2, "foo")
 
-	field.Delete(2)
+	field.DeleteDoc(2)
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.values.ValuesByDoc(1))
 	require.ElementsMatch(t, []string{"foo", "bar"}, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(2))
 
-	field.Delete(1)
+	field.DeleteDoc(1)
 	require.Empty(t, field.raw.ValuesByDoc(1))
 	require.Empty(t, field.values.ValuesByDoc(1))
 }

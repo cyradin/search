@@ -37,12 +37,12 @@ func Test_All_MatchQuery(t *testing.T) {
 	require.True(t, result.Docs().Contains(1))
 }
 
-func Test_All_Delete(t *testing.T) {
+func Test_All_DeleteDoc(t *testing.T) {
 	t.Run("can delete value", func(t *testing.T) {
 		field := newAll()
 		field.Add(1, true)
 
-		field.Delete(1)
+		field.DeleteDoc(1)
 		require.EqualValues(t, 0, field.data.GetCardinality())
 	})
 
@@ -51,7 +51,7 @@ func Test_All_Delete(t *testing.T) {
 		field.Add(1, true)
 		field.Add(2, true)
 
-		field.Delete(1)
+		field.DeleteDoc(1)
 		require.EqualValues(t, 1, field.data.GetCardinality())
 		require.True(t, field.data.Contains(2))
 	})
