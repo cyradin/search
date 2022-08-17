@@ -10,7 +10,7 @@ import (
 	jsoniter "github.com/json-iterator/go"
 )
 
-var _ Agg = (*TermsAgg)(nil)
+var _ Agg = (*FilterAgg)(nil)
 
 type FilterResult struct {
 	DocCount int                    `json:"docCount"`

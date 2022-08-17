@@ -144,6 +144,36 @@ func (v *docValues[T]) DeleteDoc(id uint32) {
 	}
 }
 
+func (v *docValues[T]) MinValue() (T, *roaring.Bitmap) {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
+	if len(v.List) == 0 {
+		var empty T
+		return empty, roaring.New()
+	}
+
+	vv := v.List[0]
+	docs := v.DocsByValue(vv)
+
+	return v.List[0], docs
+}
+
+func (v *docValues[T]) MaxValue() (T, *roaring.Bitmap) {
+	v.mtx.RLock()
+	defer v.mtx.RUnlock()
+
+	if len(v.List) == 0 {
+		var empty T
+		return empty, roaring.New()
+	}
+
+	vv := v.List[len(v.List)-1]
+	docs := v.DocsByValue(vv)
+
+	return vv, docs
+}
+
 func (v *docValues[T]) listAdd(value T) {
 	var index int
 	switch x := any(value).(type) {
@@ -154,7 +184,7 @@ func (v *docValues[T]) listAdd(value T) {
 			if value == v.List[0] {
 				return
 			}
-			if any(v.List[0]).(bool) == true {
+			if any(v.List[0]).(bool) {
 				v.List = append(v.List, v.List[0])
 				v.List[0] = value
 			} else {

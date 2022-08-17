@@ -55,6 +55,14 @@ func (f *All) Data(id uint32) []interface{} {
 	return []interface{}{f.data.Contains(id)}
 }
 
+func (f *All) MinValue() (interface{}, *roaring.Bitmap) {
+	return false, roaring.New()
+}
+
+func (f *All) MaxValue() (interface{}, *roaring.Bitmap) {
+	return false, roaring.New()
+}
+
 func (f *All) TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult {
 	return TermAggResult{
 		Buckets: []TermBucket{},
