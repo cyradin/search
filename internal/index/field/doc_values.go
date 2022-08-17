@@ -144,28 +144,34 @@ func (v *docValues[T]) DeleteDoc(id uint32) {
 	}
 }
 
-func (v *docValues[T]) MinValue() (T, bool) {
+func (v *docValues[T]) MinValue() (T, *roaring.Bitmap) {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 
 	if len(v.List) == 0 {
 		var empty T
-		return empty, false
+		return empty, roaring.New()
 	}
 
-	return v.List[0], true
+	vv := v.List[0]
+	docs := v.DocsByValue(vv)
+
+	return v.List[0], docs
 }
 
-func (v *docValues[T]) MaxValue() (T, bool) {
+func (v *docValues[T]) MaxValue() (T, *roaring.Bitmap) {
 	v.mtx.RLock()
 	defer v.mtx.RUnlock()
 
 	if len(v.List) == 0 {
 		var empty T
-		return empty, false
+		return empty, roaring.New()
 	}
 
-	return v.List[len(v.List)-1], true
+	vv := v.List[len(v.List)-1]
+	docs := v.DocsByValue(vv)
+
+	return vv, docs
 }
 
 func (v *docValues[T]) listAdd(value T) {

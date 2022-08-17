@@ -140,40 +140,40 @@ func Test_docValues_MinValue(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
 		v := newDocValues[bool]()
 
-		vv, ok := v.MinValue()
+		vv, docs := v.MinValue()
 		assert.Equal(t, false, vv)
-		assert.Equal(t, false, ok)
+		assert.True(t, docs.IsEmpty())
 
 		v.Add(1, true)
 
-		vv, ok = v.MinValue()
+		vv, docs = v.MinValue()
 		assert.Equal(t, true, vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 
 		v.Add(2, false)
 
-		vv, ok = v.MinValue()
+		vv, docs = v.MinValue()
 		assert.Equal(t, false, vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{2}, docs.ToArray())
 	})
 	t.Run("int32", func(t *testing.T) {
 		v := newDocValues[int32]()
 
-		vv, ok := v.MinValue()
+		vv, docs := v.MinValue()
 		assert.Equal(t, int32(0), vv)
-		assert.Equal(t, false, ok)
+		assert.True(t, docs.IsEmpty())
 
 		v.Add(1, 1)
 
-		vv, ok = v.MinValue()
+		vv, docs = v.MinValue()
 		assert.Equal(t, int32(1), vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 
 		v.Add(2, 100)
 
-		vv, ok = v.MinValue()
+		vv, docs = v.MinValue()
 		assert.Equal(t, int32(1), vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 	})
 }
 
@@ -181,40 +181,40 @@ func Test_docValues_MaxValue(t *testing.T) {
 	t.Run("bool", func(t *testing.T) {
 		v := newDocValues[bool]()
 
-		vv, ok := v.MaxValue()
+		vv, docs := v.MaxValue()
 		assert.Equal(t, false, vv)
-		assert.Equal(t, false, ok)
+		assert.True(t, docs.IsEmpty())
 
 		v.Add(1, true)
 
-		vv, ok = v.MaxValue()
+		vv, docs = v.MaxValue()
 		assert.Equal(t, true, vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 
 		v.Add(2, false)
 
-		vv, ok = v.MaxValue()
+		vv, docs = v.MaxValue()
 		assert.Equal(t, true, vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 	})
 	t.Run("int32", func(t *testing.T) {
 		v := newDocValues[int32]()
 
-		vv, ok := v.MaxValue()
+		vv, docs := v.MaxValue()
 		assert.Equal(t, int32(0), vv)
-		assert.Equal(t, false, ok)
+		assert.True(t, docs.IsEmpty())
 
 		v.Add(1, 1)
 
-		vv, ok = v.MaxValue()
+		vv, docs = v.MaxValue()
 		assert.Equal(t, int32(1), vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{1}, docs.ToArray())
 
 		v.Add(2, 100)
 
-		vv, ok = v.MaxValue()
+		vv, docs = v.MaxValue()
 		assert.Equal(t, int32(100), vv)
-		assert.Equal(t, true, ok)
+		assert.ElementsMatch(t, []uint32{2}, docs.ToArray())
 	})
 }
 
