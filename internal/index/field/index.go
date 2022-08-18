@@ -13,8 +13,7 @@ type Index struct {
 	name   string
 	schema schema.Schema
 
-	fields    map[string]Field
-	relevance map[string]*Scoring
+	fields map[string]Field
 }
 
 func NewIndex(name string, s schema.Schema) (*Index, error) {
@@ -67,7 +66,7 @@ func (s *Index) Add(id uint32, source map[string]interface{}) {
 }
 
 func (s *Index) Get(id uint32) (map[string]interface{}, error) {
-	if res := s.fields[AllField].Data(id); res[0].(bool) != true {
+	if res := s.fields[AllField].Data(id); res[0].(bool) {
 		return nil, ErrDocNotFound
 	}
 
