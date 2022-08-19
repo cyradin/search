@@ -3,7 +3,6 @@ package api
 import (
 	"errors"
 	"net/http"
-	"strconv"
 
 	"github.com/cyradin/search/internal/index"
 	"github.com/go-chi/chi/v5"
@@ -11,7 +10,7 @@ import (
 )
 
 type Document struct {
-	ID     uint32                 `json:"id"`
+	GUID   string                 `json:"guid"`
 	Source map[string]interface{} `json:"source,omitempty"`
 }
 
@@ -48,22 +47,20 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		err = c.docs.Add(i, req.ID, req.Source)
+		guid, err := c.docs.Add(i, req.GUID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
 		}
 
 		render.Status(r, http.StatusCreated)
-		render.Respond(w, r, Document{ID: req.ID})
+		render.Respond(w, r, Document{GUID: guid})
 	}
 }
 
 func (c *DocumentController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, documentParam)
-		id64, err := strconv.ParseUint(idStr, 10, 32)
-		id := uint32(id64)
+		guid := chi.URLParam(r, documentParam)
 
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
@@ -77,7 +74,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		source, err := c.docs.Get(i, id)
+		source, err := c.docs.Get(i, guid)
 		if err != nil {
 			if errors.Is(err, index.ErrDocNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -91,15 +88,13 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 		}
 
 		render.Status(r, http.StatusOK)
-		render.Respond(w, r, Document{ID: id, Source: source})
+		render.Respond(w, r, Document{GUID: guid, Source: source})
 	}
 }
 
 func (c *DocumentController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		idStr := chi.URLParam(r, documentParam)
-		id64, err := strconv.ParseUint(idStr, 10, 32)
-		id := uint32(id64)
+		guid := chi.URLParam(r, documentParam)
 
 		i, err := c.repo.Get(chi.URLParam(r, indexParam))
 		if err != nil {
@@ -113,7 +108,7 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 			return
 		}
 
-		c.docs.Delete(i, id)
+		c.docs.Delete(i, guid)
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
