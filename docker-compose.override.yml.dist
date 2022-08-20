@@ -1,0 +1,7 @@
+version: "3.7"
+
+services:
+  go:
+    ports:
+      - 8100:8100
+    user: "1000:1000"
