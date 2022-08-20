@@ -74,11 +74,13 @@ func Test_Documents_Add(t *testing.T) {
 			err := docs.AddIndex(i)
 			require.NoError(t, err)
 
-			err = docs.Add(i, 1, d.source)
+			guid, err := docs.Add(i, "", d.source)
 			if d.erroneous {
 				require.Error(t, err)
+				require.NotEmpty(t, guid)
 			} else {
 				require.NoError(t, err)
+				require.NotEmpty(t, guid)
 			}
 		})
 	}
