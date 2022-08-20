@@ -29,6 +29,13 @@ func (s *Storage) WithPrefix(prefix string) *Storage {
 	}
 }
 
+func (s *Storage) WithKey(key string) *KeyedStorage {
+	return &KeyedStorage{
+		storage: s,
+		key:     key,
+	}
+}
+
 func (s *Storage) GetString(ctx context.Context, key string) (string, error) {
 	resp := s.client.Get(ctx, makeKey(s.prefix, key))
 
@@ -112,14 +119,14 @@ func (s *Storage) GetDictJSON(ctx context.Context, key string, id string, dst in
 	return nil
 }
 
-func (s *Storage) SetDictJSON(ctx context.Context, key string, id string, value string) error {
+func (s *Storage) SetDictJSON(ctx context.Context, key string, id string, value interface{}) error {
 	vv, err := jsoniter.Marshal(value)
 
 	if err != nil {
 		return errs.Errorf("storage set err: %w", err)
 	}
 
-	resp := s.client.HSetNX(ctx, makeKey(s.prefix, key), string(vv), 0)
+	resp := s.client.HSetNX(ctx, makeKey(s.prefix, key), id, string(vv))
 
 	if err := resp.Err(); err != nil {
 		return errs.Errorf("storage set err: %w", err)
@@ -129,5 +136,9 @@ func (s *Storage) SetDictJSON(ctx context.Context, key string, id string, value 
 }
 
 func makeKey(prefix string, key string) string {
+	if prefix == "" {
+		return key
+	}
+
 	return prefix + "|" + key
 }
