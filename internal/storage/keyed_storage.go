@@ -31,3 +31,11 @@ func (s *KeyedStorage) GetDictJSON(ctx context.Context, id string, dst interface
 func (s *KeyedStorage) SetDictJSON(ctx context.Context, id string, value interface{}) error {
 	return s.storage.SetDictJSON(ctx, s.key, id, value)
 }
+
+func (s *KeyedStorage) Del(ctx context.Context) error {
+	return s.storage.Del(ctx, s.key)
+}
+
+func (s *KeyedStorage) DelDict(ctx context.Context, id string) error {
+	return s.storage.DelDict(ctx, s.key, id)
+}

@@ -135,6 +135,26 @@ func (s *Storage) SetDictJSON(ctx context.Context, key string, id string, value 
 	return nil
 }
 
+func (s *Storage) Del(ctx context.Context, key string) error {
+	resp := s.client.Del(ctx, makeKey(s.prefix, key))
+
+	if err := resp.Err(); err != nil {
+		return errs.Errorf("storage del err: %w", err)
+	}
+
+	return nil
+}
+
+func (s *Storage) DelDict(ctx context.Context, key string, id string) error {
+	resp := s.client.HDel(ctx, makeKey(s.prefix, key), id)
+
+	if err := resp.Err(); err != nil {
+		return errs.Errorf("storage del err: %w", err)
+	}
+
+	return nil
+}
+
 func makeKey(prefix string, key string) string {
 	if prefix == "" {
 		return key
