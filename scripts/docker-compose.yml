@@ -7,13 +7,11 @@ services:
     image: cyradin/go:1.19
     volumes:
       - "../:/home/user/app:rw"
-      - "cyradin-search-go-pkg:/go/pkg:rw"
-      - "cyradin-search-go-bin:/go/bin:rw"
-    environment:
-      - "GOPRIVATE=github.com/crypto-prophet/*"
+      - "go-pkg:/go/pkg:rw"
+      - "go-bin:/go/bin:rw"
 
 volumes:
-  cyradin-search-go-pkg:
+  go-pkg:
     driver: local
-  cyradin-search-go-bin:
+  go-bin:
     driver: local
