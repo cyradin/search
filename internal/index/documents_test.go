@@ -7,37 +7,6 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-var _ Storage[uint32, DocSource] = (*testDocStorage)(nil)
-
-type testDocStorage struct {
-	one    func(id uint32) (Document[uint32, DocSource], error)
-	multi  func(ids ...uint32) ([]Document[uint32, DocSource], error)
-	all    func() (<-chan Document[uint32, DocSource], <-chan error)
-	insert func(id uint32, doc DocSource) (uint32, error)
-	update func(id uint32, doc DocSource) error
-	delete func(id uint32) error
-}
-
-func (s *testDocStorage) One(id uint32) (Document[uint32, DocSource], error) {
-	return s.one(id)
-}
-func (s *testDocStorage) Multi(ids ...uint32) ([]Document[uint32, DocSource], error) {
-	return s.multi(ids...)
-}
-func (s *testDocStorage) All() (<-chan Document[uint32, DocSource], <-chan error) {
-	return s.all()
-}
-func (s *testDocStorage) Insert(id uint32, doc DocSource) (uint32, error) {
-	return s.insert(id, doc)
-}
-func (s *testDocStorage) Update(id uint32, doc DocSource) error {
-	return s.update(id, doc)
-}
-
-func (s *testDocStorage) Delete(id uint32) error {
-	return s.delete(id)
-}
-
 func Test_Documents_Add(t *testing.T) {
 	data := []struct {
 		name      string

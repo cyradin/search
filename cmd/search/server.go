@@ -7,14 +7,19 @@ import (
 
 	"github.com/cyradin/search/internal/api"
 	"github.com/cyradin/search/internal/index"
+	"github.com/cyradin/search/internal/storage"
 	"github.com/go-chi/chi/v5"
+	"github.com/go-redis/redis/v9"
 )
 
 const dataDir = "/home/user/app/.data"
 
-func initServer(ctx context.Context, address string) *http.Server {
+func initServer(ctx context.Context, address string, redisClient *redis.Client, redisPrefix string) *http.Server {
 	docRepository := index.NewDocuments(dataDir)
-	indexRepository, err := index.NewRepository(dataDir, docRepository)
+
+	indexstorage := storage.NewDictStorage[index.Index](redisClient).WithPrefix(redisPrefix)
+
+	indexRepository, err := index.NewRepository(indexstorage, docRepository)
 	panicOnError(err)
 	err = indexRepository.Init(ctx)
 	panicOnError(err)

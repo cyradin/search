@@ -76,7 +76,8 @@ func NewIndexController(repo *index.Repository) *IndexController {
 
 func (c *IndexController) ListAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		indexes, err := c.repo.All()
+		ctx := r.Context()
+		indexes, err := c.repo.All(ctx)
 		if err != nil {
 			handleErr(w, r, err)
 			return
@@ -99,8 +100,8 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 		}
 
 		newIndex := index.New(req.Name, req.Schema)
-
-		err := c.repo.Add(r.Context(), newIndex)
+		ctx := r.Context()
+		err := c.repo.Add(ctx, newIndex)
 		if err != nil {
 			if errors.Is(err, index.ErrIndexAlreadyExists) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -118,7 +119,8 @@ func (c *IndexController) AddAction() http.HandlerFunc {
 
 func (c *IndexController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		ctx := r.Context()
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse422(ErrResponseWithMsg(err.Error()))
@@ -140,7 +142,8 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 
 func (c *IndexController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		if err := c.repo.Delete(r.Context(), chi.URLParam(r, indexParam)); err != nil {
+		ctx := r.Context()
+		if err := c.repo.Delete(ctx, chi.URLParam(r, indexParam)); err != nil {
 			handleErr(w, r, err)
 			return
 		}

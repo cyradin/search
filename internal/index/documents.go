@@ -1,10 +1,14 @@
 package index
 
 import (
+	"fmt"
+
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
 )
+
+var ErrDocNotFound = fmt.Errorf("doc not found")
 
 type DocSource map[string]interface{}
 

@@ -24,7 +24,7 @@ func NewSearchController(repo *index.Repository, docs *index.Documents) *SearchC
 func (c *SearchController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))

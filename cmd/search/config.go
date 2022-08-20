@@ -18,21 +18,29 @@ type Config struct {
 	Env    string `required:"false"`
 	Debug  DebugConfig
 	Server ServerConfig
-	Logger LoggerConfig `required:"true" split_words:"true"`
+	Logger LoggerConfig
+	Redis  RedisConfig
 }
 
 type DebugConfig struct {
-	ProfileMem bool `required:"true" default:"false" split_words:"true"`
-	ProfileCpu bool `required:"true" default:"false" split_words:"true"`
+	ProfileMem bool `envconfig:"DEBUG_PROFILE_MEM" required:"true" default:"false"`
+	ProfileCPU bool `envconfig:"DEBUG_PROFILE_CPU" required:"true" default:"false"`
 }
 
 type ServerConfig struct {
-	Address string `required:"true" default:":8100" split_words:"true"`
+	Address string `envconfig:"SERVER_ADDRESS" required:"true" default:":8100" split_words:"true"`
 }
 
 type LoggerConfig struct {
-	Level      zapcore.Level `required:"true" default:"info"`
-	TraceLevel zapcore.Level `required:"true" default:"error"`
+	Level      zapcore.Level `envconfig:"LOGGER_LEVEL" required:"true" default:"info"`
+	TraceLevel zapcore.Level `envconfig:"LOGGER_TRACE_LEVEL" required:"true" default:"error"`
+}
+
+type RedisConfig struct {
+	Addr      string `envconfig:"REDIS_ADDR" required:"true"`
+	Password  string `envconfig:"REDIS_PASSWORD" require:"false"`
+	DB        int    `envconfig:"REDIS_DB" require:"false"`
+	KeyPrefix string `envconfig:"REDIS_KEY_PREFIX" require:"true" default:"search"`
 }
 
 func initConfig() (Config, error) {

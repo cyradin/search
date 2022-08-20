@@ -9,6 +9,7 @@ import (
 
 	"github.com/cyradin/search/internal/errs"
 	"github.com/cyradin/search/internal/index/schema"
+	"github.com/cyradin/search/internal/storage"
 	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
@@ -30,29 +31,21 @@ func New(name string, s schema.Schema) Index {
 }
 
 type Repository struct {
-	mtx     sync.Mutex
-	storage Storage[string, Index]
+	mtx sync.Mutex
 
-	dataDir string
-
-	docs *Documents
+	docs    *Documents
+	storage *storage.KeyedDictStorage[Index]
 }
 
-func NewRepository(dataDir string, docs *Documents) (*Repository, error) {
-	storage, err := NewIndexStorage(dataDir)
-	if err != nil {
-		return nil, errs.Errorf("index storage init err: %w", err)
-	}
-
+func NewRepository(strg *storage.DictStorage[Index], docs *Documents) (*Repository, error) {
 	return &Repository{
-		storage: storage,
-		dataDir: dataDir,
 		docs:    docs,
+		storage: strg.WithKey("indexes"),
 	}, nil
 }
 
 func (r *Repository) Init(ctx context.Context) error {
-	indexes, err := r.All()
+	indexes, err := r.All(ctx)
 	if err != nil {
 		return errs.Errorf("index list load err: %w", err)
 	}
@@ -67,38 +60,25 @@ func (r *Repository) Init(ctx context.Context) error {
 	return nil
 }
 
-func (r *Repository) Get(name string) (Index, error) {
+func (r *Repository) Get(ctx context.Context, name string) (Index, error) {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	doc, err := r.storage.One(name)
-	if errors.Is(err, ErrDocNotFound) {
-		return Index{}, ErrIndexNotFound
+	result, err := r.storage.Get(ctx, name)
+	if errors.Is(err, storage.ErrNotFound) {
+		return result, ErrIndexNotFound
 	}
 
-	return doc.Source, nil
+	return result, nil
 }
 
-func (r *Repository) All() ([]Index, error) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	var result []Index
-
-	indexes, errors := r.storage.All()
-	for {
-		select {
-		case doc, ok := <-indexes:
-			if !ok {
-				return result, nil
-			}
-			result = append(result, doc.Source)
-		case err, ok := <-errors:
-			if ok {
-				return nil, errs.Errorf("storage err: %w", err)
-			}
-		}
+func (r *Repository) All(ctx context.Context) ([]Index, error) {
+	result, err := r.storage.AllValues(ctx)
+	if err != nil {
+		return nil, err
 	}
+
+	return result, nil
 }
 
 func (r *Repository) Add(ctx context.Context, index Index) error {
@@ -113,12 +93,14 @@ func (r *Repository) Add(ctx context.Context, index Index) error {
 		return errs.Errorf("docs index add err: %w", err)
 	}
 
-	_, err := r.storage.Insert(index.Name, index)
-	if errors.Is(err, ErrDocAlreadyExists) {
-		return ErrIndexAlreadyExists
+	if err := r.storage.Set(ctx, index.Name, index); err != nil {
+		// @todo
+		// if errors.Is(err, storage.ErrDocAlreadyExists) {
+		// 	return ErrIndexAlreadyExists
+		// }
 	}
 
-	return err
+	return nil
 }
 
 func (r *Repository) Delete(ctx context.Context, name string) error {
@@ -129,8 +111,8 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 		return errs.Errorf("docs index delete err: %w", err)
 	}
 
-	if err := r.storage.Delete(name); err != nil {
-		if errors.Is(err, ErrDocNotFound) {
+	if err := r.storage.Del(ctx, name); err != nil {
+		if errors.Is(err, storage.ErrNotFound) {
 			return nil
 		}
 

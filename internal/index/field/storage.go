@@ -54,7 +54,7 @@ func (s *Storage) AddIndex(name string, sc schema.Schema) (*Index, error) {
 	defer s.mtx.Unlock()
 
 	if _, ok := s.indexes[name]; ok {
-		return nil, errs.Errorf("index %q aready initialized", name)
+		return nil, errs.Errorf("index %q already initialized", name)
 	}
 
 	src := path.Join(s.src, name, fieldsDir)
