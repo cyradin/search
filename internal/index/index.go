@@ -31,26 +31,32 @@ func New(name string, s schema.Schema) Index {
 }
 
 type Repository struct {
-	mtx sync.Mutex
+	mtx sync.RWMutex
 
 	docs    *Documents
+	items   map[string]Index
 	storage *storage.KeyedDictStorage[Index]
 }
 
 func NewRepository(strg *storage.DictStorage[Index], docs *Documents) (*Repository, error) {
 	return &Repository{
 		docs:    docs,
+		items:   make(map[string]Index),
 		storage: strg.WithKey("indexes"),
 	}, nil
 }
 
 func (r *Repository) Init(ctx context.Context) error {
-	indexes, err := r.All(ctx)
+	r.mtx.Lock()
+	defer r.mtx.Unlock()
+
+	indexes, err := r.storage.AllValues(ctx)
 	if err != nil {
 		return errs.Errorf("index list load err: %w", err)
 	}
 
 	for _, index := range indexes {
+		r.items[index.Name] = index
 		err := r.docs.AddIndex(index)
 		if err != nil {
 			return errs.Errorf("index data init err: %w", err)
@@ -61,11 +67,11 @@ func (r *Repository) Init(ctx context.Context) error {
 }
 
 func (r *Repository) Get(ctx context.Context, name string) (Index, error) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
 
-	result, err := r.storage.Get(ctx, name)
-	if errors.Is(err, storage.ErrNotFound) {
+	result, ok := r.items[name]
+	if !ok {
 		return result, ErrIndexNotFound
 	}
 
@@ -73,9 +79,12 @@ func (r *Repository) Get(ctx context.Context, name string) (Index, error) {
 }
 
 func (r *Repository) All(ctx context.Context) ([]Index, error) {
-	result, err := r.storage.AllValues(ctx)
-	if err != nil {
-		return nil, err
+	r.mtx.RLock()
+	defer r.mtx.RUnlock()
+
+	result := make([]Index, 0, len(r.items))
+	for _, item := range r.items {
+		result = append(result, item)
 	}
 
 	return result, nil
@@ -84,6 +93,10 @@ func (r *Repository) All(ctx context.Context) ([]Index, error) {
 func (r *Repository) Add(ctx context.Context, index Index) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
+
+	if _, ok := r.items[index.Name]; ok {
+		return ErrIndexAlreadyExists
+	}
 
 	if err := validation.Validate(index.Schema); err != nil {
 		return errs.Errorf("schema validation failed: %w", err)
@@ -94,11 +107,9 @@ func (r *Repository) Add(ctx context.Context, index Index) error {
 	}
 
 	if err := r.storage.Set(ctx, index.Name, index); err != nil {
-		// @todo
-		// if errors.Is(err, storage.ErrDocAlreadyExists) {
-		// 	return ErrIndexAlreadyExists
-		// }
+		return err
 	}
+	r.items[index.Name] = index
 
 	return nil
 }
@@ -118,6 +129,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 
 		return errs.Errorf("index delete err: %w", err)
 	}
+	delete(r.items, name)
 
 	return nil
 }
