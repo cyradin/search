@@ -10,7 +10,7 @@ import (
 	"github.com/spf13/cast"
 )
 
-type FieldOpts struct {
+type Opts struct {
 	Analyzer func([]string) []string
 	Scoring  *Scoring
 }
@@ -49,7 +49,7 @@ type Field interface {
 	TermAgg(ctx context.Context, docs *roaring.Bitmap, size int) TermAggResult
 }
 
-func New(t schema.Type, opts ...FieldOpts) (Field, error) {
+func New(t schema.Type, opts ...Opts) (Field, error) {
 	var field Field
 
 	switch t {

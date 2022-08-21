@@ -12,20 +12,16 @@ import (
 	"github.com/go-redis/redis/v9"
 )
 
-const dataDir = "/home/user/app/.data"
-
 func initServer(ctx context.Context, address string, redisClient *redis.Client, redisPrefix string) *http.Server {
-	docRepository := index.NewDocuments(dataDir)
+	indexstorage := storage.NewDictStorage[index.IndexData](redisClient).WithPrefix(redisPrefix)
 
-	indexstorage := storage.NewDictStorage[index.Index](redisClient).WithPrefix(redisPrefix)
-
-	indexRepository, err := index.NewRepository(indexstorage, docRepository)
+	indexRepository, err := index.NewRepository(indexstorage)
 	panicOnError(err)
 	err = indexRepository.Init(ctx)
 	panicOnError(err)
 
 	mux := chi.NewMux()
-	mux.Route("/", api.NewHandler(ctx, indexRepository, docRepository))
+	mux.Route("/", api.NewHandler(ctx, indexRepository))
 
 	server := &http.Server{
 		Addr:    address,

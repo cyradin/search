@@ -21,11 +21,11 @@ type IndexList struct {
 	Items []IndexListItem `json:"items"`
 }
 
-func (l *IndexList) FromIndexes(indexes []index.Index) {
+func (l *IndexList) FromIndexes(indexes []*index.Index) {
 	l.Items = make([]IndexListItem, len(indexes))
 	for i, item := range indexes {
 		listItem := IndexListItem{}
-		listItem.FromIndex(item)
+		listItem.FromIndex(item.Data())
 		l.Items[i] = listItem
 	}
 }
@@ -35,7 +35,7 @@ type IndexListItem struct {
 	CreatedAt time.Time `json:"createdAt"`
 }
 
-func (i *IndexListItem) FromIndex(item index.Index) {
+func (i *IndexListItem) FromIndex(item index.IndexData) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 }
@@ -46,7 +46,7 @@ type Index struct {
 	Schema    schema.Schema `json:"schema"`
 }
 
-func (i *Index) FromIndex(item index.Index) {
+func (i *Index) FromIndex(item index.IndexData) {
 	i.Name = item.Name
 	i.CreatedAt = item.CreatedAt
 	i.Schema = item.Schema
@@ -133,7 +133,7 @@ func (c *IndexController) GetAction() http.HandlerFunc {
 		}
 
 		resp := Index{}
-		resp.FromIndex(i)
+		resp.FromIndex(i.Data())
 
 		render.Status(r, http.StatusOK)
 		render.Respond(w, r, resp)
@@ -149,12 +149,5 @@ func (c *IndexController) DeleteAction() http.HandlerFunc {
 		}
 
 		w.WriteHeader(http.StatusNoContent)
-	}
-}
-
-func (c *IndexController) transformIndexList(i index.Index) IndexListItem {
-	return IndexListItem{
-		Name:      i.Name,
-		CreatedAt: i.CreatedAt,
 	}
 }

@@ -89,7 +89,7 @@ func (i *IDs) Delete(guid string) {
 	i.free = append(i.free, id)
 }
 
-type indexData struct {
+type idsData struct {
 	Guids map[string]uint32
 	Ids   map[uint32]string
 	Next  uint32
@@ -101,7 +101,7 @@ func (f *IDs) MarshalBinary() ([]byte, error) {
 	defer f.mtx.Unlock()
 
 	var buf bytes.Buffer
-	err := gob.NewEncoder(&buf).Encode(indexData{
+	err := gob.NewEncoder(&buf).Encode(idsData{
 		Guids: f.guids,
 		Ids:   f.ids,
 		Next:  f.next,
@@ -115,7 +115,7 @@ func (f *IDs) UnmarshalBinary(data []byte) error {
 	f.mtx.Lock()
 	defer f.mtx.Unlock()
 
-	raw := indexData{}
+	raw := idsData{}
 	buf := bytes.NewBuffer(data)
 	err := gob.NewDecoder(buf).Decode(&raw)
 	if err != nil {

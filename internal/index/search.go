@@ -5,7 +5,6 @@ import (
 	"time"
 
 	"github.com/cyradin/search/internal/index/agg"
-	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/query"
 	jsoniter "github.com/json-iterator/go"
 )
@@ -19,20 +18,14 @@ type Search struct {
 }
 
 // Search execute search
-func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchResult, error) {
-	fieldIndex, err := d.fields.GetIndex(index.Name)
-	if err != nil {
-		return SearchResult{}, err
-	}
-	fields := fieldIndex.Fields()
-
+func (i *Index) Search(ctx context.Context, q Search) (SearchResult, error) {
 	t := time.Now()
-	qr, err := d.execQuery(ctx, q, fields)
+	qr, err := i.execQuery(ctx, q)
 	if err != nil {
 		return SearchResult{}, err
 	}
 
-	ar, err := d.execAggs(ctx, q, qr, fields)
+	ar, err := i.execAggs(ctx, q, qr)
 	if err != nil {
 		return SearchResult{}, err
 	}
@@ -41,7 +34,7 @@ func (d *Documents) Search(ctx context.Context, index Index, q Search) (SearchRe
 	return NewSearchResult(qr, ar, took), nil
 }
 
-func (d *Documents) execQuery(ctx context.Context, q Search, fields map[string]field.Field) (query.Result, error) {
+func (i *Index) execQuery(ctx context.Context, q Search) (query.Result, error) {
 	// exec query by all documents if not provided
 	if q.Query == nil {
 		q.Query = []byte(`{"type": "bool"}`)
@@ -52,7 +45,7 @@ func (d *Documents) execQuery(ctx context.Context, q Search, fields map[string]f
 		return query.NewEmptyResult(), err
 	}
 
-	qr, err := qb.Exec(ctx, fields)
+	qr, err := qb.Exec(ctx, i.fields)
 	if err != nil {
 		return query.NewEmptyResult(), err
 	}
@@ -60,8 +53,8 @@ func (d *Documents) execQuery(ctx context.Context, q Search, fields map[string]f
 	return qr, nil
 }
 
-func (d *Documents) execAggs(ctx context.Context, q Search, qr query.Result, fields map[string]field.Field) (agg.Result, error) {
-	return agg.Exec(ctx, qr.Docs(), agg.AggsRequest(q.Aggs), fields)
+func (i *Index) execAggs(ctx context.Context, q Search, qr query.Result) (agg.Result, error) {
+	return agg.Exec(ctx, qr.Docs(), agg.AggsRequest(q.Aggs), i.fields)
 }
 
 type SearchResult struct {

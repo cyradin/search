@@ -64,7 +64,7 @@ func Test_matchQuery_exec(t *testing.T) {
 	require.NoError(t, err)
 	f1.Add(1, "value")
 
-	f2, err := field.New(schema.TypeText, field.FieldOpts{
+	f2, err := field.New(schema.TypeText, field.Opts{
 		Analyzer: func(s []string) []string {
 			var result []string
 			for _, str := range s {
