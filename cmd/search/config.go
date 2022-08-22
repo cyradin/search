@@ -1,10 +1,8 @@
 package main
 
 import (
-	"fmt"
-	"os"
-
-	"github.com/joho/godotenv"
+	"github.com/cyradin/search/internal/env"
+	"github.com/cyradin/search/internal/storage"
 	"github.com/kelseyhightower/envconfig"
 	"go.uber.org/zap/zapcore"
 )
@@ -19,7 +17,7 @@ type Config struct {
 	Debug  DebugConfig
 	Server ServerConfig
 	Logger LoggerConfig
-	Redis  RedisConfig
+	Redis  storage.RedisConfig
 }
 
 type DebugConfig struct {
@@ -36,15 +34,8 @@ type LoggerConfig struct {
 	TraceLevel zapcore.Level `envconfig:"LOGGER_TRACE_LEVEL" required:"true" default:"error"`
 }
 
-type RedisConfig struct {
-	Addr      string `envconfig:"REDIS_ADDR" required:"true"`
-	Password  string `envconfig:"REDIS_PASSWORD" require:"false"`
-	DB        int    `envconfig:"REDIS_DB" require:"false"`
-	KeyPrefix string `envconfig:"REDIS_KEY_PREFIX" require:"true" default:"search"`
-}
-
 func initConfig() (Config, error) {
-	appEnv, err := loadEnv("SEARCH_ENV")
+	appEnv, err := env.Load()
 	if err != nil {
 		return Config{}, err
 	}
@@ -54,51 +45,4 @@ func initConfig() (Config, error) {
 	cfg.Env = appEnv
 
 	return *cfg, err
-}
-
-var loadEnv = func(envVar string) (appEnv string, err error) {
-	appEnv = os.Getenv(envVar)
-	if appEnv == "" {
-		appEnv = string(dev)
-		os.Setenv(envVar, appEnv)
-	}
-
-	err = loadEnvFile(fmt.Sprintf(".env.%s.local", appEnv))
-	if err != nil {
-		return
-	}
-
-	if appEnv != string(test) {
-		err = loadEnvFile(".env.local")
-		if err != nil {
-			return
-		}
-	}
-
-	err = loadEnvFile(fmt.Sprintf(".env.%s", appEnv))
-	if err != nil {
-		return
-	}
-
-	err = loadEnvFile(".env")
-	return
-}
-
-func loadEnvFile(file string) error {
-	_, err := os.Stat(file)
-
-	if os.IsNotExist(err) {
-		return nil
-	}
-
-	if err != nil {
-		return err
-	}
-
-	err = godotenv.Load(file)
-	if err != nil {
-		return fmt.Errorf("failed to load %s: %w", file, err)
-	}
-
-	return err
 }

@@ -70,24 +70,25 @@ func DictValues[T any](ctx context.Context, key string) ([]T, error) {
 	return dst, nil
 }
 
-func DictAll[T any](ctx context.Context, key string, dst map[string]T) error {
+func DictAll[T any](ctx context.Context, key string) (map[string]T, error) {
 	resp := Redis(ctx).HGetAll(ctx, makeKey(ctx, key))
 	if err := resp.Err(); err != nil {
-		return errs.Errorf("storage get all err: %w", err)
+		return nil, errs.Errorf("storage get all err: %w", err)
 	}
 
+	result := make(map[string]T)
 	for k, v := range resp.Val() {
 		var vv T
 		if err := jsoniter.Unmarshal([]byte(v), &vv); err != nil {
-			return errs.Errorf("storage unmarshal err: %w", err)
+			return nil, errs.Errorf("storage unmarshal err: %w", err)
 		}
-		dst[k] = vv
+		result[k] = vv
 	}
 
-	return nil
+	return result, nil
 }
 
-func DictDel[T any](ctx context.Context, key string, id string) error {
+func DictDel(ctx context.Context, key string, id string) error {
 	resp := Redis(ctx).HDel(ctx, makeKey(ctx, key), id)
 
 	if err := resp.Err(); err != nil {

@@ -45,8 +45,12 @@ func Del(ctx context.Context, key string) error {
 	return nil
 }
 
+func MakeKey(parts ...string) string {
+	return strings.Join(parts, "|")
+}
+
 func makeKey(ctx context.Context, parts ...string) string {
-	result := strings.Join(parts, "|")
+	result := MakeKey(parts...)
 	if prefix := GlobalPrefix(ctx); prefix != "" {
 		if result == "" {
 			return prefix
