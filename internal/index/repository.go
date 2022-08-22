@@ -114,7 +114,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if err := storage.DictDel[IndexData](ctx, r.key, name); err != nil {
+	if err := storage.DictDel(ctx, r.key, name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil
 		}

@@ -29,9 +29,14 @@ type Index struct {
 func NewIndex(ctx context.Context, i IndexData) (*Index, error) {
 	result := &Index{
 		data:   i,
-		ids:    NewIDs(),
 		fields: make(map[string]field.Field),
 	}
+
+	ids, err := NewIDs(ctx, i.Name)
+	if err != nil {
+		return nil, err
+	}
+	result.ids = ids
 
 	// add "allField" which contains all documents
 	fieldsCopy := make(map[string]schema.Field)
@@ -69,7 +74,7 @@ func (i *Index) Data() IndexData {
 	return i.data
 }
 
-func (i *Index) Add(guid string, source DocSource) (string, error) {
+func (i *Index) Add(ctx context.Context, guid string, source DocSource) (string, error) {
 	if guid == "" {
 		guid = newGUID()
 	}
@@ -78,7 +83,7 @@ func (i *Index) Add(guid string, source DocSource) (string, error) {
 		return guid, errs.Errorf("doc validation err: %w", err)
 	}
 
-	id, err := i.ids.NextID(guid)
+	id, err := i.ids.NextID(ctx, guid)
 	if err != nil {
 		return guid, errs.Errorf("doc get next id err: %w", err)
 	}
@@ -114,7 +119,7 @@ func (i *Index) Get(guid string) (DocSource, error) {
 	return result, nil
 }
 
-func (i *Index) Delete(guid string) error {
+func (i *Index) Delete(ctx context.Context, guid string) error {
 	if guid == "" {
 		return errs.Errorf("doc guid is required")
 	}
@@ -124,10 +129,14 @@ func (i *Index) Delete(guid string) error {
 		return nil
 	}
 
+	err := i.ids.Delete(ctx, guid)
+	if err != nil {
+		return err
+	}
+
 	for _, field := range i.fields {
 		field.DeleteDoc(id)
 	}
-	i.ids.Delete(guid)
 
 	return nil
 }
