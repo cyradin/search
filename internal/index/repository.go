@@ -27,14 +27,14 @@ func New(name string, s schema.Schema) IndexData {
 type Repository struct {
 	mtx sync.RWMutex
 
-	items   map[string]*Index
-	storage *storage.KeyedDictStorage[IndexData]
+	key   string
+	items map[string]*Index
 }
 
-func NewRepository(strg *storage.DictStorage[IndexData]) (*Repository, error) {
+func NewRepository(ctx context.Context) (*Repository, error) {
 	return &Repository{
-		items:   make(map[string]*Index),
-		storage: strg.WithKey("indexes"),
+		key:   storage.PrefixIndexes(),
+		items: make(map[string]*Index),
 	}, nil
 }
 
@@ -42,13 +42,13 @@ func (r *Repository) Init(ctx context.Context) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	indexes, err := r.storage.AllValues(ctx)
+	indexes, err := storage.DictValues[IndexData](ctx, r.key)
 	if err != nil {
 		return errs.Errorf("index list load err: %w", err)
 	}
 
 	for _, index := range indexes {
-		i, err := NewIndex(index)
+		i, err := NewIndex(ctx, index)
 		if err != nil {
 			// @todo mark index as broken and continue
 			return errs.Errorf("index data init err: %w", err)
@@ -97,12 +97,12 @@ func (r *Repository) Add(ctx context.Context, index IndexData) error {
 		return errs.Errorf("schema validation failed: %w", err)
 	}
 
-	i, err := NewIndex(index)
+	i, err := NewIndex(ctx, index)
 	if err != nil {
 		return errs.Errorf("index init err: %w", err)
 	}
 
-	if err := r.storage.Set(ctx, index.Name, index); err != nil {
+	if err := storage.DictSet[IndexData](ctx, r.key, index.Name, index); err != nil {
 		return err
 	}
 	r.items[index.Name] = i
@@ -114,7 +114,7 @@ func (r *Repository) Delete(ctx context.Context, name string) error {
 	r.mtx.Lock()
 	defer r.mtx.Unlock()
 
-	if err := r.storage.Del(ctx, name); err != nil {
+	if err := storage.DictDel[IndexData](ctx, r.key, name); err != nil {
 		if errors.Is(err, storage.ErrNotFound) {
 			return nil
 		}

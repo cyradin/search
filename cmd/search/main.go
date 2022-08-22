@@ -9,6 +9,7 @@ import (
 
 	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/logger"
+	"github.com/cyradin/search/internal/storage"
 	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"github.com/pkg/profile"
@@ -45,8 +46,10 @@ func main() {
 		DB:       cfg.Redis.DB,
 	})
 	panicOnError(redisClient.Ping(ctx).Err())
+	ctx = storage.WithRedis(ctx, redisClient)
+	ctx = storage.WithGlobalPrefix(ctx, cfg.Redis.KeyPrefix)
 
-	srv := initServer(ctx, cfg.Server.Address, redisClient, cfg.Redis.KeyPrefix)
+	srv := initServer(ctx, cfg.Server.Address)
 
 	errors := make(chan error, 1)
 	go func(ctx context.Context) {

@@ -1,6 +1,7 @@
 package index
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -25,7 +26,7 @@ type Index struct {
 	fields map[string]field.Field
 }
 
-func NewIndex(i IndexData) (*Index, error) {
+func NewIndex(ctx context.Context, i IndexData) (*Index, error) {
 	result := &Index{
 		data:   i,
 		ids:    NewIDs(),
