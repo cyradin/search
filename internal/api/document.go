@@ -16,13 +16,11 @@ type Document struct {
 
 type DocumentController struct {
 	repo *index.Repository
-	docs *index.Documents
 }
 
-func NewDocumentController(repo *index.Repository, docs *index.Documents) *DocumentController {
+func NewDocumentController(repo *index.Repository) *DocumentController {
 	return &DocumentController{
 		repo: repo,
-		docs: docs,
 	}
 }
 
@@ -35,7 +33,8 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		ctx := r.Context()
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -47,7 +46,7 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 			return
 		}
 
-		guid, err := c.docs.Add(i, req.GUID, req.Source)
+		guid, err := i.Add(req.GUID, req.Source)
 		if err != nil {
 			handleErr(w, r, err)
 			return
@@ -61,8 +60,8 @@ func (c *DocumentController) AddAction() http.HandlerFunc {
 func (c *DocumentController) GetAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		guid := chi.URLParam(r, documentParam)
-
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		ctx := r.Context()
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -74,7 +73,7 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 			return
 		}
 
-		source, err := c.docs.Get(i, guid)
+		source, err := i.Get(guid)
 		if err != nil {
 			if errors.Is(err, index.ErrDocNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -95,8 +94,8 @@ func (c *DocumentController) GetAction() http.HandlerFunc {
 func (c *DocumentController) DeleteAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		guid := chi.URLParam(r, documentParam)
-
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		ctx := r.Context()
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -108,7 +107,10 @@ func (c *DocumentController) DeleteAction() http.HandlerFunc {
 			return
 		}
 
-		c.docs.Delete(i, guid)
+		if err := i.Delete(guid); err != nil {
+			handleErr(w, r, err)
+			return
+		}
 		w.WriteHeader(http.StatusNoContent)
 	}
 }

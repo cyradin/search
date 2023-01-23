@@ -9,6 +9,8 @@ import (
 
 	"github.com/cyradin/search/internal/events"
 	"github.com/cyradin/search/internal/logger"
+	"github.com/cyradin/search/internal/storage"
+	"github.com/go-redis/redis/v9"
 	"github.com/google/uuid"
 	"github.com/pkg/profile"
 	"go.uber.org/zap"
@@ -22,7 +24,7 @@ func main() {
 		panic(err)
 	}
 
-	if cfg.Debug.ProfileCpu {
+	if cfg.Debug.ProfileCPU {
 		defer profile.Start().Stop()
 	} else if cfg.Debug.ProfileMem {
 		defer profile.Start(profile.MemProfile).Stop()
@@ -37,6 +39,15 @@ func main() {
 
 	stopCtx, cancel := signal.NotifyContext(ctx, syscall.SIGINT)
 	defer cancel()
+
+	redisClient := redis.NewClient(&redis.Options{
+		Addr:     cfg.Redis.Addr,
+		Password: cfg.Redis.Password,
+		DB:       cfg.Redis.DB,
+	})
+	panicOnError(redisClient.Ping(ctx).Err())
+	ctx = storage.WithRedis(ctx, redisClient)
+	ctx = storage.WithGlobalPrefix(ctx, cfg.Redis.KeyPrefix)
 
 	srv := initServer(ctx, cfg.Server.Address)
 

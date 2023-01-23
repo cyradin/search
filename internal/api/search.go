@@ -11,20 +11,18 @@ import (
 
 type SearchController struct {
 	repo *index.Repository
-	docs *index.Documents
 }
 
-func NewSearchController(repo *index.Repository, docs *index.Documents) *SearchController {
+func NewSearchController(repo *index.Repository) *SearchController {
 	return &SearchController{
 		repo: repo,
-		docs: docs,
 	}
 }
 
 func (c *SearchController) SearchAction() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		i, err := c.repo.Get(chi.URLParam(r, indexParam))
+		i, err := c.repo.Get(ctx, chi.URLParam(r, indexParam))
 		if err != nil {
 			if errors.Is(err, index.ErrIndexNotFound) {
 				resp, status := NewErrResponse404(ErrResponseWithMsg(err.Error()))
@@ -44,7 +42,7 @@ func (c *SearchController) SearchAction() http.HandlerFunc {
 			return
 		}
 
-		result, err := c.docs.Search(ctx, i, query)
+		result, err := i.Search(ctx, query)
 		if err != nil {
 			handleErr(w, r, err)
 			return

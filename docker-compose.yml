@@ -7,6 +7,10 @@ services:
       - ".:/home/user/app:rw"
       - "go-pkg:/home/user/go/pkg:rw"
       - "go-bin:/home/user/go/bin:rw"
+  redis:
+    image: redis:7.0.4-alpine
+  redis-test:
+    image: redis:7.0.4-alpine
 
 volumes:
   go-pkg:

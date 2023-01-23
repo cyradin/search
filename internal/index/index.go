@@ -2,139 +2,140 @@ package index
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"sync"
 	"time"
 
 	"github.com/cyradin/search/internal/errs"
+	"github.com/cyradin/search/internal/index/field"
 	"github.com/cyradin/search/internal/index/schema"
-	validation "github.com/go-ozzo/ozzo-validation/v4"
 )
 
-var ErrIndexNotFound = fmt.Errorf("index not found")
-var ErrIndexAlreadyExists = fmt.Errorf("index already exists")
-
-type Index struct {
+type IndexData struct {
 	Name      string        `json:"name"`
 	CreatedAt time.Time     `json:"createdAt"`
 	Schema    schema.Schema `json:"schema"`
 }
 
-func New(name string, s schema.Schema) Index {
-	return Index{
-		Name:      name,
-		CreatedAt: time.Now(),
-		Schema:    s,
+var ErrDocNotFound = fmt.Errorf("doc not found")
+
+type DocSource map[string]interface{}
+
+type Index struct {
+	data   IndexData
+	ids    *IDs
+	fields map[string]field.Field
+}
+
+func NewIndex(ctx context.Context, i IndexData) (*Index, error) {
+	result := &Index{
+		data:   i,
+		fields: make(map[string]field.Field),
 	}
-}
 
-type Repository struct {
-	mtx     sync.Mutex
-	storage Storage[string, Index]
-
-	dataDir string
-
-	docs *Documents
-}
-
-func NewRepository(dataDir string, docs *Documents) (*Repository, error) {
-	storage, err := NewIndexStorage(dataDir)
+	ids, err := NewIDs(ctx, i.Name)
 	if err != nil {
-		return nil, errs.Errorf("index storage init err: %w", err)
+		return nil, err
 	}
+	result.ids = ids
 
-	return &Repository{
-		storage: storage,
-		dataDir: dataDir,
-		docs:    docs,
-	}, nil
-}
-
-func (r *Repository) Init(ctx context.Context) error {
-	indexes, err := r.All()
-	if err != nil {
-		return errs.Errorf("index list load err: %w", err)
+	// add "allField" which contains all documents
+	fieldsCopy := make(map[string]schema.Field)
+	for name, field := range i.Schema.Fields {
+		fieldsCopy[name] = field
 	}
+	fieldsCopy[field.AllField] = schema.NewField(schema.TypeAll, false, "")
 
-	for _, index := range indexes {
-		err := r.docs.AddIndex(index)
+	for name, f := range fieldsCopy {
+		opts := field.Opts{}
+
+		if f.Analyzer != "" {
+			a, err := i.Schema.Analyzers[f.Analyzer].Build()
+			if err != nil {
+				return nil, errs.Errorf("analyzer build err: %w", err)
+			}
+			opts.Analyzer = a
+		}
+
+		if f.Type == schema.TypeText {
+			opts.Scoring = field.NewScoring()
+		}
+
+		field, err := field.New(f.Type, opts)
 		if err != nil {
-			return errs.Errorf("index data init err: %w", err)
+			return nil, errs.Errorf("field build err: %w", err)
+		}
+		result.fields[name] = field
+	}
+
+	return result, nil
+}
+
+func (i *Index) Data() IndexData {
+	return i.data
+}
+
+func (i *Index) Add(ctx context.Context, guid string, source DocSource) (string, error) {
+	if guid == "" {
+		guid = newGUID()
+	}
+
+	if err := schema.ValidateDoc(i.data.Schema, source); err != nil {
+		return guid, errs.Errorf("doc validation err: %w", err)
+	}
+
+	id, err := i.ids.NextID(ctx, guid)
+	if err != nil {
+		return guid, errs.Errorf("doc get next id err: %w", err)
+	}
+
+	i.fields[field.AllField].Add(id, true)
+	for key, value := range source {
+		if f, ok := i.fields[key]; ok {
+			f.Add(id, value)
 		}
 	}
 
-	return nil
+	return guid, nil
 }
 
-func (r *Repository) Get(name string) (Index, error) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	doc, err := r.storage.One(name)
-	if errors.Is(err, ErrDocNotFound) {
-		return Index{}, ErrIndexNotFound
+func (i *Index) Get(guid string) (DocSource, error) {
+	id := i.ids.ID(guid)
+	if id == 0 {
+		return nil, ErrDocNotFound
 	}
 
-	return doc.Source, nil
-}
+	if res := i.fields[field.AllField].Data(id); !res[0].(bool) {
+		// @todo warning?
+		return nil, ErrDocNotFound
+	}
 
-func (r *Repository) All() ([]Index, error) {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	var result []Index
-
-	indexes, errors := r.storage.All()
-	for {
-		select {
-		case doc, ok := <-indexes:
-			if !ok {
-				return result, nil
-			}
-			result = append(result, doc.Source)
-		case err, ok := <-errors:
-			if ok {
-				return nil, errs.Errorf("storage err: %w", err)
-			}
+	result := make(map[string]interface{})
+	for k, f := range i.fields {
+		if k == field.AllField {
+			continue
 		}
+		result[k] = f.Data(id)
 	}
+	return result, nil
 }
 
-func (r *Repository) Add(ctx context.Context, index Index) error {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	if err := validation.Validate(index.Schema); err != nil {
-		return errs.Errorf("schema validation failed: %w", err)
+func (i *Index) Delete(ctx context.Context, guid string) error {
+	if guid == "" {
+		return errs.Errorf("doc guid is required")
 	}
 
-	if err := r.docs.AddIndex(index); err != nil {
-		return errs.Errorf("docs index add err: %w", err)
+	id := i.ids.ID(guid)
+	if id == 0 {
+		return nil
 	}
 
-	_, err := r.storage.Insert(index.Name, index)
-	if errors.Is(err, ErrDocAlreadyExists) {
-		return ErrIndexAlreadyExists
+	err := i.ids.Delete(ctx, guid)
+	if err != nil {
+		return err
 	}
 
-	return err
-}
-
-func (r *Repository) Delete(ctx context.Context, name string) error {
-	r.mtx.Lock()
-	defer r.mtx.Unlock()
-
-	if err := r.docs.DeleteIndex(name); err != nil {
-		return errs.Errorf("docs index delete err: %w", err)
-	}
-
-	if err := r.storage.Delete(name); err != nil {
-		if errors.Is(err, ErrDocNotFound) {
-			return nil
-		}
-
-		return errs.Errorf("index delete err: %w", err)
+	for _, field := range i.fields {
+		field.DeleteDoc(id)
 	}
 
 	return nil
